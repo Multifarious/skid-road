@@ -198,7 +198,7 @@ public class WritingWorkerManagerTest {
     }
 
     private void awaitLatch(CountDownLatch latch) throws InterruptedException {
-        assertTrue("timeout waiting for latch.", latch.await(1, TimeUnit.SECONDS));
+        assertTrue("timeout waiting for latch.", latch.await(10, TimeUnit.SECONDS));
     }
 
 
