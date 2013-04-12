@@ -1,6 +1,20 @@
+*.log
+*.csv
+*.dat
+*.out
+*.pid
+
+*.swp
+*.swo
+
+.idea/
+target/
 *.class
+*.iml
 
 # Package Files #
-*.jar
 *.war
 *.ear
+
+.DS_Store
+*.esproj
