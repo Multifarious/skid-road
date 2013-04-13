@@ -3,12 +3,14 @@ package io.ifar.skidroad.dropwizard.cli;
 import com.sun.jersey.core.util.Base64;
 import com.yammer.dropwizard.cli.ConfiguredCommand;
 import com.yammer.dropwizard.config.Bootstrap;
+import com.yammer.dropwizard.config.Configuration;
 import com.yammer.dropwizard.config.Environment;
 import com.yammer.dropwizard.jdbi.DBIFactory;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.crypto.AESInputStream;
 import io.ifar.skidroad.crypto.StreamingBouncyCastleAESWithSIC;
 import io.ifar.skidroad.dropwizard.config.SkidRoadConfiguration;
+import io.ifar.skidroad.dropwizard.config.SkidRoadConfigurationStrategy;
 import io.ifar.skidroad.jdbi.DefaultJDBILogFileDAO;
 import io.ifar.skidroad.jdbi.JDBILogFileDAO;
 import io.ifar.skidroad.jdbi.JodaArgumentFactory;
@@ -35,7 +37,9 @@ import java.util.zip.GZIPInputStream;
 /**
  *
  */
-public class StreamLogsCommand  extends ConfiguredCommand<SkidRoadConfiguration> {
+public abstract class StreamLogsCommand <T extends Configuration> extends ConfiguredCommand<T>
+        implements SkidRoadConfigurationStrategy<T>
+{
 
     private final static String STATE = "state";
     private final static String START_DATE = "start";
@@ -74,7 +78,7 @@ public class StreamLogsCommand  extends ConfiguredCommand<SkidRoadConfiguration>
 
 
     @Override
-    protected void run(Bootstrap<SkidRoadConfiguration> bootstrap, Namespace namespace, SkidRoadConfiguration configuration) throws Exception {
+    protected void run(Bootstrap<T> bootstrap, Namespace namespace, T configuration) throws Exception {
         CliConveniences.quietLogging("ifar", "hsqldb.db");
         LogFileTracker tracker = null;
         JetS3tStorage storage = null;
@@ -86,14 +90,16 @@ public class StreamLogsCommand  extends ConfiguredCommand<SkidRoadConfiguration>
 
         Environment env = CliConveniences.fabricateEnvironment(getName(), configuration);
         env.start();
+
+        SkidRoadConfiguration skidRoadConfiguration = getSkidRoadConfiguration(configuration);
         try (FileOutputStream out = new FileOutputStream(outFile)) {
             DBIFactory factory = new DBIFactory();
-            DBI jdbi = factory.build(env, configuration.getDatabaseConfiguration(), "logfile");
+            DBI jdbi = factory.build(env, skidRoadConfiguration.getDatabaseConfiguration(), "logfile");
             jdbi.registerArgumentFactory(new JodaArgumentFactory());
 
             storage = new S3JetS3tStorage(
-                    configuration.getRequestLogUploadConfiguration().getAccessKeyID(),
-                    configuration.getRequestLogUploadConfiguration().getSecretAccessKey()
+                    skidRoadConfiguration.getRequestLogUploadConfiguration().getAccessKeyID(),
+                    skidRoadConfiguration.getRequestLogUploadConfiguration().getSecretAccessKey()
             );
             storage.start();
 
@@ -114,8 +120,8 @@ public class StreamLogsCommand  extends ConfiguredCommand<SkidRoadConfiguration>
 
                 byte[][] fileKey = StreamingBouncyCastleAESWithSIC.decodeAndDecryptKeyAndIV(
                         logFile.getArchiveKey(),
-                        Base64.decode(configuration.getRequestLogPrepConfiguration().getMasterKey()),
-                        Base64.decode(configuration.getRequestLogPrepConfiguration().getMasterIV())
+                        Base64.decode(skidRoadConfiguration.getRequestLogPrepConfiguration().getMasterKey()),
+                        Base64.decode(skidRoadConfiguration.getRequestLogPrepConfiguration().getMasterIV())
                 );
 
                 StorageObject so;

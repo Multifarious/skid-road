@@ -2,10 +2,12 @@ package io.ifar.skidroad.dropwizard.cli;
 
 import com.yammer.dropwizard.cli.ConfiguredCommand;
 import com.yammer.dropwizard.config.Bootstrap;
+import com.yammer.dropwizard.config.Configuration;
 import com.yammer.dropwizard.config.Environment;
 import com.yammer.dropwizard.jdbi.DBIFactory;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.dropwizard.config.SkidRoadConfiguration;
+import io.ifar.skidroad.dropwizard.config.SkidRoadConfigurationStrategy;
 import io.ifar.skidroad.jdbi.DefaultJDBILogFileDAO;
 import io.ifar.skidroad.jdbi.JDBILogFileDAO;
 import io.ifar.skidroad.jdbi.JodaArgumentFactory;
@@ -23,7 +25,9 @@ import java.util.Iterator;
 /**
  *
  */
-public class ListLogFilesCommand extends ConfiguredCommand<SkidRoadConfiguration> {
+public abstract class ListLogFilesCommand<T extends Configuration> extends ConfiguredCommand<T>
+        implements SkidRoadConfigurationStrategy<T>
+{
 
     private final static String STATE = "state";
     private final static String START_DATE = "start";
@@ -57,17 +61,18 @@ public class ListLogFilesCommand extends ConfiguredCommand<SkidRoadConfiguration
 
 
     @Override
-    protected void run(Bootstrap<SkidRoadConfiguration> bootstrap, Namespace namespace, SkidRoadConfiguration configuration) throws Exception {
+    protected void run(Bootstrap<T> bootstrap, Namespace namespace, T configuration) throws Exception {
         CliConveniences.quietLogging("ifar", "hsqldb.db");
         String state = namespace.getString(STATE);
         DateTime startDate = ISO_FMT.parseDateTime(namespace.getString(START_DATE));
         DateTime endDate = ISO_FMT.parseDateTime(namespace.getString(END_DATE));
 
         Environment env = CliConveniences.fabricateEnvironment(getName(), configuration);
+        SkidRoadConfiguration skidRoadConfiguration = getSkidRoadConfiguration(configuration);
         env.start();
         try {
             DBIFactory factory = new DBIFactory();
-            DBI jdbi = factory.build(env, configuration.getDatabaseConfiguration(), "logfile");
+            DBI jdbi = factory.build(env, skidRoadConfiguration.getDatabaseConfiguration(), "logfile");
             jdbi.registerArgumentFactory(new JodaArgumentFactory());
 
             JDBILogFileDAO dao = jdbi.onDemand(DefaultJDBILogFileDAO.class);

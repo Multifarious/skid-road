@@ -3,12 +3,14 @@ package io.ifar.skidroad.dropwizard.cli;
 import com.sun.jersey.core.util.Base64;
 import com.yammer.dropwizard.cli.ConfiguredCommand;
 import com.yammer.dropwizard.config.Bootstrap;
+import com.yammer.dropwizard.config.Configuration;
 import com.yammer.dropwizard.config.Environment;
 import com.yammer.dropwizard.jdbi.DBIFactory;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.crypto.AESInputStream;
 import io.ifar.skidroad.crypto.StreamingBouncyCastleAESWithSIC;
 import io.ifar.skidroad.dropwizard.config.SkidRoadConfiguration;
+import io.ifar.skidroad.dropwizard.config.SkidRoadConfigurationStrategy;
 import io.ifar.skidroad.jdbi.DefaultJDBILogFileDAO;
 import io.ifar.skidroad.jdbi.JDBILogFileTracker;
 import io.ifar.skidroad.jets3t.JetS3tStorage;
@@ -35,7 +37,8 @@ import static java.nio.file.StandardOpenOption.WRITE;
 /**
  * Download, decrypt, and decompress a LogFile.
  */
-public class FetchLogFileCommand extends ConfiguredCommand<SkidRoadConfiguration> {
+public abstract class FetchLogFileCommand<T extends Configuration> extends ConfiguredCommand<T>
+        implements SkidRoadConfigurationStrategy<T> {
     private final static String COHORT = "cohort";
     private final static String SERIAL = "serial";
     private final static String OUT = "out";
@@ -61,7 +64,7 @@ public class FetchLogFileCommand extends ConfiguredCommand<SkidRoadConfiguration
     }
 
     @Override
-    protected void run(Bootstrap<SkidRoadConfiguration> bootstrap, Namespace namespace, SkidRoadConfiguration configuration) throws Exception {
+    protected void run(Bootstrap<T> bootstrap, Namespace namespace, T configuration) throws Exception {
         CliConveniences.quietLogging("io.ifar","hsqldb.db");
         LogFileTracker tracker = null;
         JetS3tStorage storage = null;
@@ -69,12 +72,13 @@ public class FetchLogFileCommand extends ConfiguredCommand<SkidRoadConfiguration
         int serial = namespace.getInt(SERIAL);
         Environment env = CliConveniences.fabricateEnvironment(getName(), configuration);
         env.start();
+        SkidRoadConfiguration skidRoadConfiguration = getSkidRoadConfiguration(configuration);
         try {
 
             final DBIFactory factory = new DBIFactory();
-            final DBI jdbi = factory.build(env, configuration.getDatabaseConfiguration(), "logfile");
+            final DBI jdbi = factory.build(env, skidRoadConfiguration.getDatabaseConfiguration(), "logfile");
             tracker = new JDBILogFileTracker(
-                    new URI("http://" + configuration.getNodeId()),
+                    new URI("http://" + skidRoadConfiguration.getNodeId()),
                     jdbi.onDemand(DefaultJDBILogFileDAO.class));
             tracker.start();
 
@@ -88,8 +92,8 @@ public class FetchLogFileCommand extends ConfiguredCommand<SkidRoadConfiguration
             //System.out.println("Archive key encoded: " + logFile.getArchiveKey());
             byte[][] fileKey = StreamingBouncyCastleAESWithSIC.decodeAndDecryptKeyAndIV(
                     logFile.getArchiveKey(),
-                    Base64.decode(configuration.getRequestLogPrepConfiguration().getMasterKey()),
-                    Base64.decode(configuration.getRequestLogPrepConfiguration().getMasterIV())
+                    Base64.decode(skidRoadConfiguration.getRequestLogPrepConfiguration().getMasterKey()),
+                    Base64.decode(skidRoadConfiguration.getRequestLogPrepConfiguration().getMasterIV())
             );
 
             if (logFile.getArchiveURI() == null) {
@@ -99,8 +103,8 @@ public class FetchLogFileCommand extends ConfiguredCommand<SkidRoadConfiguration
 
             //System.err.println(String.format("Fetching %s", logFile.getArchiveURI()));
             storage = new S3JetS3tStorage(
-                    configuration.getRequestLogUploadConfiguration().getAccessKeyID(),
-                    configuration.getRequestLogUploadConfiguration().getSecretAccessKey()
+                    skidRoadConfiguration.getRequestLogUploadConfiguration().getAccessKeyID(),
+                    skidRoadConfiguration.getRequestLogUploadConfiguration().getSecretAccessKey()
             );
             storage.start();
 

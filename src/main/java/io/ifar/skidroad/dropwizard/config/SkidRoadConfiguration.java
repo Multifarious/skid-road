@@ -11,7 +11,7 @@ import javax.validation.constraints.NotNull;
 /**
  * Configuration class for deployment within a Dropwizard service.
  */
-public class SkidRoadConfiguration extends Configuration {
+public class SkidRoadConfiguration {
 
     @JsonProperty("node_id")
     @NotNull
