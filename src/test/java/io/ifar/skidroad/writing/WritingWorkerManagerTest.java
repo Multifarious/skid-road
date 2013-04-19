@@ -84,6 +84,7 @@ public class WritingWorkerManagerTest {
         CountDownLatch creationLatch = factory.getCreationLatch(1);
         manager.record(System.currentTimeMillis(), "foo");
         awaitLatch(creationLatch);
+        assertEquals(1,factory.getThreadsCreated().size());
         Thread originalWorker = factory.getThreadsCreated().get(0);
         factory.exitNextQueue();
         awaitNextPrune();

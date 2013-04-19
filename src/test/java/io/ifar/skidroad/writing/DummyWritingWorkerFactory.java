@@ -72,9 +72,9 @@ public class DummyWritingWorkerFactory<T> implements WritingWorkerFactory<T> {
 
         Thread result = new Thread(new DummyWorker<T>(queue,runLatch,drainFlag,exitLatch), getClass().getSimpleName() + "_" + threadsCreated.size());
 
+        threadsCreated.add(result);
         for (CountDownLatch creationLatch : creationLatches)
             creationLatch.countDown();
-        threadsCreated.add(result);
         return result;
 
     }
