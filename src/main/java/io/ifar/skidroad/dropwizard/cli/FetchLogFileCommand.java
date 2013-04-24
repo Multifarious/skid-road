@@ -1,5 +1,6 @@
 package io.ifar.skidroad.dropwizard.cli;
 
+import com.google.common.io.ByteStreams;
 import com.sun.jersey.core.util.Base64;
 import com.yammer.dropwizard.cli.ConfiguredCommand;
 import com.yammer.dropwizard.config.Bootstrap;
@@ -15,6 +16,7 @@ import io.ifar.skidroad.jdbi.DefaultJDBILogFileDAO;
 import io.ifar.skidroad.jdbi.JDBILogFileTracker;
 import io.ifar.skidroad.jets3t.JetS3tStorage;
 import io.ifar.skidroad.jets3t.S3JetS3tStorage;
+import io.ifar.skidroad.streaming.StreamingAccess;
 import io.ifar.skidroad.tracking.LogFileTracker;
 import io.ifar.goodies.CliConveniences;
 import net.sourceforge.argparse4j.inf.Namespace;
@@ -24,6 +26,7 @@ import org.jets3t.service.ServiceException;
 import org.jets3t.service.model.StorageObject;
 import org.skife.jdbi.v2.DBI;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
@@ -82,19 +85,11 @@ public abstract class FetchLogFileCommand<T extends Configuration> extends Confi
                     jdbi.onDemand(DefaultJDBILogFileDAO.class));
             tracker.start();
 
-            //System.err.println(String.format("Looking up %s.%s.", cohort, serial));
             LogFile logFile = tracker.findByRollingCohortAndSerial(cohort, serial);
             if (logFile == null) {
                 System.err.println(String.format("No database record for %s.%d", cohort, serial));
                 return;
             }
-
-            //System.out.println("Archive key encoded: " + logFile.getArchiveKey());
-            byte[][] fileKey = StreamingBouncyCastleAESWithSIC.decodeAndDecryptKeyAndIV(
-                    logFile.getArchiveKey(),
-                    Base64.decode(skidRoadConfiguration.getRequestLogPrepConfiguration().getMasterKey()),
-                    Base64.decode(skidRoadConfiguration.getRequestLogPrepConfiguration().getMasterIV())
-            );
 
             if (logFile.getArchiveURI() == null) {
                 System.err.println(String.format("Cannot fetch %s, no archive URI set in database.", logFile));
@@ -108,38 +103,42 @@ public abstract class FetchLogFileCommand<T extends Configuration> extends Confi
             );
             storage.start();
 
-            StorageObject so;
-            try {
-                so = storage.get(logFile.getArchiveURI().toString());
-            } catch (ServiceException e) {
-                System.err.println("Cannot fetch " + logFile.getArchiveURI().toString() + ": " + e.getClass().getSimpleName() + ": " + e.toString());
-                return;
-            }
+
+            StreamingAccess access = new StreamingAccess(storage,
+                    skidRoadConfiguration.getRequestLogPrepConfiguration().getMasterKey(),
+                    skidRoadConfiguration.getRequestLogPrepConfiguration().getMasterIV()
+            );
+
             String outputDir = namespace.getString(OUT);
             if (outputDir == null) {
                 outputDir = Paths.get(".").toAbsolutePath().getParent().toString();
             }
             Path path = Paths.get(outputDir);
-            int byteCount;
-            try (InputStream encryptedCompressedStream = so.getDataInputStream();
-                 AESInputStream compressedStream = new AESInputStream(encryptedCompressedStream, fileKey[0], fileKey[1]);
-                 GZIPInputStream plainStream = new GZIPInputStream(compressedStream)
-            ) {
+            long byteCount;
+            try (InputStream is = access.streamFor(logFile)) {
 
                 if (Files.exists(path) && Files.isDirectory(path))
                     path = Paths.get(path.toString(), logFile.getOriginPath().getFileName().toString());
 
                 OutputStream out = Files.newOutputStream( path, CREATE, WRITE);
-                byteCount = IOUtils.copy(plainStream, out);
-            } finally {
-                so.closeDataInputStream();
+                byteCount = ByteStreams.copy(is, out);
+                out.flush();
+                out.close();
+                System.err.println("Wrote " + byteCount + " bytes to " + path.toAbsolutePath());
+            } catch (ServiceException se) {
+                System.err.println(String.format("Unable to download from S3: (%d) %s",
+                        se.getResponseCode(),se.getErrorMessage()));
+            } catch (IOException ioe) {
+                System.err.println(String.format("Unable to process stream: (%s) %s",
+                        ioe.getClass().getSimpleName(), ioe.getMessage()));
             }
-            System.err.println("Wrote " + byteCount + " bytes to " + path.toAbsolutePath());
         } finally {
-            if (tracker != null)
+            if (tracker != null) {
                 tracker.stop();
-            if (storage != null)
+            }
+            if (storage != null) {
                 storage.stop();
+            }
             env.stop();
         }
     }

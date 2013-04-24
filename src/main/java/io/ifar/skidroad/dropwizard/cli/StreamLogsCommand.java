@@ -1,5 +1,6 @@
 package io.ifar.skidroad.dropwizard.cli;
 
+import com.google.common.io.ByteStreams;
 import com.sun.jersey.core.util.Base64;
 import com.yammer.dropwizard.cli.ConfiguredCommand;
 import com.yammer.dropwizard.config.Bootstrap;
@@ -16,8 +17,8 @@ import io.ifar.skidroad.jdbi.JDBILogFileDAO;
 import io.ifar.skidroad.jdbi.JodaArgumentFactory;
 import io.ifar.skidroad.jets3t.JetS3tStorage;
 import io.ifar.skidroad.jets3t.S3JetS3tStorage;
-import io.ifar.skidroad.tracking.LogFileTracker;
 import io.ifar.goodies.CliConveniences;
+import io.ifar.skidroad.streaming.StreamingAccess;
 import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;
 import org.apache.commons.io.IOUtils;
@@ -31,12 +32,16 @@ import org.skife.jdbi.v2.DBI;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.zip.GZIPInputStream;
 
 /**
  *
  */
+@SuppressWarnings("UnusedDeclaration")
 public abstract class StreamLogsCommand <T extends Configuration> extends ConfiguredCommand<T>
         implements SkidRoadConfigurationStrategy<T>
 {
@@ -80,7 +85,6 @@ public abstract class StreamLogsCommand <T extends Configuration> extends Config
     @Override
     protected void run(Bootstrap<T> bootstrap, Namespace namespace, T configuration) throws Exception {
         CliConveniences.quietLogging("ifar", "hsqldb.db");
-        LogFileTracker tracker = null;
         JetS3tStorage storage = null;
         String state = namespace.getString(STATE);
         DateTime startDate = ISO_FMT.parseDateTime(namespace.getString(START_DATE));
@@ -92,7 +96,7 @@ public abstract class StreamLogsCommand <T extends Configuration> extends Config
         env.start();
 
         SkidRoadConfiguration skidRoadConfiguration = getSkidRoadConfiguration(configuration);
-        try (FileOutputStream out = new FileOutputStream(outFile)) {
+        try (OutputStream out = Files.newOutputStream(Paths.get(outFile))) {
             DBIFactory factory = new DBIFactory();
             DBI jdbi = factory.build(env, skidRoadConfiguration.getDatabaseConfiguration(), "logfile");
             jdbi.registerArgumentFactory(new JodaArgumentFactory());
@@ -109,6 +113,10 @@ public abstract class StreamLogsCommand <T extends Configuration> extends Config
             long files = dao.count(state, startDate, endDate);
             long totalBytes = dao.totalSize(state, startDate, endDate);
 
+            StreamingAccess access = new StreamingAccess(storage,
+                    skidRoadConfiguration.getRequestLogPrepConfiguration().getMasterKey(),
+                    skidRoadConfiguration.getRequestLogPrepConfiguration().getMasterIV());
+
             System.out.print(String.format("[ %,d files / %,d total bytes ]: ",files, totalBytes));
             while(iter.hasNext()) {
                 LogFile logFile = iter.next();
@@ -118,34 +126,18 @@ public abstract class StreamLogsCommand <T extends Configuration> extends Config
                     continue;
                 }
 
-                byte[][] fileKey = StreamingBouncyCastleAESWithSIC.decodeAndDecryptKeyAndIV(
-                        logFile.getArchiveKey(),
-                        Base64.decode(skidRoadConfiguration.getRequestLogPrepConfiguration().getMasterKey()),
-                        Base64.decode(skidRoadConfiguration.getRequestLogPrepConfiguration().getMasterIV())
-                );
-
-                StorageObject so;
-                try {
-                    so = storage.get(logFile.getArchiveURI().toString());
+                try(InputStream is = access.streamFor(logFile)) {
+                    ByteStreams.copy(is,out);
                 } catch (ServiceException e) {
                     System.out.print("X");
                     System.err.println(String.format("Cannot fetch %s due to %s from S3: (%s) %s",
                             logFile.getArchiveURI(), e.getErrorCode(), e.getClass().getSimpleName(), e.getMessage()));
                     continue;
-                }
-
-                try (InputStream encryptedCompressedStream = so.getDataInputStream();
-                     AESInputStream compressedStream = new AESInputStream(encryptedCompressedStream, fileKey[0], fileKey[1]);
-                     GZIPInputStream plainStream = new GZIPInputStream(compressedStream)
-                ) {
-                    IOUtils.copy(plainStream, out);
                 } catch (IOException ioe) {
                     System.out.println("#");
                     System.err.println(String.format("Cannot process data from %s: (%s) %s",
                             logFile.getArchiveURI(), ioe.getClass().getSimpleName(), ioe.getMessage()));
                     continue;
-                } finally {
-                    so.closeDataInputStream();
                 }
                 System.out.print(".");
             }
