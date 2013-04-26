@@ -6,9 +6,11 @@ import org.skife.jdbi.v2.sqlobject.Bind;
 import org.skife.jdbi.v2.sqlobject.SqlQuery;
 import org.skife.jdbi.v2.sqlobject.SqlUpdate;
 import org.skife.jdbi.v2.sqlobject.customizers.RegisterMapper;
+import org.skife.jdbi.v2.unstable.BindIn;
 
 import java.sql.Timestamp;
 import java.util.Iterator;
+import java.util.Set;
 
 /**
  *
@@ -55,9 +57,9 @@ public interface DefaultJDBILogFileDAO extends JDBILogFileDAO {
 
     @Override
     @SqlQuery("select rolling_cohort, serial, start_time, origin_uri, prep_uri, archive_key, archive_uri, archive_group," +
-            " state, owner_uri, bytes, created_at, updated_at from log_files where state = :state and start_time >= :first_ts and start_time <= :last_ts" +
+            " state, owner_uri, bytes, created_at, updated_at from log_files where state = ANY(:states) and start_time >= :first_ts and start_time <= :last_ts" +
             " order by start_time asc")
-    Iterator<LogFile> listLogFilesByDateAndState(@Bind("state") String state, @Bind("first_ts") DateTime startDate,
+    Iterator<LogFile> listLogFilesByDateAndState(@Bind(value="states", binder = StringCollectionBinder.class) Set<String> state, @Bind("first_ts") DateTime startDate,
                                                  @Bind("last_ts") DateTime endDate);
 
     @Override
@@ -65,13 +67,13 @@ public interface DefaultJDBILogFileDAO extends JDBILogFileDAO {
     Iterator<CountByState> countLogFilesByState();
 
     @Override
-    @SqlQuery("select sum(bytes) from log_files where state = :state and start_time >= :first_ts and start_time <= :last_ts")
-    Long totalSize(@Bind("state") String state, @Bind("first_ts") DateTime startDate,
+    @SqlQuery("select sum(bytes) from log_files where state = ANY(:states) and start_time >= :first_ts and start_time <= :last_ts")
+    Long totalSize(@Bind(value = "states", binder = StringCollectionBinder.class) Set<String> states, @Bind("first_ts") DateTime startDate,
                    @Bind("last_ts") DateTime endDate);
 
     @Override
-    @SqlQuery("select count(*) from log_files where state = :state and start_time >= :first_ts and start_time <= :last_ts")
-    Long count(@Bind("state") String state, @Bind("first_ts") DateTime startDate,
+    @SqlQuery("select count(*) from log_files where state = ANY(:states) and start_time >= :first_ts and start_time <= :last_ts")
+    Long count(@Bind(value = "states", binder = StringCollectionBinder.class) Set<String> state, @Bind("first_ts") DateTime startDate,
                @Bind("last_ts") DateTime endDate);
 
     @Override

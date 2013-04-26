@@ -12,6 +12,7 @@ import io.ifar.skidroad.jdbi.DefaultJDBILogFileDAO;
 import io.ifar.skidroad.jdbi.JDBILogFileDAO;
 import io.ifar.skidroad.jdbi.JodaArgumentFactory;
 import io.ifar.goodies.CliConveniences;
+import io.ifar.skidroad.tracking.LogFileState;
 import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;
 import org.apache.commons.lang.StringUtils;
@@ -20,7 +21,7 @@ import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 import org.skife.jdbi.v2.DBI;
 
-import java.util.Iterator;
+import java.util.*;
 
 /**
  *
@@ -42,10 +43,16 @@ public abstract class ListLogFilesCommand<T extends Configuration> extends Confi
     @Override
     public void configure(Subparser subparser) {
         super.configure(subparser);
+        List<String> states = new ArrayList<>();
+        for (LogFileState state : LogFileState.values()) {
+            states.add(state.name());
+        }
         subparser.addArgument("-s","--state")
                 .required(true)
                 .dest(STATE)
-                .help("");
+                .choices(states)
+                .nargs("+")
+                .help("the state(s) of files to include");
 
         subparser.addArgument("-i","--start-date")
                 .required(true)
@@ -63,7 +70,7 @@ public abstract class ListLogFilesCommand<T extends Configuration> extends Confi
     @Override
     protected void run(Bootstrap<T> bootstrap, Namespace namespace, T configuration) throws Exception {
         CliConveniences.quietLogging("ifar", "hsqldb.db");
-        String state = namespace.getString(STATE);
+        Set<String> states = new HashSet<>(namespace.<String>getList(STATE));
         DateTime startDate = ISO_FMT.parseDateTime(namespace.getString(START_DATE));
         DateTime endDate = ISO_FMT.parseDateTime(namespace.getString(END_DATE));
 
@@ -76,7 +83,7 @@ public abstract class ListLogFilesCommand<T extends Configuration> extends Confi
             jdbi.registerArgumentFactory(new JodaArgumentFactory());
 
             JDBILogFileDAO dao = jdbi.onDemand(DefaultJDBILogFileDAO.class);
-            Iterator<LogFile> iter = dao.listLogFilesByDateAndState(state, startDate, endDate);
+            Iterator<LogFile> iter = dao.listLogFilesByDateAndState(states, startDate, endDate);
             if (iter.hasNext()) {
                 System.out.println(String.format("%-25s | %10s | %15s | %-25s","COHORT","SERIAL","SIZE","OWNER"));
                 System.out.println(StringUtils.repeat("_",25)
@@ -88,7 +95,7 @@ public abstract class ListLogFilesCommand<T extends Configuration> extends Confi
                 LogFile lf = iter.next();
                 System.out.println(String.format("%-25s | %10d | %15d | %-25s",lf.getRollingCohort(),lf.getSerial(),lf.getByteSize(),lf.getOwnerURI()));
             }
-            long totalSize = dao.totalSize(state, startDate, endDate);
+            long totalSize = dao.totalSize(states, startDate, endDate);
             if (totalSize != 0) {
                 System.out.println(StringUtils.repeat("_",25)
                         + "_|_" + StringUtils.repeat("_",10)

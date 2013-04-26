@@ -19,6 +19,7 @@ import io.ifar.skidroad.jets3t.JetS3tStorage;
 import io.ifar.skidroad.jets3t.S3JetS3tStorage;
 import io.ifar.goodies.CliConveniences;
 import io.ifar.skidroad.streaming.StreamingAccess;
+import io.ifar.skidroad.tracking.LogFileState;
 import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;
 import org.apache.commons.io.IOUtils;
@@ -35,7 +36,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Iterator;
+import java.util.*;
 import java.util.zip.GZIPInputStream;
 
 /**
@@ -60,10 +61,16 @@ public abstract class StreamLogsCommand <T extends Configuration> extends Config
     @Override
     public void configure(Subparser subparser) {
         super.configure(subparser);
+        List<String> states = new ArrayList<>();
+        for (LogFileState state : LogFileState.values()) {
+            states.add(state.name());
+        }
         subparser.addArgument("-s","--state")
                 .required(true)
                 .dest(STATE)
-                .help("");
+                .choices(states)
+                .nargs("+")
+                .help("the state(s) of files to include");
 
         subparser.addArgument("-i","--start-date")
                 .required(true)
@@ -86,7 +93,7 @@ public abstract class StreamLogsCommand <T extends Configuration> extends Config
     protected void run(Bootstrap<T> bootstrap, Namespace namespace, T configuration) throws Exception {
         CliConveniences.quietLogging("ifar", "hsqldb.db");
         JetS3tStorage storage = null;
-        String state = namespace.getString(STATE);
+        Set<String> states = new HashSet<>(namespace.<String>getList(STATE));
         DateTime startDate = ISO_FMT.parseDateTime(namespace.getString(START_DATE));
         DateTime endDate = ISO_FMT.parseDateTime(namespace.getString(END_DATE));
 
@@ -108,10 +115,10 @@ public abstract class StreamLogsCommand <T extends Configuration> extends Config
             storage.start();
 
             JDBILogFileDAO dao = jdbi.onDemand(DefaultJDBILogFileDAO.class);
-            Iterator<LogFile> iter = dao.listLogFilesByDateAndState(state, startDate, endDate);
+            Iterator<LogFile> iter = dao.listLogFilesByDateAndState(states, startDate, endDate);
 
-            long files = dao.count(state, startDate, endDate);
-            long totalBytes = dao.totalSize(state, startDate, endDate);
+            long files = dao.count(states, startDate, endDate);
+            long totalBytes = dao.totalSize(states, startDate, endDate);
 
             StreamingAccess access = new StreamingAccess(storage,
                     skidRoadConfiguration.getRequestLogPrepConfiguration().getMasterKey(),

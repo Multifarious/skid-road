@@ -5,6 +5,7 @@ import org.joda.time.DateTime;
 
 import java.sql.Timestamp;
 import java.util.Iterator;
+import java.util.Set;
 
 /**
  * DAO used by JDBILogFileTracker. Either use {@link DefaultJDBILogFileDAO} with the standard table layout or implement your
@@ -32,11 +33,11 @@ public interface JDBILogFileDAO {
 
     Iterator<CountByState> countLogFilesByState();
 
-    Long totalSize(String state, DateTime startDate, DateTime endDate);
+    Long totalSize(Set<String> states, DateTime startDate, DateTime endDate);
 
-    Long count(String state, DateTime startDate, DateTime endDate);
+    Long count(Set<String> states, DateTime startDate, DateTime endDate);
 
-    Iterator<LogFile> listLogFilesByDateAndState(String state, DateTime startDate, DateTime endDate);
+    Iterator<LogFile> listLogFilesByDateAndState(Set<String> state, DateTime startDate, DateTime endDate);
 
     LogFile findByRollingCohortAndSerial(String rollingCohort, int serial);
 
