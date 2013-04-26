@@ -86,6 +86,19 @@ public class StreamingBouncyCastleAESWithSICTest {
     }
 
     @Test
+    public void testEncryptSingleUseKey() throws Exception {
+        byte[] masterKey = generateRandomKey();
+        byte[] masterIV = generateRandomIV();
+        byte[] key = generateRandomKey();
+        byte[] iv = generateRandomIV();
+        String enc = encryptSingleUseKey(key, iv, masterKey, masterIV);
+        byte[][] result = decryptSingleUseKey(enc, masterKey );
+
+        assertArrayEquals(key, result[0]);
+        assertArrayEquals(iv, result[1]);
+    }
+
+    @Test
     public void testFileRoundTrip() throws Exception {
         String classPathLocation = '/' + StreamingBouncyCastleAESWithSICTest.class.getPackage().getName().replace('.', '/');
         try (InputStream plainInputStream = getClass().getResourceAsStream(classPathLocation + "/plain.txt")) {

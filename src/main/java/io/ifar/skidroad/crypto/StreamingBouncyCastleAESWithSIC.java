@@ -1,5 +1,8 @@
 package io.ifar.skidroad.crypto;
 
+import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
+import com.google.common.collect.Lists;
 import org.apache.commons.io.IOUtils;
 import org.bouncycastle.crypto.BlockCipher;
 import org.bouncycastle.crypto.CipherKeyGenerator;
@@ -15,6 +18,7 @@ import org.bouncycastle.util.encoders.Base64;
 import java.io.*;
 import java.nio.charset.Charset;
 import java.security.SecureRandom;
+import java.util.List;
 
 /**
  * Provides encryption/decryption of InputStream to OutputStream using Bouncy
@@ -101,12 +105,14 @@ public class StreamingBouncyCastleAESWithSIC {
 
     /**
      * Wraps provided OutputStream in an AESOutputStream and encrypts the
-     * provided InputStreap by copying it to the wrapped output.
+     * provided InputStream by copying it to the wrapped output.
+     *
+     * Usually it is preferable to use the encrypt method that auto-generates the IV.
      *
      * @param from Input data; it is not closed by this method.
      * @param to Output data; it is not flushed or closed by this method.
      * @param key AES encryption key
-     * @param key AES SIC initialization vector
+     * @param key AES SIC initialization vector. Should be unique for each invocation.
      *
      * @see AESOutputStream
      * @throws IOException
@@ -116,6 +122,28 @@ public class StreamingBouncyCastleAESWithSIC {
         AESOutputStream encryptedOutputStream = new AESOutputStream(to, key, iv);
         IOUtils.copy(from, encryptedOutputStream);
         encryptedOutputStream.finish();
+    }
+
+    /**
+     * Wraps provided OutputStream in an AESOutputStream and encrypts the
+     * provided InputStream by copying it to the wrapped output.
+     *
+     * An AES SIC initialization vector is automatically generated and
+     * returned. It it required to decrypt the output!
+     *
+     * @param from Input data; it is not closed by this method.
+     * @param to Output data; it is not flushed or closed by this method.
+     * @param key AES encryption key
+     * @return randomly generated AES SIC initialization vector
+     *
+     * @see AESOutputStream
+     * @throws IOException
+     * @throws InvalidCipherTextException
+     */
+    public static byte[] encrypt(InputStream from, OutputStream to, byte[] key) throws IOException, InvalidCipherTextException {
+        byte[] iv = generateRandomIV();
+        encrypt(from, to, key, iv);
+        return iv;
     }
 
     /**
@@ -177,14 +205,13 @@ public class StreamingBouncyCastleAESWithSIC {
      *     )
      * </pre>
      *
-     * TODO (future): See whether CMSPBEKey or other provides a standard implementation.
-     *
      * @param key key to be encrypted and encoded
      * @param iv initialization vector to be encrypted and encoded
      * @param masterKey master key with which to perform encryption
      * @param masterIV master initialization vector with which to perform encryption
      * @return Base64 encoded and encrypted representation of key and iv.
      * @see #decodeAndDecryptKeyAndIV(String, byte[], byte[])
+     * @deprecated This method encourages masterIV reuse, which is undesirable. See {@link #encryptSingleUseKey(byte[], byte[], byte[], byte[])}
      */
     public static String encryptAndEncodeKeyAndIV(byte[] key, byte[] iv, byte[] masterKey, byte[] masterIV) {
         ByteArrayOutputStream cryptOut = new ByteArrayOutputStream();
@@ -206,6 +233,7 @@ public class StreamingBouncyCastleAESWithSIC {
         }
     }
 
+
     /**
      * Reverses encryptAndEncodeKeyAndIV operation.
      * @param base64AndLength Output from encryptAndEncodeKeyAndIV
@@ -213,6 +241,7 @@ public class StreamingBouncyCastleAESWithSIC {
      * @param masterIV master initialization vector with which to perform encryption
      * @return 2-element array, first element is key and second is iv.
      * @see #encryptAndEncodeKeyAndIV(byte[], byte[], byte[], byte[])
+     * @deprecated This method encourages masterIV reuse, which is undesirable. See {@link #decryptSingleUseKey(String, byte[])}
      */
     public static byte[][] decodeAndDecryptKeyAndIV(String base64AndLength, byte[] masterKey, byte[] masterIV) {
         int suffixAt = base64AndLength.indexOf('$');
@@ -235,6 +264,98 @@ public class StreamingBouncyCastleAESWithSIC {
             }
         } else {
             throw new IllegalArgumentException("No '$' delimiter between data and length suffix found.");
+        }
+    }
+
+    private static Joiner JOINER = Joiner.on('$');
+    /**
+     * Encrypts provided single-use key and iv pair and returns 7-bit ASCII clean representation of them
+     * and and the master iv used for encryption.
+     *
+     * Intended use is to facilitate key rotation of encrypted artifacts.
+     * Suppose artifacts are all encrypted with single-use keys. Those
+     * single-use keys are then encrypted with the master key (by this method)
+     * and stored.
+     * A key rotation can be achieved by decrypting all the single use
+     * keys with the old master key and re-encrypting them with a new
+     * master key. The encrypted artifacts themselves are untouched.
+     *
+     * Format is: <pre>
+     *     concat(
+     *         '1', //format version number
+     *         base64(encrypt(concat(
+     *             key,iv
+     *         ))),
+     *         '$',
+     *         length(key),
+     *         '$',
+     *         base64(master_iv)
+     *     )
+     * </pre>
+     *
+     * This format intentionally bears superficial similarity to <a href="http://pythonhosted.org/passlib/modular_crypt_format.html">Modular Crypt Format</a>, but that format represents hashed
+     * passwords, not encrypted passwords and initialization vectors.
+     *
+     * There is a BouncyCastle supported RFC for for encoding passwords and hashes (PKCS5 scheme-2),
+     * but it says nothing of encrypting them and including the master IV. There is little to be gained
+     * by leveraging it inside of here.
+     *
+     * @param key Single-use key
+     * @param iv Single-use initialization vector
+     * @param masterKey Master key used to encrypt the single-use pair. Not included in output.
+     * @param masterIV Master initialization vector used to encrypt the single-use pair. Included in output.
+     */
+    public static String encryptSingleUseKey(byte[] key, byte[] iv, byte[] masterKey, byte[] masterIV) {
+        ByteArrayOutputStream cryptOut = new ByteArrayOutputStream();
+
+        try (InputStream is = new SequenceInputStream(
+                new ByteArrayInputStream(key), new ByteArrayInputStream(iv))) {
+            encrypt(is, cryptOut, masterKey, masterIV);
+        } catch (InvalidCipherTextException | IOException e) {
+            //Unexpected
+            throw new IllegalArgumentException("Cannot encrypt provided key and initialization vector", e);
+        }
+        return JOINER.join(
+                '1',
+                new String(Base64.encode(cryptOut.toByteArray()), ASCII),
+                key.length,
+                new String(Base64.encode(masterIV), ASCII)
+        );
+    }
+
+    private static Splitter SPLITTER = Splitter.on('$');
+    /**
+     * Reverses {@link #encryptSingleUseKey(byte[], byte[], byte[], byte[])} operation.
+     * @param encrypted encrypted representation
+     * @param masterKey master key with which to perform decryption
+     * @return 2-element array, first element is key and second is iv.
+     */
+    public static byte[][] decryptSingleUseKey(String encrypted, byte[] masterKey) {
+        List<String> pieces = Lists.newArrayList(SPLITTER.split(encrypted));
+        if (pieces.size() != 4) {
+            throw new IllegalArgumentException(String.format("Unparsable encrypted key representation '%s'. Expected 4 parts, found %d.", encrypted, pieces.size()));
+        }
+        if (! "1".equals(pieces.get(0))) {
+            throw new IllegalArgumentException(String.format("Unsupported encrypted key scheme '%s'", pieces.get(0)));
+        }
+        String cipher = pieces.get(1);
+        int keyLength = Integer.parseInt(pieces.get(2));
+        byte[] masterIV = Base64.decode(pieces.get(3));
+
+        try (ByteArrayOutputStream decoded = new ByteArrayOutputStream()) {
+            Base64.decode(cipher, decoded);
+            //System.out.println("Decoded " + encrypted + " to " + decoded.size() + " bytes: " + toHexString(decoded.toByteArray()) + "; splitting at " + keyLength);
+            try (ByteArrayOutputStream decrypted = new ByteArrayOutputStream()) {
+                decrypt(new ByteArrayInputStream(decoded.toByteArray()), decrypted, masterKey, masterIV);
+                //System.out.println("Decrypted to " + decrypted.size() + " bytes: " + toHexString(decrypted.toByteArray()));
+                byte[] key = new byte[keyLength];
+                byte[] iv = new byte[decrypted.size() - keyLength];
+                System.arraycopy(decrypted.toByteArray(),0,key,0,keyLength);
+                System.arraycopy(decrypted.toByteArray(),keyLength,iv,0,iv.length);
+                return new byte[][] { key, iv };
+            }
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Provided String was not Base64 encoded.", e);
         }
     }
 
