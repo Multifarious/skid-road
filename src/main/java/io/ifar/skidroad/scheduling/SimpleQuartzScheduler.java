@@ -14,7 +14,7 @@ import java.util.Map;
 public class SimpleQuartzScheduler {
     private static final Logger LOG = LoggerFactory.getLogger(SimpleQuartzScheduler.class);
     public static final String DEFAULT_GROUP = "SimpleQuartzScheduler";
-    protected final Scheduler scheduler;
+    private final Scheduler scheduler;
     private final String group;
 
     public SimpleQuartzScheduler(String group, int maxThreads) throws SchedulerException {
@@ -76,6 +76,13 @@ public class SimpleQuartzScheduler {
      */
     public <T extends Job, K,V> Trigger schedule(String name, Class<T> jobClass, String cron, Map<K,V> jobConfig) throws ParseException {
         return schedule(name, jobClass, CronScheduleBuilder.cronSchedule(cron), jobConfig);
+    }
+
+    /**
+     * Provide access to underlying Quartz Scheduler
+     */
+    public Scheduler getScheduler() {
+        return scheduler;
     }
 
     /**
