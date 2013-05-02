@@ -13,8 +13,8 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * A FileRollingScheme which rolls files when setNextRoll is called. There is no grace period; anything which has been
- * rolled is eligible for close.
+ * A FileRollingScheme which rolls files when setNextRoll is called. Grace period extends from when file is rolled until
+ * the next file is rolled.
 */
 public class ManualRollingScheme implements FileRollingScheme {
     Path basePath;
@@ -40,7 +40,7 @@ public class ManualRollingScheme implements FileRollingScheme {
      */
     @Override
     public boolean isTimeToClose(DateTime startTime) {
-        return startTime.getMillis() < getLastRollMillis();
+        return startTime.getMillis() < getPenultimateRollMillis();
     }
 
     @Override
@@ -73,13 +73,17 @@ public class ManualRollingScheme implements FileRollingScheme {
     }
 
     private DateTime getLastRoll() {
-        if (rolls.isEmpty())
-            return null;
-        else
-            return rolls.get(rolls.size() - 1);
+        return rolls.isEmpty() ? null : rolls.get(rolls.size() - 1);
+    }
+    private DateTime getPenultimateRoll() {
+        return (rolls.size() < 2) ? null : rolls.get(rolls.size() - 2);
     }
     private long getLastRollMillis() {
         DateTime lastRoll = getLastRoll();
         return lastRoll == null ? 0 : lastRoll.getMillis();
+    }
+    private long getPenultimateRollMillis() {
+        DateTime penultimateRoll = getPenultimateRoll();
+        return penultimateRoll == null ? 0 : penultimateRoll.getMillis();
     }
 }
