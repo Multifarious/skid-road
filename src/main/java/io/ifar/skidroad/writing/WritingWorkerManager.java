@@ -25,6 +25,9 @@ import static io.ifar.skidroad.tracking.LogFileState.*;
 /**
  * Manages writing workers and the input queues to feed data into them.
  *
+ * This is the main main API integration point for submitting data. Skid-road clients construct a
+ * WritingWorkerManager and then submit data via the {@link #record(org.joda.time.DateTime, Object)} method.
+ *
  * Creates workers sparingly (since each one results in a new file).
  *
  * Handles worker lifecycle including applying the behavior dictated by

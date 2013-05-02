@@ -1,9 +1,10 @@
-package io.ifar.skidroad;
+package io.ifar.skidroad.upload;
 
 import com.yammer.metrics.Metrics;
 import com.yammer.metrics.core.Counter;
 import com.yammer.metrics.core.Gauge;
 import com.yammer.metrics.core.HealthCheck;
+import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.tracking.LogFileStateListener;
 import io.ifar.skidroad.tracking.LogFileTracker;
 import org.slf4j.Logger;

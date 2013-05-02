@@ -1,4 +1,4 @@
-package io.ifar.skidroad;
+package io.ifar.skidroad.upload;
 
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.tracking.LogFileTracker;
