@@ -4,7 +4,6 @@ import com.yammer.metrics.Metrics;
 import com.yammer.metrics.core.Counter;
 import com.yammer.metrics.core.Gauge;
 import com.yammer.metrics.core.HealthCheck;
-import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.tracking.LogFileStateListener;
 import io.ifar.skidroad.tracking.LogFileTracker;
 import org.slf4j.Logger;
@@ -61,7 +60,7 @@ public class UploadWorkerManager implements LogFileStateListener {
                 if (queueDepth.get() < unhealthyQueueDepthThreshold)
                     return Result.healthy(String.format("%d files queued or in-flight.", queueDepth.get()));
                 else
-                    return Result.healthy(String.format("%d files queued or in-flight exceeds threshold (%d).", queueDepth.get(), unhealthyQueueDepthThreshold));
+                    return Result.unhealthy(String.format("%d files queued or in-flight exceeds threshold (%d).", queueDepth.get(), unhealthyQueueDepthThreshold));
             }
         };
     }

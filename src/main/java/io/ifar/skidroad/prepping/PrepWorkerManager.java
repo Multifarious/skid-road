@@ -53,7 +53,7 @@ public class PrepWorkerManager implements LogFileStateListener {
                 if (queueDepth.get() < unhealthyQueueDepthThreshold)
                     return Result.healthy(String.format("%d files queued or in-flight.", queueDepth.get()));
                 else
-                    return Result.healthy(String.format("%d files queued or in-flight exceeds threshold (%d).", queueDepth.get(), unhealthyQueueDepthThreshold));
+                    return Result.unhealthy(String.format("%d files queued or in-flight exceeds threshold (%d).", queueDepth.get(), unhealthyQueueDepthThreshold));
             }
         };
     }
