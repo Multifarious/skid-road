@@ -202,9 +202,16 @@ public class LogFile {
         return result;
     }
 
-    private final static Joiner TO_STRING_JOINER = Joiner.on(".");
+    private final static Joiner JOINER = Joiner.on(".");
     @Override
     public String toString() {
-        return TO_STRING_JOINER.join(rollingCohort, serial);
+        return JOINER.join(rollingCohort, serial);
+    }
+
+    /**
+     * Returns unique key for this LogFile
+     */
+    public String getID() {
+        return JOINER.join(rollingCohort, serial);
     }
 }
