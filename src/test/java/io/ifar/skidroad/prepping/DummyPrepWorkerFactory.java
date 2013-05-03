@@ -45,13 +45,14 @@ public class DummyPrepWorkerFactory implements PrepWorkerFactory {
 
 
     private List<CountDownLatch> runCountLatches = new LinkedList<>();
-    private List<Runnable> workersCreated = new ArrayList<>();
-    private List<CountDownLatch> exitLatches = new ArrayList<>();
+    private final List<CountDownLatch> exitLatches = new ArrayList<>();
 
     @Override
     public Runnable buildWorker(LogFile logFileRecord, LogFileTracker tracker) {
         final CountDownLatch latch = new CountDownLatch(1);
-        exitLatches.add(latch);
+        synchronized (exitLatches) {
+            exitLatches.add(latch);
+        }
 
         Runnable worker = new Runnable() {
             @Override
@@ -67,10 +68,7 @@ public class DummyPrepWorkerFactory implements PrepWorkerFactory {
                 }
             }
         };
-
-        workersCreated.add(worker);
         return worker;
-
     }
 
     /**
@@ -86,15 +84,19 @@ public class DummyPrepWorkerFactory implements PrepWorkerFactory {
      * Allows next worker to exit
      */
     public void exitNextWorker() {
-        CountDownLatch latch = exitLatches.remove(0);
-        latch.countDown();
+        synchronized (exitLatches) {
+            CountDownLatch latch = exitLatches.remove(0);
+            latch.countDown();
+        }
     }
 
     /**
      * Lets all workers exit
      */
     public void stop() {
-        for (CountDownLatch latch : exitLatches)
-            latch.countDown();
+        synchronized (exitLatches) {
+            for (CountDownLatch latch : exitLatches)
+                latch.countDown();
+        }
     }
 }
