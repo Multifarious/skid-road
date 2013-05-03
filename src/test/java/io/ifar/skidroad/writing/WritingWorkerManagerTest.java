@@ -126,7 +126,7 @@ public class WritingWorkerManagerTest {
     public void testLaunchExtraWorkersWhenQueueLarge() throws Exception {
         CountDownLatch creationLatch = factory.getCreationLatch(2);
         long t = System.currentTimeMillis();
-        for (int i = 0; i < LAUNCH_MORE_WORKERS_THRESHOLD; i++)
+        for (int i = 0; i < LAUNCH_MORE_WORKERS_THRESHOLD * 2; i++)
             manager.record(t, "foo");
 
         awaitNextPrune();

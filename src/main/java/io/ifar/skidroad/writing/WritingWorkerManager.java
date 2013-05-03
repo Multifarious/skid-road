@@ -304,16 +304,17 @@ public class WritingWorkerManager<T> {
         }
         LOG.info("Queues drained. Stopping workers.");
         int count=0;
+        synchronized (workers) {
         for (List<Thread> workerList : workers.values())
             for (Thread worker : workerList) {
                 worker.interrupt();
                 count++;
             }
-        for (List<Thread> workerList : workers.values())
-            for (Thread worker : workerList) {
-                worker.join();
-                LOG.debug("Stopped one. {} remain.", --count);
-            }
+        }
+        for (Thread worker : getWorkerThreadSnapshot()) {
+            worker.join();
+            LOG.debug("Stopped one. {} remain.", --count);
+        }
         LOG.info("All workers stopped.");
     }
 
