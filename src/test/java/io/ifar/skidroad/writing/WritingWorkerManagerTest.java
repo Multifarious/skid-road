@@ -6,10 +6,7 @@ import io.ifar.skidroad.tracker.TransientLogFileTracker;
 import io.ifar.skidroad.tracking.LogFileState;
 import io.ifar.skidroad.tracking.LogFileTracker;
 import org.joda.time.DateTime;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.TestName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +45,7 @@ public class WritingWorkerManagerTest {
         serializer = new UpcaseErroringSerializer();
         tracker = new TransientLogFileTracker();
         rollingScheme = new ManualRollingScheme();
-        scheduler = new SimpleQuartzScheduler(name.getMethodName(), 1);
+        scheduler = new SimpleQuartzScheduler(getClass().getSimpleName() + "#" + name.getMethodName(), 1);
         scheduler.start();
         factory = new DummyWritingWorkerFactory<>();
         manager = new WritingWorkerManager<>(

@@ -27,12 +27,12 @@ public class ManagedSimpleQuartzScheduler extends SimpleQuartzScheduler implemen
         this.environment = environment;
     }
     public ManagedSimpleQuartzScheduler(int maxThreads, Environment environment) throws SchedulerException {
-        this(DEFAULT_GROUP, maxThreads, environment);
+        this(ManagedSimpleQuartzScheduler.class.getSimpleName(), maxThreads, environment);
     }
 
     @Override
-    public <T extends Job, SBT extends Trigger, K, V> Trigger schedule(String name, Class<T> jobClass, ScheduleBuilder<SBT> schedule, Map<K,V> jobConfig) {
-        Trigger trigger = super.schedule(name, jobClass, schedule, jobConfig);
+    public <T extends Job, SBT extends Trigger, K, V> Trigger schedule(String jobName, Class<T> jobClass, ScheduleBuilder<SBT> schedule, Map<K,V> jobConfig) {
+        Trigger trigger = super.schedule(jobName, jobClass, schedule, jobConfig);
         if (trigger != null)
             registerHealthCheck(environment, trigger);
         return trigger;

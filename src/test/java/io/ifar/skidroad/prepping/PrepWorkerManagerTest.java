@@ -8,7 +8,9 @@ import io.ifar.skidroad.tracking.LogFileTracker;
 import org.joda.time.DateTime;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -22,12 +24,14 @@ public class PrepWorkerManagerTest {
     DummyPrepWorkerFactory factory;
     SimpleQuartzScheduler scheduler;
 
+    @Rule
+    public TestName name = new TestName();
 
     @Before
     public void setup() throws Exception {
         tracker = new TransientLogFileTracker();
         factory = new DummyPrepWorkerFactory();
-        scheduler = new SimpleQuartzScheduler(this.getClass().getSimpleName(), 1);
+        scheduler = new SimpleQuartzScheduler(getClass().getSimpleName() + "#" + name.getMethodName(), 1);
         scheduler.start();
         manager = new PrepWorkerManager(
                 tracker,

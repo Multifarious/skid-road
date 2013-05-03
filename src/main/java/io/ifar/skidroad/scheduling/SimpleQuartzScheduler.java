@@ -2,25 +2,43 @@ package io.ifar.skidroad.scheduling;
 
 import org.quartz.*;
 import org.quartz.impl.DirectSchedulerFactory;
+import org.quartz.simpl.RAMJobStore;
+import org.quartz.simpl.SimpleThreadPool;
+import org.quartz.spi.JobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.text.ParseException;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Lightweight lifecycle wrapper around Quartz scheduler.
  */
 public class SimpleQuartzScheduler {
     private static final Logger LOG = LoggerFactory.getLogger(SimpleQuartzScheduler.class);
-    public static final String DEFAULT_GROUP = "SimpleQuartzScheduler";
     private final Scheduler scheduler;
-    private final String group;
+    private final String schedulerName;
+    private final static AtomicLong NEXT_SCHEDULER_ID = new AtomicLong(1L);
 
-    public SimpleQuartzScheduler(String group, int maxThreads) throws SchedulerException {
-        DirectSchedulerFactory.getInstance().createVolatileScheduler(maxThreads);
-        this.scheduler = DirectSchedulerFactory.getInstance().getScheduler();
-        this.group = group;
+    /**
+     * Creates a new SimpleQuartzScheduler
+     * @param schedulerName must be unique for this JVM
+     * @param maxThreads
+     * @throws SchedulerException
+     */
+    public SimpleQuartzScheduler(String schedulerName, int maxThreads) throws SchedulerException {
+        SimpleThreadPool threadPool = new SimpleThreadPool(maxThreads, Thread.NORM_PRIORITY);
+        threadPool.initialize();
+        JobStore jobStore = new RAMJobStore();
+        String schedulerInstanceID = Long.toString(NEXT_SCHEDULER_ID.getAndIncrement());
+        DirectSchedulerFactory.getInstance().createScheduler(
+                schedulerName,
+                schedulerInstanceID, //not sure what this accomplishes
+                threadPool,
+                jobStore);
+        this.scheduler = DirectSchedulerFactory.getInstance().getScheduler(schedulerName);
+        this.schedulerName = schedulerName;
     }
 
     public void start() throws Exception {
@@ -36,25 +54,25 @@ public class SimpleQuartzScheduler {
      * see the other schedule methods that create a ScheduleBuilder object based on
      * simpler parameters.
      *
-     * @param name arbitrary unique name
+     * @param jobName arbitrary unique name
      * @param jobClass Job to execute
      * @param schedule Schedule to execute on
      * @param jobConfig Quartz jobConfig made available to jobClass instance when it executes.
      * @see org.quartz.Job
      */
-    public <T extends Job, SBT extends Trigger, K, V> Trigger schedule(String name, Class<T> jobClass, ScheduleBuilder<SBT> schedule, Map<K,V> jobConfig) {
+    public <T extends Job, SBT extends Trigger, K, V> Trigger schedule(String jobName, Class<T> jobClass, ScheduleBuilder<SBT> schedule, Map<K,V> jobConfig) {
         JobDataMap jobDataMap = new JobDataMap(jobConfig);
 
         JobDetail jobDetail = JobBuilder.
                 newJob().
-                withIdentity(name, group).
+                withIdentity(jobName, schedulerName).
                 ofType(jobClass).
                 usingJobData(jobDataMap).
                 build();
 
         Trigger trigger = TriggerBuilder.
                 newTrigger().
-                withIdentity(name,group).
+                withIdentity(jobName, schedulerName).
                 withSchedule(schedule).
                 build();
 
