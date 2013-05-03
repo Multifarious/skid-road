@@ -30,7 +30,7 @@ public class PrepWorkerManager implements LogFileStateListener {
     private final LogFileTracker tracker;
     private final PrepWorkerFactory workerFactory;
     private final SimpleQuartzScheduler scheduler;
-    private final int pruneIntervalSeconds;
+    private final int retryIntervalSeconds;
     private final ExecutorService executor;
     private final Set<String> activeFiles;
 
@@ -48,11 +48,11 @@ public class PrepWorkerManager implements LogFileStateListener {
                 }
             });
 
-    public PrepWorkerManager(LogFileTracker tracker, PrepWorkerFactory workerFactory, SimpleQuartzScheduler scheduler, int pruneIntervalSeconds, final int unhealthyQueueDepthThreshold) {
+    public PrepWorkerManager(LogFileTracker tracker, PrepWorkerFactory workerFactory, SimpleQuartzScheduler scheduler, int retryIntervalSeconds, final int unhealthyQueueDepthThreshold) {
         this.tracker = tracker;
         this.workerFactory = workerFactory;
         this.scheduler = scheduler;
-        this.pruneIntervalSeconds = pruneIntervalSeconds;
+        this.retryIntervalSeconds = retryIntervalSeconds;
         this.executor = Executors.newCachedThreadPool();
         this.activeFiles = new HashSet<String>();
 
@@ -108,9 +108,9 @@ public class PrepWorkerManager implements LogFileStateListener {
     public void start() {
         LOG.info("Starting {}.", PrepWorkerManager.class.getSimpleName());
         tracker.addListener(this);
-        Map<String,Object> pruneConfiguration = new HashMap<>(1);
-        pruneConfiguration.put(PruneJob.PREP_WORKER_MANAGER, this);
-        scheduler.schedule(this.getClass().getSimpleName() + "_prune", PruneJob.class, pruneIntervalSeconds, pruneConfiguration);
+        Map<String,Object> retryConfiguration = new HashMap<>(1);
+        retryConfiguration.put(RetryJob.PREP_WORKER_MANAGER, this);
+        scheduler.schedule(this.getClass().getSimpleName() + "_retry", RetryJob.class, retryIntervalSeconds, retryConfiguration);
     }
 
     public void stop() {
@@ -149,7 +149,7 @@ public class PrepWorkerManager implements LogFileStateListener {
     }
 
     @DisallowConcurrentExecution
-    public static class PruneJob implements Job
+    public static class RetryJob implements Job
     {
         public static final String PREP_WORKER_MANAGER = "prep_worker_manager";
 

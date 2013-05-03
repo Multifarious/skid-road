@@ -3,6 +3,7 @@ package io.ifar.skidroad.dropwizard;
 import com.yammer.dropwizard.config.Environment;
 import com.yammer.dropwizard.lifecycle.Managed;
 import com.yammer.metrics.core.HealthCheck;
+import io.ifar.skidroad.dropwizard.config.SkidRoadConfiguration;
 import io.ifar.skidroad.scheduling.SimpleQuartzScheduler;
 import org.joda.time.format.ISODateTimeFormat;
 import org.quartz.Job;
@@ -28,6 +29,12 @@ public class ManagedSimpleQuartzScheduler extends SimpleQuartzScheduler implemen
     }
     public ManagedSimpleQuartzScheduler(int maxThreads, Environment environment) throws SchedulerException {
         this(ManagedSimpleQuartzScheduler.class.getSimpleName(), maxThreads, environment);
+    }
+
+    public static ManagedSimpleQuartzScheduler build(SkidRoadConfiguration skidRoadConfiguration, Environment environment) throws SchedulerException {
+        ManagedSimpleQuartzScheduler scheduler = new ManagedSimpleQuartzScheduler(skidRoadConfiguration.getMaxQuartzThreads(),environment);
+        environment.manage(scheduler);
+        return scheduler;
     }
 
     @Override

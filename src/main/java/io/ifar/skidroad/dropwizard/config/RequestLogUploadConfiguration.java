@@ -32,6 +32,10 @@ public class RequestLogUploadConfiguration {
     @DecimalMin(value="1")
     private int reportUnhealthyAtQueueDepth = 10;
 
+    @Range(min = 1)
+    @JsonProperty("retry_interval_seconds")
+    private int retryIntervalSeconds= 300;
+
     public String getAccessKeyID() {
         return accessKeyID;
     }
@@ -50,5 +54,9 @@ public class RequestLogUploadConfiguration {
 
     public int getReportUnhealthyAtQueueDepth() {
         return reportUnhealthyAtQueueDepth;
+    }
+
+    public int getRetryIntervalSeconds() {
+        return retryIntervalSeconds;
     }
 }

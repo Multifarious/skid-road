@@ -35,7 +35,7 @@ public class UploadWorkerManager implements LogFileStateListener {
     private final UploadWorkerFactory workerFactory;
     private final LogFileTracker tracker;
     private final SimpleQuartzScheduler scheduler;
-    public final int pruneIntervalSeconds;
+    public final int retryIntervalSeconds;
     private final int maxConcurrentUploads;
     private ExecutorService executor;
     private final Set<String> activeFiles;
@@ -55,11 +55,11 @@ public class UploadWorkerManager implements LogFileStateListener {
             });
 
 
-    public UploadWorkerManager(UploadWorkerFactory workerFactory, LogFileTracker tracker, SimpleQuartzScheduler scheduler, int pruneIntervalSeconds, int maxConcurrentUploads,  final int unhealthyQueueDepthThreshold) {
+    public UploadWorkerManager(UploadWorkerFactory workerFactory, LogFileTracker tracker, SimpleQuartzScheduler scheduler, int retryIntervalSeconds, int maxConcurrentUploads,  final int unhealthyQueueDepthThreshold) {
         this.workerFactory = workerFactory;
         this.tracker = tracker;
         this.scheduler = scheduler;
-        this.pruneIntervalSeconds = pruneIntervalSeconds;
+        this.retryIntervalSeconds = retryIntervalSeconds;
         this.maxConcurrentUploads = maxConcurrentUploads;
         this.activeFiles = new HashSet<String>();
 
@@ -120,9 +120,9 @@ public class UploadWorkerManager implements LogFileStateListener {
                                       new SynchronousQueue<Runnable>());
         tracker.addListener(this);
 
-        Map<String,Object> pruneConfiguration = new HashMap<>(1);
-        pruneConfiguration.put(PruneJob.UPLOAD_WORKER_MANAGER, this);
-        scheduler.schedule(this.getClass().getSimpleName() + "_prune", PruneJob.class, pruneIntervalSeconds, pruneConfiguration);
+        Map<String,Object> retryConfiguration = new HashMap<>(1);
+        retryConfiguration.put(RetryJob.UPLOAD_WORKER_MANAGER, this);
+        scheduler.schedule(this.getClass().getSimpleName() + "_retry", RetryJob.class, retryIntervalSeconds, retryConfiguration);
     }
 
     public void stop() {
@@ -161,7 +161,7 @@ public class UploadWorkerManager implements LogFileStateListener {
     }
 
     @DisallowConcurrentExecution
-    public static class PruneJob implements Job
+    public static class RetryJob implements Job
     {
         public static final String UPLOAD_WORKER_MANAGER = "upload_worker_manager";
 
