@@ -1,17 +1,14 @@
 package io.ifar.skidroad.dropwizard.cli;
 
 import com.google.common.io.ByteStreams;
-import com.sun.jersey.core.util.Base64;
 import com.yammer.dropwizard.cli.ConfiguredCommand;
 import com.yammer.dropwizard.config.Bootstrap;
 import com.yammer.dropwizard.config.Configuration;
 import com.yammer.dropwizard.config.Environment;
 import com.yammer.dropwizard.jdbi.DBIFactory;
 import io.ifar.skidroad.LogFile;
-import io.ifar.skidroad.crypto.AESInputStream;
-import io.ifar.skidroad.crypto.StreamingBouncyCastleAESWithSIC;
-import io.ifar.skidroad.dropwizard.config.SkidRoadConfiguration;
-import io.ifar.skidroad.dropwizard.config.SkidRoadConfigurationStrategy;
+import io.ifar.skidroad.dropwizard.config.SkidRoadReadOnlyConfiguration;
+import io.ifar.skidroad.dropwizard.config.SkidRoadReadOnlyConfigurationStrategy;
 import io.ifar.skidroad.jdbi.DefaultJDBILogFileDAO;
 import io.ifar.skidroad.jdbi.JDBILogFileDAO;
 import io.ifar.skidroad.jdbi.JodaArgumentFactory;
@@ -22,29 +19,25 @@ import io.ifar.skidroad.streaming.StreamingAccess;
 import io.ifar.skidroad.tracking.LogFileState;
 import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;
-import org.apache.commons.io.IOUtils;
 import org.jets3t.service.ServiceException;
-import org.jets3t.service.model.StorageObject;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 import org.skife.jdbi.v2.DBI;
 
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.zip.GZIPInputStream;
 
 /**
  *
  */
 @SuppressWarnings("UnusedDeclaration")
 public abstract class StreamLogsCommand <T extends Configuration> extends ConfiguredCommand<T>
-        implements SkidRoadConfigurationStrategy<T>
+        implements SkidRoadReadOnlyConfigurationStrategy<T>
 {
 
     private final static String STATE = "state";
@@ -102,15 +95,15 @@ public abstract class StreamLogsCommand <T extends Configuration> extends Config
         Environment env = CliConveniences.fabricateEnvironment(getName(), configuration);
         env.start();
 
-        SkidRoadConfiguration skidRoadConfiguration = getSkidRoadConfiguration(configuration);
+        SkidRoadReadOnlyConfiguration skidRoadConfiguration = getSkidRoadReadOnlyConfiguration(configuration);
         try (OutputStream out = Files.newOutputStream(Paths.get(outFile))) {
             DBIFactory factory = new DBIFactory();
             DBI jdbi = factory.build(env, skidRoadConfiguration.getDatabaseConfiguration(), "logfile");
             jdbi.registerArgumentFactory(new JodaArgumentFactory());
 
             storage = new S3JetS3tStorage(
-                    skidRoadConfiguration.getRequestLogUploadConfiguration().getAccessKeyID(),
-                    skidRoadConfiguration.getRequestLogUploadConfiguration().getSecretAccessKey()
+                    skidRoadConfiguration.getAccessKeyID(),
+                    skidRoadConfiguration.getSecretAccessKey()
             );
             storage.start();
 
@@ -121,8 +114,8 @@ public abstract class StreamLogsCommand <T extends Configuration> extends Config
             long totalBytes = dao.totalSize(states, startDate, endDate);
 
             StreamingAccess access = new StreamingAccess(storage,
-                    skidRoadConfiguration.getRequestLogPrepConfiguration().getMasterKey(),
-                    skidRoadConfiguration.getRequestLogPrepConfiguration().getMasterIV());
+                    skidRoadConfiguration.getMasterKey(),
+                    skidRoadConfiguration.getMasterIV());
 
             System.out.print(String.format("[ %,d files / %,d total bytes ]: ",files, totalBytes));
             while(iter.hasNext()) {

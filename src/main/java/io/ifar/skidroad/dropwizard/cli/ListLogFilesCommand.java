@@ -6,8 +6,8 @@ import com.yammer.dropwizard.config.Configuration;
 import com.yammer.dropwizard.config.Environment;
 import com.yammer.dropwizard.jdbi.DBIFactory;
 import io.ifar.skidroad.LogFile;
-import io.ifar.skidroad.dropwizard.config.SkidRoadConfiguration;
-import io.ifar.skidroad.dropwizard.config.SkidRoadConfigurationStrategy;
+import io.ifar.skidroad.dropwizard.config.SkidRoadReadOnlyConfiguration;
+import io.ifar.skidroad.dropwizard.config.SkidRoadReadOnlyConfigurationStrategy;
 import io.ifar.skidroad.jdbi.DefaultJDBILogFileDAO;
 import io.ifar.skidroad.jdbi.JDBILogFileDAO;
 import io.ifar.skidroad.jdbi.JodaArgumentFactory;
@@ -27,7 +27,7 @@ import java.util.*;
  *
  */
 public abstract class ListLogFilesCommand<T extends Configuration> extends ConfiguredCommand<T>
-        implements SkidRoadConfigurationStrategy<T>
+        implements SkidRoadReadOnlyConfigurationStrategy<T>
 {
 
     private final static String STATE = "state";
@@ -75,7 +75,7 @@ public abstract class ListLogFilesCommand<T extends Configuration> extends Confi
         DateTime endDate = ISO_FMT.parseDateTime(namespace.getString(END_DATE));
 
         Environment env = CliConveniences.fabricateEnvironment(getName(), configuration);
-        SkidRoadConfiguration skidRoadConfiguration = getSkidRoadConfiguration(configuration);
+        SkidRoadReadOnlyConfiguration skidRoadConfiguration = getSkidRoadReadOnlyConfiguration(configuration);
         env.start();
         try {
             DBIFactory factory = new DBIFactory();

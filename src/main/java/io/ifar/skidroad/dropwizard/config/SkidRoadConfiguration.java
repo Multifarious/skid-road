@@ -64,4 +64,10 @@ public class SkidRoadConfiguration {
     public String getNodeId() {
         return nodeId;
     }
+
+    public SkidRoadReadOnlyConfiguration asReadOnlyConfiguration() {
+        return new SkidRoadReadOnlyConfiguration(requestLogPrepConfiguration.getMasterKey(),
+                requestLogPrepConfiguration.getMasterIV(), requestLogUploadConfiguration.getAccessKeyID(),
+                requestLogUploadConfiguration.getSecretAccessKey(),databaseConfiguration);
+    }
 }

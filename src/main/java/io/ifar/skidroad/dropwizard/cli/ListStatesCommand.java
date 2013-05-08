@@ -5,13 +5,10 @@ import com.yammer.dropwizard.config.Bootstrap;
 import com.yammer.dropwizard.config.Configuration;
 import com.yammer.dropwizard.config.Environment;
 import com.yammer.dropwizard.jdbi.DBIFactory;
-import io.ifar.skidroad.dropwizard.config.SkidRoadConfiguration;
-import io.ifar.skidroad.dropwizard.config.SkidRoadConfigurationStrategy;
+import io.ifar.skidroad.dropwizard.config.SkidRoadReadOnlyConfigurationStrategy;
 import io.ifar.skidroad.jdbi.CountByState;
 import io.ifar.skidroad.jdbi.DefaultJDBILogFileDAO;
 import io.ifar.skidroad.jdbi.JDBILogFileDAO;
-import io.ifar.skidroad.jets3t.JetS3tStorage;
-import io.ifar.skidroad.tracking.LogFileTracker;
 import io.ifar.goodies.CliConveniences;
 import net.sourceforge.argparse4j.inf.Namespace;
 import org.apache.commons.lang.StringUtils;
@@ -23,7 +20,7 @@ import java.util.Iterator;
  *
  */
 public abstract class ListStatesCommand<T extends Configuration> extends ConfiguredCommand<T>
-        implements SkidRoadConfigurationStrategy<T> {
+        implements SkidRoadReadOnlyConfigurationStrategy<T> {
 
     public ListStatesCommand() {
         super("list-states","List the file states currently in the database with counts.");
@@ -36,7 +33,7 @@ public abstract class ListStatesCommand<T extends Configuration> extends Configu
         env.start();
         try {
             final DBIFactory factory = new DBIFactory();
-            final DBI jdbi = factory.build(env, getSkidRoadConfiguration(configuration).getDatabaseConfiguration(), "logfile");
+            final DBI jdbi = factory.build(env, getSkidRoadReadOnlyConfiguration(configuration).getDatabaseConfiguration(), "logfile");
             JDBILogFileDAO dao = jdbi.onDemand(DefaultJDBILogFileDAO.class);
             Iterator<CountByState> iter = dao.countLogFilesByState();
             if (iter.hasNext()) {
