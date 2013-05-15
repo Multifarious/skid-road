@@ -4,6 +4,7 @@ import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.tracking.AbstractLogFileTracker;
 import io.ifar.skidroad.tracking.LogFileState;
 import io.ifar.skidroad.tracking.LogFileStateListener;
+import io.ifar.goodies.AutoCloseableIterator;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,7 +13,8 @@ import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
-import java.util.*;
+import java.util.HashSet;
+import java.util.Set;
 
 import static io.ifar.skidroad.tracking.LogFileState.*;
 
@@ -89,8 +91,8 @@ public class JDBILogFileTracker extends AbstractLogFileTracker {
     }
 
     @Override
-    public Iterator<LogFile> findMine(LogFileState state) {
-        return dao.findByOwnerAndState(localUri.toString(), state.toString());
+    public AutoCloseableIterator<LogFile> findMine(LogFileState state) {
+        return new AutoCloseableIterator<>(dao.findByOwnerAndState(localUri.toString(), state.toString()));
     }
 
     @Override

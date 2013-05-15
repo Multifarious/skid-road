@@ -6,13 +6,12 @@ import com.yammer.dropwizard.config.Configuration;
 import com.yammer.dropwizard.config.Environment;
 import com.yammer.dropwizard.jdbi.DBIFactory;
 import io.ifar.skidroad.dropwizard.config.SkidRoadReadOnlyConfigurationStrategy;
+import io.ifar.goodies.AutoCloseableIterator;
+import io.ifar.goodies.CliConveniences;
 import io.ifar.skidroad.jdbi.DefaultJDBILogFileDAO;
 import io.ifar.skidroad.jdbi.JDBILogFileDAO;
-import io.ifar.goodies.CliConveniences;
 import net.sourceforge.argparse4j.inf.Namespace;
 import org.skife.jdbi.v2.DBI;
-
-import java.util.Iterator;
 
 /**
  *
@@ -33,9 +32,9 @@ public abstract class ListOwnersCommand <T extends Configuration> extends Config
             final DBIFactory factory = new DBIFactory();
             final DBI jdbi = factory.build(env, getSkidRoadReadOnlyConfiguration(configuration).getDatabaseConfiguration(), "logfile");
             JDBILogFileDAO dao = jdbi.onDemand(DefaultJDBILogFileDAO.class);
-            Iterator<String> ownerUris = dao.listOwnerUris();
-            while (ownerUris.hasNext()) {
-                System.out.println(ownerUris.next());
+            try (AutoCloseableIterator<String> ownerUris = new AutoCloseableIterator<>(dao.listOwnerUris())){
+                for (String ownerUri : ownerUris)
+                    System.out.println(ownerUri);
             }
         } finally {
             env.stop();

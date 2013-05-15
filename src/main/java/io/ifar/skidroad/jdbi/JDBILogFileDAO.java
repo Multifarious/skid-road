@@ -2,9 +2,10 @@ package io.ifar.skidroad.jdbi;
 
 import io.ifar.skidroad.LogFile;
 import org.joda.time.DateTime;
+import org.skife.jdbi.v2.ResultIterator;
 
 import java.sql.Timestamp;
-import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -27,11 +28,11 @@ public interface JDBILogFileDAO {
 
     int claimIndex(String rollingCohort, int serial, Timestamp startTime, String originUri, String ownerUri, Timestamp now);
 
-    Iterator<LogFile> findByOwnerAndState(String ownerUri, String state);
+    ResultIterator<LogFile> findByOwnerAndState(String ownerUri, String state);
 
-    Iterator<String> listOwnerUris();
+    ResultIterator<String> listOwnerUris();
 
-    Iterator<CountByState> countLogFilesByState();
+    List<CountByState> countLogFilesByState();
 
     int countLogFilesByState(String state);
 
@@ -39,7 +40,7 @@ public interface JDBILogFileDAO {
 
     Long count(Set<String> states, DateTime startDate, DateTime endDate);
 
-    Iterator<LogFile> listLogFilesByDateAndState(Set<String> state, DateTime startDate, DateTime endDate);
+    ResultIterator<LogFile> listLogFilesByDateAndState(Set<String> state, DateTime startDate, DateTime endDate);
 
     LogFile findByRollingCohortAndSerial(String rollingCohort, int serial);
 

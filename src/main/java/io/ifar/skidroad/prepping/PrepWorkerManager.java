@@ -8,6 +8,7 @@ import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.scheduling.SimpleQuartzScheduler;
 import io.ifar.skidroad.tracking.LogFileStateListener;
 import io.ifar.skidroad.tracking.LogFileTracker;
+import io.ifar.goodies.AutoCloseableIterator;
 import org.quartz.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -179,31 +180,31 @@ public class PrepWorkerManager implements LogFileStateListener {
 
 
             try {
-                Iterator<LogFile> preppingIterator = mgr.tracker.findMine(PREPARING);
-                while (preppingIterator.hasNext()) {
-                    LogFile logFile = preppingIterator.next();
-                    //claim check not required for thread safety, but avoid spurious WARNs
-                    if (!mgr.isClaimed(logFile)) {
-                        LOG.warn("Found stale PREPARING record for {}. Perhaps server was previously terminated while preparing it. Queueing preparation.", logFile.getOriginPath());
-                        mgr.processAsync(logFile);
+                try (AutoCloseableIterator<LogFile> iterator = mgr.tracker.findMine(PREPARING)) {
+                    for (LogFile logFile : iterator) {
+                        //claim check not required for thread safety, but avoid spurious WARNs
+                        if (!mgr.isClaimed(logFile)) {
+                            LOG.warn("Found stale PREPARING record for {}. Perhaps server was previously terminated while preparing it. Queueing preparation.", logFile.getOriginPath());
+                            mgr.processAsync(logFile);
+                        }
                     }
                 }
 
-                Iterator<LogFile> writtenIterator = mgr.tracker.findMine(WRITTEN);
-                while (writtenIterator.hasNext()) {
-                    LogFile logFile = writtenIterator.next();
-                    if (!mgr.isClaimed(logFile)) {
-                        LOG.warn("Found stale WRITTEN record for {}. Perhaps server was previously terminated before preparing it. Queueing preparation.", logFile.getOriginPath());
-                        mgr.processAsync(logFile);
+                try (AutoCloseableIterator<LogFile> iterator = mgr.tracker.findMine(WRITTEN)) {
+                    for (LogFile logFile : iterator) {
+                        if (!mgr.isClaimed(logFile)) {
+                            LOG.warn("Found stale WRITTEN record for {}. Perhaps server was previously terminated before preparing it. Queueing preparation.", logFile.getOriginPath());
+                            mgr.processAsync(logFile);
+                        }
                     }
                 }
 
-                Iterator<LogFile> erroredIterator = mgr.tracker.findMine(PREP_ERROR);
-                while (erroredIterator.hasNext()) {
-                    LogFile logFile = erroredIterator.next();
-                    //No need for claim check because UPLOAD_ERROR implies listener-based processing has terminated
-                    LOG.warn("Found PREP_ERROR record for {}. Perhaps error was transient. Retrying.", logFile.getOriginPath());
-                    mgr.processAsync(logFile);
+                try (AutoCloseableIterator<LogFile> iterator = mgr.tracker.findMine(PREP_ERROR)) {
+                    for (LogFile logFile : iterator) {
+                        //No need for claim check because UPLOAD_ERROR implies listener-based processing has terminated
+                        LOG.warn("Found PREP_ERROR record for {}. Perhaps error was transient. Retrying.", logFile.getOriginPath());
+                        mgr.processAsync(logFile);
+                    }
                 }
             } catch (Exception e) {
                 throw new JobExecutionException("Failure pruning prep jobs.", e);

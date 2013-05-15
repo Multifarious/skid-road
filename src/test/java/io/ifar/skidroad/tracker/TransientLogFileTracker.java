@@ -3,6 +3,7 @@ package io.ifar.skidroad.tracker;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.tracking.AbstractLogFileTracker;
 import io.ifar.skidroad.tracking.LogFileState;
+import io.ifar.goodies.AutoCloseableIterator;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
@@ -11,7 +12,6 @@ import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -55,13 +55,13 @@ public class TransientLogFileTracker extends AbstractLogFileTracker {
     }
 
     @Override
-    public Iterator<LogFile> findMine(LogFileState state) {
+    public AutoCloseableIterator<LogFile> findMine(LogFileState state) {
         List<LogFile> result = new LinkedList<>();
         for (LogFile logFile : logFiles)
             if (logFile.getState().equals(state) && logFile.getOwnerURI().equals(localUri))
                 result.add(logFile);
 
-        return result.iterator();
+        return new AutoCloseableIterator<>(result.iterator());
     }
 
     @Override

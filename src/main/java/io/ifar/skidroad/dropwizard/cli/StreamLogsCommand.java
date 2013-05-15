@@ -6,6 +6,8 @@ import com.yammer.dropwizard.config.Bootstrap;
 import com.yammer.dropwizard.config.Configuration;
 import com.yammer.dropwizard.config.Environment;
 import com.yammer.dropwizard.jdbi.DBIFactory;
+import io.ifar.goodies.AutoCloseableIterator;
+import io.ifar.goodies.CliConveniences;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.dropwizard.config.SkidRoadReadOnlyConfiguration;
 import io.ifar.skidroad.dropwizard.config.SkidRoadReadOnlyConfigurationStrategy;
@@ -14,7 +16,6 @@ import io.ifar.skidroad.jdbi.JDBILogFileDAO;
 import io.ifar.skidroad.jdbi.JodaArgumentFactory;
 import io.ifar.skidroad.jets3t.JetS3tStorage;
 import io.ifar.skidroad.jets3t.S3JetS3tStorage;
-import io.ifar.goodies.CliConveniences;
 import io.ifar.skidroad.streaming.StreamingAccess;
 import io.ifar.skidroad.tracking.LogFileState;
 import net.sourceforge.argparse4j.inf.Namespace;
@@ -30,7 +31,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  *
@@ -108,7 +112,7 @@ public abstract class StreamLogsCommand <T extends Configuration> extends Config
             storage.start();
 
             JDBILogFileDAO dao = jdbi.onDemand(DefaultJDBILogFileDAO.class);
-            Iterator<LogFile> iter = dao.listLogFilesByDateAndState(states, startDate, endDate);
+            try (AutoCloseableIterator<LogFile> iter = new AutoCloseableIterator<LogFile>(dao.listLogFilesByDateAndState(states, startDate, endDate))) {
 
             long files = dao.count(states, startDate, endDate);
             long totalBytes = dao.totalSize(states, startDate, endDate);
@@ -118,8 +122,7 @@ public abstract class StreamLogsCommand <T extends Configuration> extends Config
                     skidRoadConfiguration.getMasterIV());
 
             System.out.print(String.format("[ %,d files / %,d total bytes ]: ",files, totalBytes));
-            while(iter.hasNext()) {
-                LogFile logFile = iter.next();
+                for (LogFile logFile : iter) {
                 if (logFile.getArchiveURI() == null) {
                     System.out.print("?");
                     System.err.print(String.format("Cannot fetch %s, no archive URI set in database.", logFile));
@@ -140,6 +143,7 @@ public abstract class StreamLogsCommand <T extends Configuration> extends Config
                     continue;
                 }
                 System.out.print(".");
+            }
             }
             System.out.println("[DONE]");
         } finally {

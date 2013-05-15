@@ -1,9 +1,8 @@
 package io.ifar.skidroad.tracking;
 
 import io.ifar.skidroad.LogFile;
+import io.ifar.goodies.AutoCloseableIterator;
 import org.joda.time.DateTime;
-
-import java.util.Iterator;
 
 /**
  * API for maintaining LogFile state.
@@ -97,8 +96,10 @@ public interface LogFileTracker {
 
     /**
      * Return all LogFile records owned by current instance in the specified state.
+     *
+     * Iterator must be closed or database connection will be leaked.
      */
-    Iterator<LogFile> findMine(LogFileState state);
+    AutoCloseableIterator<LogFile> findMine(LogFileState state);
 
     /**
      * Return LogFile record, if any, with teh specified rolling cohort and serial number.

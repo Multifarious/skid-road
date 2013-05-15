@@ -5,6 +5,7 @@ import com.yammer.dropwizard.config.Bootstrap;
 import com.yammer.dropwizard.config.Configuration;
 import com.yammer.dropwizard.config.Environment;
 import com.yammer.dropwizard.jdbi.DBIFactory;
+import io.ifar.goodies.AutoCloseableIterator;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.dropwizard.config.SkidRoadReadOnlyConfiguration;
 import io.ifar.skidroad.dropwizard.config.SkidRoadReadOnlyConfigurationStrategy;
@@ -83,17 +84,17 @@ public abstract class ListLogFilesCommand<T extends Configuration> extends Confi
             jdbi.registerArgumentFactory(new JodaArgumentFactory());
 
             JDBILogFileDAO dao = jdbi.onDemand(DefaultJDBILogFileDAO.class);
-            Iterator<LogFile> iter = dao.listLogFilesByDateAndState(states, startDate, endDate);
-            if (iter.hasNext()) {
-                System.out.println(String.format("%-25s | %10s | %15s | %-25s","COHORT","SERIAL","SIZE","OWNER"));
-                System.out.println(StringUtils.repeat("_",25)
-                        + "_|_" + StringUtils.repeat("_",10)
-                        + "_|_" + StringUtils.repeat("_",15)
-                        + "_|_" + StringUtils.repeat("_",25));
-            }
-            while (iter.hasNext()) {
-                LogFile lf = iter.next();
-                System.out.println(String.format("%-25s | %10d | %15d | %-25s",lf.getRollingCohort(),lf.getSerial(),lf.getByteSize(),lf.getOwnerURI()));
+            try (AutoCloseableIterator<LogFile> iter = new AutoCloseableIterator<>(dao.listLogFilesByDateAndState(states, startDate, endDate))) {
+                if (iter.hasNext()) {
+                    System.out.println(String.format("%-25s | %10s | %15s | %-25s","COHORT","SERIAL","SIZE","OWNER"));
+                    System.out.println(StringUtils.repeat("_",25)
+                            + "_|_" + StringUtils.repeat("_",10)
+                            + "_|_" + StringUtils.repeat("_",15)
+                            + "_|_" + StringUtils.repeat("_",25));
+                }
+                for (LogFile lf : iter) {
+                    System.out.println(String.format("%-25s | %10d | %15d | %-25s",lf.getRollingCohort(),lf.getSerial(),lf.getByteSize(),lf.getOwnerURI()));
+                }
             }
             long totalSize = dao.totalSize(states, startDate, endDate);
             if (totalSize != 0) {

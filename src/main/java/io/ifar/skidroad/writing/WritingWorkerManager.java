@@ -7,6 +7,7 @@ import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.rolling.FileRollingScheme;
 import io.ifar.skidroad.scheduling.SimpleQuartzScheduler;
 import io.ifar.skidroad.tracking.LogFileTracker;
+import io.ifar.goodies.AutoCloseableIterator;
 import org.joda.time.DateTime;
 import org.quartz.*;
 import org.slf4j.Logger;
@@ -265,19 +266,20 @@ public class WritingWorkerManager<T> {
         worker.start();
     }
 
-    public void start() {
+    public void start() throws Exception {
         LOG.info("Starting {}.",WritingWorkerManager.class.getSimpleName());
 
         //On startup, look for database records that were left hanging and tidy up.
-        Iterator<LogFile> staleEntries = tracker.findMine(WRITING);
-        while (staleEntries.hasNext()) {
-            LogFile staleEntry = staleEntries.next();
-            if (Files.exists(staleEntry.getOriginPath())) {
-                LOG.warn("Found stale WRITING record for {}. Data exists on disk, marking WRITTEN.", staleEntry.getOriginPath());
-                tracker.written(staleEntry); //ignore update failures
-            } else {
-                LOG.warn("Found stale WRITING record for {}. No data exists on disk, marking WRITE_ERROR.", staleEntry.getOriginPath());
-                tracker.writeError(staleEntry); //ignore update failures
+        try (AutoCloseableIterator<LogFile> staleEntries = tracker.findMine(WRITING)){
+            while (staleEntries.hasNext()) {
+                LogFile staleEntry = staleEntries.next();
+                if (Files.exists(staleEntry.getOriginPath())) {
+                    LOG.warn("Found stale WRITING record for {}. Data exists on disk, marking WRITTEN.", staleEntry.getOriginPath());
+                    tracker.written(staleEntry); //ignore update failures
+                } else {
+                    LOG.warn("Found stale WRITING record for {}. No data exists on disk, marking WRITE_ERROR.", staleEntry.getOriginPath());
+                    tracker.writeError(staleEntry); //ignore update failures
+                }
             }
         }
 

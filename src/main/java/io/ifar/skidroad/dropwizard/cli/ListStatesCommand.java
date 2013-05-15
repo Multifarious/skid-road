@@ -6,15 +6,15 @@ import com.yammer.dropwizard.config.Configuration;
 import com.yammer.dropwizard.config.Environment;
 import com.yammer.dropwizard.jdbi.DBIFactory;
 import io.ifar.skidroad.dropwizard.config.SkidRoadReadOnlyConfigurationStrategy;
+import io.ifar.goodies.CliConveniences;
 import io.ifar.skidroad.jdbi.CountByState;
 import io.ifar.skidroad.jdbi.DefaultJDBILogFileDAO;
 import io.ifar.skidroad.jdbi.JDBILogFileDAO;
-import io.ifar.goodies.CliConveniences;
 import net.sourceforge.argparse4j.inf.Namespace;
 import org.apache.commons.lang.StringUtils;
 import org.skife.jdbi.v2.DBI;
 
-import java.util.Iterator;
+import java.util.List;
 
 /**
  *
@@ -35,13 +35,12 @@ public abstract class ListStatesCommand<T extends Configuration> extends Configu
             final DBIFactory factory = new DBIFactory();
             final DBI jdbi = factory.build(env, getSkidRoadReadOnlyConfiguration(configuration).getDatabaseConfiguration(), "logfile");
             JDBILogFileDAO dao = jdbi.onDemand(DefaultJDBILogFileDAO.class);
-            Iterator<CountByState> iter = dao.countLogFilesByState();
-            if (iter.hasNext()) {
+            List<CountByState> counts = dao.countLogFilesByState();
+            if (!counts.isEmpty()) {
                 System.out.println(String.format("%-20s | %-10s","STATE","COUNT"));
                 System.out.println(String.format("%s_|_%s", StringUtils.repeat("_",20),StringUtils.repeat("_",10)));
             }
-            while (iter.hasNext()) {
-                CountByState cbs = iter.next();
+            for (CountByState cbs : counts) {
                 System.out.println(String.format("%-20s | %-10d",cbs.getState(),cbs.getCount()));
             }
         } finally {

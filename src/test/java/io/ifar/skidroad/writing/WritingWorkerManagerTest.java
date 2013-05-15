@@ -1,5 +1,6 @@
 package io.ifar.skidroad.writing;
 
+import io.ifar.goodies.AutoCloseableIterator;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.scheduling.SimpleQuartzScheduler;
 import io.ifar.skidroad.tracker.TransientLogFileTracker;
@@ -163,7 +164,7 @@ public class WritingWorkerManagerTest {
         Path path = Files.createTempFile(name.getMethodName(), ".1");
         dummyFiles.get(0).setOriginPath(path);
         dummyFiles.get(1).setOriginPath(Paths.get("bogus/bogus/bogus"));
-        when(tracker.findMine(LogFileState.WRITING)).thenReturn(dummyFiles.iterator());
+        when(tracker.findMine(LogFileState.WRITING)).thenReturn(new AutoCloseableIterator<>(dummyFiles.iterator()));
 
         scheduler.clear();
         WritingWorkerManager<String> manager = new WritingWorkerManager<>(

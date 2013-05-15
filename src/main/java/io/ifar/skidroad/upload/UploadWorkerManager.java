@@ -8,6 +8,7 @@ import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.scheduling.SimpleQuartzScheduler;
 import io.ifar.skidroad.tracking.LogFileStateListener;
 import io.ifar.skidroad.tracking.LogFileTracker;
+import io.ifar.goodies.AutoCloseableIterator;
 import org.quartz.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -192,31 +193,32 @@ public class UploadWorkerManager implements LogFileStateListener {
 
 
             try {
-                Iterator<LogFile> uploadingIterator = mgr.tracker.findMine(UPLOADING);
-                while (uploadingIterator.hasNext()) {
-                    LogFile logFile = uploadingIterator.next();
-                    //claim check not required for thread safety, but avoid spurious WARNs
-                    if (!mgr.isClaimed(logFile)) {
-                        LOG.warn("Found stale UPLOADING record for {}. Perhaps server was previously terminated while uploading it. Queueing upload.", logFile.getOriginPath());
-                        mgr.processAsync(logFile);
+                try (AutoCloseableIterator<LogFile> iterator = mgr.tracker.findMine(UPLOADING)){
+                    for (LogFile logFile : iterator) {
+                        //claim check not required for thread safety, but avoid spurious WARNs
+                        if (!mgr.isClaimed(logFile)) {
+                            LOG.warn("Found stale UPLOADING record for {}. Perhaps server was previously terminated while uploading it. Queueing upload.", logFile.getOriginPath());
+                            mgr.processAsync(logFile);
+                        }
                     }
                 }
 
-                Iterator<LogFile> preparedIterator = mgr.tracker.findMine(PREPARED);
-                while (preparedIterator.hasNext()) {
-                    LogFile logFile = preparedIterator.next();
-                    if (!mgr.isClaimed(logFile)) {
-                        LOG.warn("Found stale PREPARED record for {}. Perhaps server was previously terminated before uploading it. Queueing upload.", logFile.getOriginPath());
-                        mgr.processAsync(logFile);
+                try (AutoCloseableIterator<LogFile> iterator = mgr.tracker.findMine(PREPARED)) {
+
+                    for (LogFile logFile : iterator) {
+                        if (!mgr.isClaimed(logFile)) {
+                            LOG.warn("Found stale PREPARED record for {}. Perhaps server was previously terminated before uploading it. Queueing upload.", logFile.getOriginPath());
+                            mgr.processAsync(logFile);
+                        }
                     }
                 }
 
-                Iterator<LogFile> erroredIterator = mgr.tracker.findMine(UPLOAD_ERROR);
-                while (erroredIterator.hasNext()) {
-                    LogFile logFile = erroredIterator.next();
-                    //No need for claim check because UPLOAD_ERROR implies listener-based processing has terminated
-                    LOG.warn("Found UPLOAD_ERROR record for {}. Perhaps error was transient. Retrying.", logFile.getOriginPath());
-                    mgr.processAsync(logFile);
+                try (AutoCloseableIterator<LogFile> iterator = mgr.tracker.findMine(UPLOAD_ERROR)) {
+                    for (LogFile logFile : iterator) {
+                        //No need for claim check because UPLOAD_ERROR implies listener-based processing has terminated
+                        LOG.warn("Found UPLOAD_ERROR record for {}. Perhaps error was transient. Retrying.", logFile.getOriginPath());
+                        mgr.processAsync(logFile);
+                    }
                 }
             } catch (Exception e) {
                 //Observed causes:
