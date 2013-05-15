@@ -6,7 +6,6 @@ import org.skife.jdbi.v2.sqlobject.Bind;
 import org.skife.jdbi.v2.sqlobject.SqlQuery;
 import org.skife.jdbi.v2.sqlobject.SqlUpdate;
 import org.skife.jdbi.v2.sqlobject.customizers.RegisterMapper;
-import org.skife.jdbi.v2.unstable.BindIn;
 
 import java.sql.Timestamp;
 import java.util.Iterator;
@@ -65,6 +64,10 @@ public interface DefaultJDBILogFileDAO extends JDBILogFileDAO {
     @Override
     @SqlQuery("select state, count(*) as cnt from log_files group by state order by cnt desc")
     Iterator<CountByState> countLogFilesByState();
+
+    @Override
+    @SqlQuery("select count(*) as cnt from log_files where state = :state")
+    int countLogFilesByState(@Bind("state") String state);
 
     @Override
     @SqlQuery("select sum(bytes) from log_files where state = ANY(:states) and start_time >= :first_ts and start_time <= :last_ts")

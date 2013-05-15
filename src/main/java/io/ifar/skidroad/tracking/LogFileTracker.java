@@ -97,15 +97,18 @@ public interface LogFileTracker {
 
     /**
      * Return all LogFile records owned by current instance in the specified state.
-     * @return
      */
     Iterator<LogFile> findMine(LogFileState state);
 
     /**
      * Return LogFile record, if any, with teh specified rolling cohort and serial number.
-     * @return
      */
     LogFile findByRollingCohortAndSerial(String rollingCohort, int serial);
+
+    /**
+     * Return count of LogFile records in the specified state.
+     */
+    int getCount(LogFileState state);
 
     boolean addListener(LogFileStateListener listener);
 

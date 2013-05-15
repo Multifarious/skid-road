@@ -93,4 +93,10 @@ public class TransientLogFileTracker extends AbstractLogFileTracker {
     protected int updateSize(LogFile logFile) {
         return 1;
     }
+
+    @Override
+    public int getCount(LogFileState state) {
+        return 0;
+    }
+
 }

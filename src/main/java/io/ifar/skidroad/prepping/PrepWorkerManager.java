@@ -1,9 +1,9 @@
 package io.ifar.skidroad.prepping;
 
 import com.yammer.metrics.Metrics;
-import com.yammer.metrics.core.Counter;
 import com.yammer.metrics.core.Gauge;
 import com.yammer.metrics.core.HealthCheck;
+import com.yammer.metrics.core.Meter;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.scheduling.SimpleQuartzScheduler;
 import io.ifar.skidroad.tracking.LogFileStateListener;
@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.ifar.skidroad.tracking.LogFileState.*;
@@ -36,8 +37,6 @@ public class PrepWorkerManager implements LogFileStateListener {
 
     public final HealthCheck healthcheck;
     private final AtomicInteger queueDepth = new AtomicInteger(0);
-    private final Counter enqueueCount = Metrics.newCounter(this.getClass(), "enqueue_count");
-    private final Counter errorCount = Metrics.newCounter(this.getClass(), "error_count");
 
     private final Gauge<Integer> queueDepthGauge = Metrics.newGauge(this.getClass(),
             "queue_depth",
@@ -47,6 +46,26 @@ public class PrepWorkerManager implements LogFileStateListener {
                     return queueDepth.get();
                 }
             });
+
+    private final Gauge<Integer> preparingGauge = Metrics.newGauge(this.getClass(),
+            "files_preparing",
+            new Gauge<Integer>() {
+                @Override
+                public Integer value() {
+                    return tracker.getCount(PREPARING);
+                }
+            });
+
+    private final Gauge<Integer> errorGauge = Metrics.newGauge(this.getClass(),
+            "files_in_error",
+            new Gauge<Integer>() {
+                @Override
+                public Integer value() {
+                    return tracker.getCount(PREP_ERROR);
+                }
+            });
+       private final Meter errorMeter = Metrics.newMeter(this.getClass(), "prep_errors", "errors", TimeUnit.SECONDS);
+    private final Meter successMeter = Metrics.newMeter(this.getClass(), "prep_successes", "successes", TimeUnit.SECONDS);
 
     public PrepWorkerManager(LogFileTracker tracker, PrepWorkerFactory workerFactory, SimpleQuartzScheduler scheduler, int retryIntervalSeconds, final int unhealthyQueueDepthThreshold) {
         this.tracker = tracker;
@@ -74,8 +93,10 @@ public class PrepWorkerManager implements LogFileStateListener {
                 processAsync(logFile);
                 break;
             case PREP_ERROR:
-                errorCount.inc();
+                errorMeter.mark();
                 break;
+            case PREPARED:
+                successMeter.mark();
             default:
                 //ignore
         }
@@ -85,7 +106,6 @@ public class PrepWorkerManager implements LogFileStateListener {
             try {
                 LOG.debug("Preparing {} from {}.", logFile, logFile.getOriginPath());
                 final Runnable worker = workerFactory.buildWorker(logFile, tracker);
-                enqueueCount.inc();
                 queueDepth.incrementAndGet();
                 executor.submit(new Runnable() {
                     @Override
@@ -157,11 +177,11 @@ public class PrepWorkerManager implements LogFileStateListener {
             JobDataMap m = context.getMergedJobDataMap();
             PrepWorkerManager mgr = (PrepWorkerManager) m.get(PREP_WORKER_MANAGER);
 
-            Iterator<LogFile> logFileIterator = mgr.tracker.findMine(PREPARING);
 
             try {
-                while (logFileIterator.hasNext()) {
-                    LogFile logFile = logFileIterator.next();
+                Iterator<LogFile> preppingIterator = mgr.tracker.findMine(PREPARING);
+                while (preppingIterator.hasNext()) {
+                    LogFile logFile = preppingIterator.next();
                     //claim check not required for thread safety, but avoid spurious WARNs
                     if (!mgr.isClaimed(logFile)) {
                         LOG.warn("Found stale PREPARING record for {}. Perhaps server was previously terminated while preparing it. Queueing preparation.", logFile.getOriginPath());
@@ -169,18 +189,18 @@ public class PrepWorkerManager implements LogFileStateListener {
                     }
                 }
 
-                logFileIterator = mgr.tracker.findMine(WRITTEN);
-                while (logFileIterator.hasNext()) {
-                    LogFile logFile = logFileIterator.next();
+                Iterator<LogFile> writtenIterator = mgr.tracker.findMine(WRITTEN);
+                while (writtenIterator.hasNext()) {
+                    LogFile logFile = writtenIterator.next();
                     if (!mgr.isClaimed(logFile)) {
                         LOG.warn("Found stale WRITTEN record for {}. Perhaps server was previously terminated before preparing it. Queueing preparation.", logFile.getOriginPath());
                         mgr.processAsync(logFile);
                     }
                 }
 
-                logFileIterator = mgr.tracker.findMine(PREP_ERROR);
-                while (logFileIterator.hasNext()) {
-                    LogFile logFile = logFileIterator.next();
+                Iterator<LogFile> erroredIterator = mgr.tracker.findMine(PREP_ERROR);
+                while (erroredIterator.hasNext()) {
+                    LogFile logFile = erroredIterator.next();
                     //No need for claim check because UPLOAD_ERROR implies listener-based processing has terminated
                     LOG.warn("Found PREP_ERROR record for {}. Perhaps error was transient. Retrying.", logFile.getOriginPath());
                     mgr.processAsync(logFile);

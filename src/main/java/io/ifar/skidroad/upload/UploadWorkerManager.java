@@ -1,9 +1,9 @@
 package io.ifar.skidroad.upload;
 
 import com.yammer.metrics.Metrics;
-import com.yammer.metrics.core.Counter;
 import com.yammer.metrics.core.Gauge;
 import com.yammer.metrics.core.HealthCheck;
+import com.yammer.metrics.core.Meter;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.scheduling.SimpleQuartzScheduler;
 import io.ifar.skidroad.tracking.LogFileStateListener;
@@ -42,8 +42,6 @@ public class UploadWorkerManager implements LogFileStateListener {
 
     public final HealthCheck healthcheck;
     private final AtomicInteger queueDepth = new AtomicInteger(0);
-    private final Counter enqueueCount = Metrics.newCounter(this.getClass(), "enqueue_count");
-    private final Counter errorCount = Metrics.newCounter(this.getClass(), "error_count");
 
     private final Gauge<Integer> queueDepthGauge = Metrics.newGauge(this.getClass(),
             "queue_depth",
@@ -54,6 +52,26 @@ public class UploadWorkerManager implements LogFileStateListener {
                 }
             });
 
+    private final Gauge<Integer> uploadingGauge = Metrics.newGauge(this.getClass(),
+            "files_uploading",
+            new Gauge<Integer>() {
+                @Override
+                public Integer value() {
+                    return tracker.getCount(UPLOADING);
+                }
+            });
+
+    private final Gauge<Integer> errorGauge = Metrics.newGauge(this.getClass(),
+            "files_in_error",
+            new Gauge<Integer>() {
+                @Override
+                public Integer value() {
+                    return tracker.getCount(UPLOAD_ERROR);
+                }
+            });
+
+    private final Meter errorMeter = Metrics.newMeter(this.getClass(), "upload_errors", "errors", TimeUnit.SECONDS);
+    private final Meter successMeter = Metrics.newMeter(this.getClass(), "upload_successes", "successes", TimeUnit.SECONDS);
 
     public UploadWorkerManager(UploadWorkerFactory workerFactory, LogFileTracker tracker, SimpleQuartzScheduler scheduler, int retryIntervalSeconds, int maxConcurrentUploads,  final int unhealthyQueueDepthThreshold) {
         this.workerFactory = workerFactory;
@@ -81,7 +99,10 @@ public class UploadWorkerManager implements LogFileStateListener {
                 processAsync(logFile);
                 break;
             case UPLOAD_ERROR:
-                errorCount.inc();
+                errorMeter.mark();
+                break;
+            case UPLOADED:
+                successMeter.mark();
                 break;
             default:
                 //ignore
@@ -93,7 +114,6 @@ public class UploadWorkerManager implements LogFileStateListener {
             try {
                 LOG.debug("Uploading {} from {}.", logFile, logFile.getPrepPath());
                 final Runnable worker = workerFactory.buildWorker(logFile, tracker);
-                enqueueCount.inc();
                 queueDepth.incrementAndGet();
                 executor.submit(new Runnable() {
                     @Override
@@ -170,11 +190,11 @@ public class UploadWorkerManager implements LogFileStateListener {
             UploadWorkerManager mgr = (UploadWorkerManager) m.get(UPLOAD_WORKER_MANAGER);
 
 
-            Iterator<LogFile> logFileIterator = mgr.tracker.findMine(UPLOADING);
 
             try {
-                while (logFileIterator.hasNext()) {
-                    LogFile logFile = logFileIterator.next();
+                Iterator<LogFile> uploadingIterator = mgr.tracker.findMine(UPLOADING);
+                while (uploadingIterator.hasNext()) {
+                    LogFile logFile = uploadingIterator.next();
                     //claim check not required for thread safety, but avoid spurious WARNs
                     if (!mgr.isClaimed(logFile)) {
                         LOG.warn("Found stale UPLOADING record for {}. Perhaps server was previously terminated while uploading it. Queueing upload.", logFile.getOriginPath());
@@ -182,23 +202,26 @@ public class UploadWorkerManager implements LogFileStateListener {
                     }
                 }
 
-                logFileIterator = mgr.tracker.findMine(PREPARED);
-                while (logFileIterator.hasNext()) {
-                    LogFile logFile = logFileIterator.next();
+                Iterator<LogFile> preparedIterator = mgr.tracker.findMine(PREPARED);
+                while (preparedIterator.hasNext()) {
+                    LogFile logFile = preparedIterator.next();
                     if (!mgr.isClaimed(logFile)) {
                         LOG.warn("Found stale PREPARED record for {}. Perhaps server was previously terminated before uploading it. Queueing upload.", logFile.getOriginPath());
                         mgr.processAsync(logFile);
                     }
                 }
 
-                logFileIterator = mgr.tracker.findMine(UPLOAD_ERROR);
-                while (logFileIterator.hasNext()) {
-                    LogFile logFile = logFileIterator.next();
+                Iterator<LogFile> erroredIterator = mgr.tracker.findMine(UPLOAD_ERROR);
+                while (erroredIterator.hasNext()) {
+                    LogFile logFile = erroredIterator.next();
                     //No need for claim check because UPLOAD_ERROR implies listener-based processing has terminated
                     LOG.warn("Found UPLOAD_ERROR record for {}. Perhaps error was transient. Retrying.", logFile.getOriginPath());
                     mgr.processAsync(logFile);
                 }
             } catch (Exception e) {
+                //Observed causes:
+                // findMine throws org.skife.jdbi.v2.exceptions.UnableToCreateStatementException: org.postgresql.util.PSQLException: This connection has been closed.
+                // findMine throws org.skife.jdbi.v2.exceptions.UnableToExecuteStatementException: org.postgresql.util.PSQLException: An I/O error occured while sending to the backend.
                 throw new JobExecutionException("Failure pruning upload jobs.", e);
             }
         }

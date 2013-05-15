@@ -99,6 +99,11 @@ public class JDBILogFileTracker extends AbstractLogFileTracker {
     }
 
     @Override
+    public int getCount(LogFileState state) {
+        return dao.countLogFilesByState(state.toString());
+    }
+
+    @Override
     public LogFile findByRollingCohortAndSerial(String rollingCohort, int serial) {
         return dao.findByRollingCohortAndSerial(rollingCohort, serial);
     }

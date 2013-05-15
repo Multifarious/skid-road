@@ -33,6 +33,8 @@ public interface JDBILogFileDAO {
 
     Iterator<CountByState> countLogFilesByState();
 
+    int countLogFilesByState(String state);
+
     Long totalSize(Set<String> states, DateTime startDate, DateTime endDate);
 
     Long count(Set<String> states, DateTime startDate, DateTime endDate);
