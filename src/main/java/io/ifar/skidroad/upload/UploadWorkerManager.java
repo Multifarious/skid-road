@@ -74,12 +74,20 @@ public class UploadWorkerManager implements LogFileStateListener {
     private final Meter errorMeter = Metrics.newMeter(this.getClass(), "upload_errors", "errors", TimeUnit.SECONDS);
     private final Meter successMeter = Metrics.newMeter(this.getClass(), "upload_successes", "successes", TimeUnit.SECONDS);
 
-    public UploadWorkerManager(UploadWorkerFactory workerFactory, LogFileTracker tracker, SimpleQuartzScheduler scheduler, int retryIntervalSeconds, int maxConcurrentUploads,  final int unhealthyQueueDepthThreshold) {
+    /**
+     * @param workerFactory Provides workers to perform the LogFile uploads.
+     * @param tracker Provides access to LogFile metadata.
+     * @param scheduler Quartz
+     * @param retryIntervalSeconds How often to look for files that can be retried.
+     * @param maxConcurrentWork Size of thread pool executing the workers.
+     * @param unhealthyQueueDepthThreshold HealthCheck returns unhealthy when work queue reaches this size.
+     */
+    public UploadWorkerManager(UploadWorkerFactory workerFactory, LogFileTracker tracker, SimpleQuartzScheduler scheduler, int retryIntervalSeconds, int maxConcurrentWork,  final int unhealthyQueueDepthThreshold) {
         this.workerFactory = workerFactory;
         this.tracker = tracker;
         this.scheduler = scheduler;
         this.retryIntervalSeconds = retryIntervalSeconds;
-        this.maxConcurrentUploads = maxConcurrentUploads;
+        this.maxConcurrentUploads = maxConcurrentWork;
         this.activeFiles = new HashSet<String>();
 
         this.healthcheck = new HealthCheck("upload_worker_manager") {

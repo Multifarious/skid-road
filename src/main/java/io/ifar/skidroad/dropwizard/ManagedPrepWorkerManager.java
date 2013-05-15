@@ -11,8 +11,8 @@ import io.ifar.skidroad.scheduling.SimpleQuartzScheduler;
 import io.ifar.skidroad.tracking.LogFileTracker;
 
 public class ManagedPrepWorkerManager extends PrepWorkerManager implements Managed {
-    public ManagedPrepWorkerManager(LogFileTracker tracker, PrepWorkerFactory workerFactory, SimpleQuartzScheduler scheduler, int retryIntervalSeconds, int unhealthyQueueDepthThreshold) {
-        super(tracker, workerFactory, scheduler, retryIntervalSeconds, unhealthyQueueDepthThreshold);
+    public ManagedPrepWorkerManager(LogFileTracker tracker, PrepWorkerFactory workerFactory, SimpleQuartzScheduler scheduler, int retryIntervalSeconds, int maxConcurrentWork, int unhealthyQueueDepthThreshold) {
+        super(tracker, workerFactory, scheduler, retryIntervalSeconds, maxConcurrentWork, unhealthyQueueDepthThreshold);
     }
 
     public static ManagedPrepWorkerManager build(PrepWorkerFactory workerFactory, RequestLogPrepConfiguration prepConfiguration, Environment environment, LogFileTracker tracker, SimpleQuartzScheduler scheduler) {
@@ -20,6 +20,7 @@ public class ManagedPrepWorkerManager extends PrepWorkerManager implements Manag
                 workerFactory,
                 scheduler,
                 prepConfiguration.getRetryIntervalSeconds(),
+                prepConfiguration.getMaxConcurrency(),
                 prepConfiguration.getReportUnhealthyAtQueueDepth()
         );
         environment.manage(prepManager);

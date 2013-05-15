@@ -27,6 +27,10 @@ public class RequestLogPrepConfiguration {
     @JsonProperty("retry_interval_seconds")
     private int retryIntervalSeconds= 300;
 
+    @Range(min = 1)
+    @JsonProperty("max_concurrency")
+    private Integer maxConcurrency = 5; //depends on network bandwidth, not CPUs
+
     public String getMasterIV() {
         return masterIV;
     }
@@ -41,5 +45,9 @@ public class RequestLogPrepConfiguration {
 
     public int getRetryIntervalSeconds() {
         return retryIntervalSeconds;
+    }
+
+    public Integer getMaxConcurrency() {
+        return maxConcurrency;
     }
 }

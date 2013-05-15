@@ -4,19 +4,20 @@ import com.yammer.metrics.Metrics;
 import com.yammer.metrics.core.Gauge;
 import com.yammer.metrics.core.HealthCheck;
 import com.yammer.metrics.core.Meter;
+import io.ifar.goodies.AutoCloseableIterator;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.scheduling.SimpleQuartzScheduler;
 import io.ifar.skidroad.tracking.LogFileStateListener;
 import io.ifar.skidroad.tracking.LogFileTracker;
-import io.ifar.goodies.AutoCloseableIterator;
 import org.quartz.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.ifar.skidroad.tracking.LogFileState.*;
@@ -33,7 +34,8 @@ public class PrepWorkerManager implements LogFileStateListener {
     private final PrepWorkerFactory workerFactory;
     private final SimpleQuartzScheduler scheduler;
     private final int retryIntervalSeconds;
-    private final ExecutorService executor;
+    private final int maxConcurrentPrepWork;
+    private ExecutorService executor;
     private final Set<String> activeFiles;
 
     public final HealthCheck healthcheck;
@@ -68,12 +70,20 @@ public class PrepWorkerManager implements LogFileStateListener {
        private final Meter errorMeter = Metrics.newMeter(this.getClass(), "prep_errors", "errors", TimeUnit.SECONDS);
     private final Meter successMeter = Metrics.newMeter(this.getClass(), "prep_successes", "successes", TimeUnit.SECONDS);
 
-    public PrepWorkerManager(LogFileTracker tracker, PrepWorkerFactory workerFactory, SimpleQuartzScheduler scheduler, int retryIntervalSeconds, final int unhealthyQueueDepthThreshold) {
+    /**
+     * @param workerFactory Provides workers to perform the LogFile uploads.
+     * @param tracker Provides access to LogFile metadata.
+     * @param scheduler Quartz
+     * @param retryIntervalSeconds How often to look for files that can be retried.
+     * @param maxConcurrentWork Size of thread pool executing the workers.
+     * @param unhealthyQueueDepthThreshold HealthCheck returns unhealthy when work queue reaches this size.
+     */
+    public PrepWorkerManager(LogFileTracker tracker, PrepWorkerFactory workerFactory, SimpleQuartzScheduler scheduler, int retryIntervalSeconds, int maxConcurrentWork, final int unhealthyQueueDepthThreshold) {
         this.tracker = tracker;
         this.workerFactory = workerFactory;
         this.scheduler = scheduler;
         this.retryIntervalSeconds = retryIntervalSeconds;
-        this.executor = Executors.newCachedThreadPool();
+        this.maxConcurrentPrepWork = maxConcurrentWork;
         this.activeFiles = new HashSet<String>();
 
         this.healthcheck = new HealthCheck("prep_worker_manager") {
@@ -128,6 +138,9 @@ public class PrepWorkerManager implements LogFileStateListener {
 
     public void start() {
         LOG.info("Starting {}.", PrepWorkerManager.class.getSimpleName());
+        this.executor = new ThreadPoolExecutor(0, maxConcurrentPrepWork,
+                60L, TimeUnit.SECONDS,
+                new SynchronousQueue<Runnable>());
         tracker.addListener(this);
         Map<String,Object> retryConfiguration = new HashMap<>(1);
         retryConfiguration.put(RetryJob.PREP_WORKER_MANAGER, this);
