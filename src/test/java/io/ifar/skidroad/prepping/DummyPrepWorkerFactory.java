@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -48,23 +49,25 @@ public class DummyPrepWorkerFactory implements PrepWorkerFactory {
     private final List<CountDownLatch> exitLatches = new ArrayList<>();
 
     @Override
-    public Runnable buildWorker(LogFile logFileRecord, LogFileTracker tracker) {
+    public Callable<Boolean> buildWorker(LogFile logFileRecord, LogFileTracker tracker) {
         final CountDownLatch latch = new CountDownLatch(1);
         synchronized (exitLatches) {
             exitLatches.add(latch);
         }
 
-        Runnable worker = new Runnable() {
+        Callable<Boolean> worker = new Callable<Boolean>() {
             @Override
-            public void run() {
+            public Boolean call() throws Exception {
                 try {
                     LOG.debug("Worker {} is alive.", Thread.currentThread().getName());
                     for (CountDownLatch creationLatch : runCountLatches)
                         creationLatch.countDown();
                     if (!latch.await(1, TimeUnit.SECONDS))
                         LOG.error("Unreported test failure; took too long for exit latch to be released.");
+                    return Boolean.TRUE;
                 } catch (InterruptedException e) {
                     LOG.debug("Worker {} has been asked to exit.", Thread.currentThread().getName());
+                    throw e;
                 }
             }
         };

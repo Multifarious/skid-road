@@ -1,9 +1,10 @@
 package io.ifar.skidroad.tracker;
 
+import com.google.common.collect.ImmutableSet;
+import io.ifar.goodies.AutoCloseableIterator;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.tracking.AbstractLogFileTracker;
 import io.ifar.skidroad.tracking.LogFileState;
-import io.ifar.goodies.AutoCloseableIterator;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
@@ -14,6 +15,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.ifar.skidroad.tracking.LogFileState.*;
@@ -56,9 +58,14 @@ public class TransientLogFileTracker extends AbstractLogFileTracker {
 
     @Override
     public AutoCloseableIterator<LogFile> findMine(LogFileState state) {
+        return findMine(ImmutableSet.of(state));
+    }
+
+    @Override
+    public AutoCloseableIterator<LogFile> findMine(Set<LogFileState> states) {
         List<LogFile> result = new LinkedList<>();
         for (LogFile logFile : logFiles)
-            if (logFile.getState().equals(state) && logFile.getOwnerURI().equals(localUri))
+            if (states.contains(logFile.getState()) && logFile.getOwnerURI().equals(localUri))
                 result.add(logFile);
 
         return new AutoCloseableIterator<>(result.iterator());

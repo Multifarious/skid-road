@@ -28,7 +28,7 @@ public interface JDBILogFileDAO {
 
     int claimIndex(String rollingCohort, int serial, Timestamp startTime, String originUri, String ownerUri, Timestamp now);
 
-    ResultIterator<LogFile> findByOwnerAndState(String ownerUri, String state);
+    ResultIterator<LogFile> findByOwnerAndState(String ownerUri, Set<String> states);
 
     ResultIterator<String> listOwnerUris();
 

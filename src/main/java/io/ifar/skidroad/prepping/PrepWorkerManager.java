@@ -1,10 +1,14 @@
 package io.ifar.skidroad.prepping;
 
+import com.google.common.collect.ImmutableSet;
 import com.yammer.metrics.Metrics;
 import com.yammer.metrics.core.Gauge;
 import com.yammer.metrics.core.HealthCheck;
 import com.yammer.metrics.core.Meter;
 import io.ifar.goodies.AutoCloseableIterator;
+import io.ifar.goodies.IterableIterator;
+import io.ifar.goodies.Iterators;
+import io.ifar.goodies.Pair;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.scheduling.SimpleQuartzScheduler;
 import io.ifar.skidroad.tracking.LogFileStateListener;
@@ -13,10 +17,7 @@ import org.quartz.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -30,6 +31,7 @@ import static io.ifar.skidroad.tracking.LogFileState.*;
  */
 public class PrepWorkerManager implements LogFileStateListener {
     private final static Logger LOG = LoggerFactory.getLogger(PrepWorkerManager.class);
+    private final static int PEEK_DEPTH = 50; //when randomly selecting an item to retry, how many of the available items to rifle through
     private final LogFileTracker tracker;
     private final PrepWorkerFactory workerFactory;
     private final SimpleQuartzScheduler scheduler;
@@ -99,6 +101,7 @@ public class PrepWorkerManager implements LogFileStateListener {
 
     @Override
     public void stateChanged(final LogFile logFile) {
+        LOG.trace("State change received: {} for {}", logFile.getState(), logFile);
         switch (logFile.getState()) {
             case WRITTEN:
                 processAsync(logFile);
@@ -112,22 +115,53 @@ public class PrepWorkerManager implements LogFileStateListener {
                 //ignore
         }
     }
+
+    /**
+     * Wraps increment/decrement of queueDepth around provided worker
+     * @param worker
+     * @param logFile
+     * @return
+     */
+    private Callable<Boolean> wrapWorker(final Callable<Boolean> worker, final LogFile logFile) {
+        return new Callable<Boolean>() {
+            @Override
+            public Boolean call() throws Exception {
+               LOG.debug("Preparing {} from {}.", logFile, logFile.getOriginPath());
+               queueDepth.incrementAndGet();
+               try {
+                   return worker.call();
+               } finally {
+                   queueDepth.decrementAndGet();
+               }
+            }
+        };
+    }
+
+    /**
+     * Synchronously processes the provided LogFile. Used by by retry handler for testing of whether
+     * uploads are working again.
+     * @param logFile
+     * @return True if successful, False if LogFile could not be claimed. Exception thrown if failed.
+     */
+    private Boolean processSync(final LogFile logFile) throws Exception {
+        if (claim(logFile)) {
+            try {
+                final Callable<Boolean> worker = wrapWorker(workerFactory.buildWorker(logFile, tracker),logFile);
+                return worker.call();
+            } finally {
+                release(logFile);
+            }
+        } else {
+            LOG.trace("{} is already being prepped on another thread. No-op on this thread.", logFile);
+            return Boolean.FALSE;
+        }
+    }
+
     private void processAsync(final LogFile logFile) {
         if (claim(logFile)) {
             try {
-                LOG.debug("Preparing {} from {}.", logFile, logFile.getOriginPath());
-                final Runnable worker = workerFactory.buildWorker(logFile, tracker);
-                queueDepth.incrementAndGet();
-                executor.submit(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            worker.run();
-                        } finally {
-                            queueDepth.decrementAndGet();
-                        }
-                    }
-                });
+                final Callable<Boolean> worker = wrapWorker(workerFactory.buildWorker(logFile, tracker), logFile);
+                executor.submit(worker);
             } finally {
                 release(logFile);
             }
@@ -192,36 +226,77 @@ public class PrepWorkerManager implements LogFileStateListener {
             JobDataMap m = context.getMergedJobDataMap();
             PrepWorkerManager mgr = (PrepWorkerManager) m.get(PREP_WORKER_MANAGER);
 
-
             try {
-                try (AutoCloseableIterator<LogFile> iterator = mgr.tracker.findMine(PREPARING)) {
-                    for (LogFile logFile : iterator) {
-                        //claim check not required for thread safety, but avoid spurious WARNs
-                        if (!mgr.isClaimed(logFile)) {
-                            LOG.warn("Found stale PREPARING record for {}. Perhaps server was previously terminated while preparing it. Queueing preparation.", logFile.getOriginPath());
-                            mgr.processAsync(logFile);
-                        }
-                    }
-                }
-
-                try (AutoCloseableIterator<LogFile> iterator = mgr.tracker.findMine(WRITTEN)) {
-                    for (LogFile logFile : iterator) {
-                        if (!mgr.isClaimed(logFile)) {
-                            LOG.warn("Found stale WRITTEN record for {}. Perhaps server was previously terminated before preparing it. Queueing preparation.", logFile.getOriginPath());
-                            mgr.processAsync(logFile);
-                        }
-                    }
-                }
-
-                try (AutoCloseableIterator<LogFile> iterator = mgr.tracker.findMine(PREP_ERROR)) {
-                    for (LogFile logFile : iterator) {
-                        //No need for claim check because UPLOAD_ERROR implies listener-based processing has terminated
-                        LOG.warn("Found PREP_ERROR record for {}. Perhaps error was transient. Retrying.", logFile.getOriginPath());
-                        mgr.processAsync(logFile);
-                    }
+                try (AutoCloseableIterator<LogFile> iterator = mgr.tracker.findMine(ImmutableSet.of(PREPARING,WRITTEN,PREP_ERROR))) {
+                    tryOneThenRetryAll(iterator,mgr);
                 }
             } catch (Exception e) {
-                throw new JobExecutionException("Failure pruning prep jobs.", e);
+                throw new JobExecutionException("Failure retrying prep jobs.", e);
+            }
+        }
+
+        /**
+         * Guards against situation where there are many files to retry and retries are failing. Attempt one and,
+         * if it succeeds, retry the others. Otherwise wait. Selection of one to try is random within the first
+         * PEEK_DEPTH records returned by teh database. This avoids iterating the whole result set.
+         * @param iterator
+         * @param mgr
+         */
+        private void tryOneThenRetryAll(Iterator<LogFile> iterator, PrepWorkerManager mgr) {
+            Pair<LogFile,IterableIterator<LogFile>> oneSelected = Iterators.takeOneFromTopN(iterator, PEEK_DEPTH);
+            if (oneSelected.left != null) {
+                //claim check not required for thread safety, but avoid spurious WARNs about retrying items while they are in-flight for the first time
+                LogFile trialLogFile = oneSelected.left;
+                if (!mgr.isClaimed(trialLogFile)) {
+                    try {
+                        logRetryMessageForState(trialLogFile);
+                        if (mgr.processSync(trialLogFile)) {
+                            if (oneSelected.right.hasNext()) {
+                                LOG.info("First retry succeeded. Will queue others.");
+                                for (LogFile logFile : oneSelected.right) {
+                                    //claim check not required for thread safety, but avoid spurious WARNs about retrying items while they are in-flight for the first time
+                                    if (!mgr.isClaimed(logFile)) {
+                                        logRetryMessageForState(logFile);
+                                        mgr.processAsync(logFile);
+                                    }
+                                }
+                            } else {
+                                LOG.info("First retry succeeded. There are no others left.");
+                            }
+                        } else {
+                            LOG.warn("Another thread claimed {} since last checked. Are two retry jobs running at once?", trialLogFile);
+                        }
+                    } catch (Exception e) {
+                        if (oneSelected.right.hasNext()) {
+                            LOG.warn("Retry of trial record {} failed. Will not try any others this time.", trialLogFile);
+                        } else {
+                            LOG.warn("Retry of trial record {} failed. There are no others left.", trialLogFile);
+                        }
+                    }
+                }
+            }
+        }
+
+
+        private void logRetryMessageForState(LogFile logFile) {
+            switch (logFile.getState()) {
+                case WRITTEN:
+                    LOG.info("Found stale {} record for {}. Perhaps server was previously terminated before preparing it.",
+                            logFile.getState(),
+                            logFile);
+                    break;
+                case PREPARING:
+                    LOG.info("Found stale {} record for {}. Perhaps server was previously terminated while preparing it.",
+                            logFile.getState(),
+                            logFile);
+                    break;
+                case PREP_ERROR:
+                    LOG.info("Found {} record for {}. Perhaps a transient error occurred while preparing it.",
+                            logFile.getState(),
+                            logFile);
+                    break;
+                default:
+                    throw new IllegalStateException(String.format("Did not expect to be processing %s record for %s. Bug!", logFile.getState(), logFile));
             }
         }
     }

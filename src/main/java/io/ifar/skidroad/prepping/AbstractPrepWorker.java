@@ -7,11 +7,12 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.concurrent.Callable;
 
 /**
  * Provides standard LogFileTracker interaction.
  */
-public abstract class AbstractPrepWorker implements Runnable {
+public abstract class AbstractPrepWorker implements Callable<Boolean> {
 
     private final static Logger LOG = LoggerFactory.getLogger(AbstractPrepWorker.class);
     protected final LogFile logFile;
@@ -23,7 +24,7 @@ public abstract class AbstractPrepWorker implements Runnable {
     }
 
     @Override
-    public void run() {
+    public Boolean call() throws Exception {
         try {
             if (tracker.preparing(logFile) != 1)
                 throw new IllegalStateException("Cannot place " + logFile + " into into PREPARING state.");
@@ -36,10 +37,11 @@ public abstract class AbstractPrepWorker implements Runnable {
 
             LOG.debug("Prepared {} to {}", logFile, logFile.getPrepPath());
             tracker.prepared(logFile); //ignore update failures; worker exiting anyway
-
+            return Boolean.TRUE;
         } catch (Exception e) {
             LOG.warn("Preparation for {} failed.", logFile, e);
             tracker.prepError(logFile); //ignore update failures; worker exiting anyway
+            throw e;
         }
     }
 

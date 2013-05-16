@@ -3,6 +3,8 @@ package io.ifar.skidroad.prepping;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.tracking.LogFileTracker;
 
+import java.util.concurrent.Callable;
+
 /**
  * Created with IntelliJ IDEA.
  * User: lhn
@@ -20,7 +22,7 @@ public class EncryptAndCompressPrepWorkerFactory implements PrepWorkerFactory {
     }
 
     @Override
-    public Runnable buildWorker(LogFile logFile, LogFileTracker tracker) {
+    public Callable<Boolean> buildWorker(LogFile logFile, LogFileTracker tracker) {
         return new EncryptAndCompressPrepper(logFile, tracker, masterKeyBase64, masterIVBase64);
     }
 }

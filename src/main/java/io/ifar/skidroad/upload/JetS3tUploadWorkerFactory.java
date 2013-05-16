@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
+import java.util.concurrent.Callable;
 
 /**
  * Constructs JetS3tUploadWorkers that upload LogFiles via JetS3t (e.g. to Amazon S3)
@@ -25,7 +26,7 @@ public class JetS3tUploadWorkerFactory implements UploadWorkerFactory {
     }
 
     @Override
-    public Runnable buildWorker(final LogFile logFile, final LogFileTracker tracker) {
+    public Callable<Boolean> buildWorker(final LogFile logFile, final LogFileTracker tracker) {
         return new JetS3tUploadWorker(logFile, tracker, uploadBaseURI, jetS3tStorage);
     }
 }

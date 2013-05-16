@@ -1,10 +1,11 @@
 package io.ifar.skidroad.jdbi;
 
+import com.google.common.collect.ImmutableSet;
+import io.ifar.goodies.AutoCloseableIterator;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.tracking.AbstractLogFileTracker;
 import io.ifar.skidroad.tracking.LogFileState;
 import io.ifar.skidroad.tracking.LogFileStateListener;
-import io.ifar.goodies.AutoCloseableIterator;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,7 +93,16 @@ public class JDBILogFileTracker extends AbstractLogFileTracker {
 
     @Override
     public AutoCloseableIterator<LogFile> findMine(LogFileState state) {
-        return new AutoCloseableIterator<>(dao.findByOwnerAndState(localUri.toString(), state.toString()));
+        return findMine(ImmutableSet.of(state));
+    }
+
+    @Override
+    public AutoCloseableIterator<LogFile> findMine(Set<LogFileState> states) {
+        Set<String> stateStrings = new HashSet<>(states.size());
+        for (LogFileState state : states) {
+            stateStrings.add(state.toString());
+        }
+        return new AutoCloseableIterator<>(dao.findByOwnerAndState(localUri.toString(), stateStrings));
     }
 
     @Override

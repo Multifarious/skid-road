@@ -1,23 +1,24 @@
 package io.ifar.skidroad.upload;
 
+import com.google.common.collect.ImmutableSet;
 import com.yammer.metrics.Metrics;
 import com.yammer.metrics.core.Gauge;
 import com.yammer.metrics.core.HealthCheck;
 import com.yammer.metrics.core.Meter;
+import io.ifar.goodies.AutoCloseableIterator;
+import io.ifar.goodies.IterableIterator;
+import io.ifar.goodies.Iterators;
+import io.ifar.goodies.Pair;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.scheduling.SimpleQuartzScheduler;
 import io.ifar.skidroad.tracking.LogFileStateListener;
 import io.ifar.skidroad.tracking.LogFileTracker;
-import io.ifar.goodies.AutoCloseableIterator;
 import org.quartz.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.ifar.skidroad.tracking.LogFileState.*;
@@ -32,6 +33,7 @@ import static io.ifar.skidroad.tracking.LogFileState.*;
  */
 public class UploadWorkerManager implements LogFileStateListener {
     private final static Logger LOG = LoggerFactory.getLogger(UploadWorkerManager.class);
+    private final static int PEEK_DEPTH = 50; //when randomly selecting an item to retry, how many of the available items to rifle through
 
     private final UploadWorkerFactory workerFactory;
     private final LogFileTracker tracker;
@@ -103,6 +105,7 @@ public class UploadWorkerManager implements LogFileStateListener {
 
     @Override
     public void stateChanged(final LogFile logFile) {
+        LOG.trace("State change received: {} for {}", logFile.getState(), logFile);
         switch (logFile.getState()) {
             case PREPARED:
                 processAsync(logFile);
@@ -118,22 +121,55 @@ public class UploadWorkerManager implements LogFileStateListener {
         }
     }
 
+    /**
+     * Wraps increment/decrement of queueDepth around provided worker
+     * @param worker
+     * @param logFile
+     * @return
+     */
+    private Callable<Boolean> wrapWorker(final Callable<Boolean> worker, final LogFile logFile) {
+       return new Callable<Boolean>() {
+           @Override
+           public Boolean call() throws Exception {
+               LOG.debug("Uploading {} from {}.", logFile, logFile.getPrepPath());
+               queueDepth.incrementAndGet();
+               try {
+                   return worker.call();
+               } finally {
+                   queueDepth.decrementAndGet();
+               }
+           }
+       };
+    }
+
+    /**
+     * Synchronously processes the provided LogFile. Used by by retry handler for testing of whether
+     * uploads are working again.
+     * @param logFile
+     * @return True if successful, False if LogFile could not be claimed. Exception thrown if failed.
+     */
+    private Boolean processSync(final LogFile logFile) throws Exception {
+        if (claim(logFile)) {
+            try {
+                final Callable<Boolean> worker = wrapWorker(workerFactory.buildWorker(logFile, tracker),logFile);
+                return worker.call();
+            } finally {
+                release(logFile);
+            }
+        } else {
+            LOG.trace("{} is already being uploaded on another thread. No-op on this thread.", logFile);
+            return Boolean.FALSE;
+        }
+    }
+
+    /**
+     * Submits provided LogFile for async upload processing
+     */
     private void processAsync(final LogFile logFile) {
         if (claim(logFile)) {
             try {
-                LOG.debug("Uploading {} from {}.", logFile, logFile.getPrepPath());
-                final Runnable worker = workerFactory.buildWorker(logFile, tracker);
-                queueDepth.incrementAndGet();
-                executor.submit(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            worker.run();
-                        } finally {
-                            queueDepth.decrementAndGet();
-                        }
-                    }
-                });
+                final Callable<Boolean> worker = wrapWorker(workerFactory.buildWorker(logFile, tracker), logFile);
+                executor.submit(worker);
             } finally {
                 release(logFile);
             }
@@ -199,41 +235,79 @@ public class UploadWorkerManager implements LogFileStateListener {
             JobDataMap m = context.getMergedJobDataMap();
             UploadWorkerManager mgr = (UploadWorkerManager) m.get(UPLOAD_WORKER_MANAGER);
 
-
-
             try {
-                try (AutoCloseableIterator<LogFile> iterator = mgr.tracker.findMine(UPLOADING)){
-                    for (LogFile logFile : iterator) {
-                        //claim check not required for thread safety, but avoid spurious WARNs
-                        if (!mgr.isClaimed(logFile)) {
-                            LOG.warn("Found stale UPLOADING record for {}. Perhaps server was previously terminated while uploading it. Queueing upload.", logFile.getOriginPath());
-                            mgr.processAsync(logFile);
-                        }
-                    }
-                }
-
-                try (AutoCloseableIterator<LogFile> iterator = mgr.tracker.findMine(PREPARED)) {
-
-                    for (LogFile logFile : iterator) {
-                        if (!mgr.isClaimed(logFile)) {
-                            LOG.warn("Found stale PREPARED record for {}. Perhaps server was previously terminated before uploading it. Queueing upload.", logFile.getOriginPath());
-                            mgr.processAsync(logFile);
-                        }
-                    }
-                }
-
-                try (AutoCloseableIterator<LogFile> iterator = mgr.tracker.findMine(UPLOAD_ERROR)) {
-                    for (LogFile logFile : iterator) {
-                        //No need for claim check because UPLOAD_ERROR implies listener-based processing has terminated
-                        LOG.warn("Found UPLOAD_ERROR record for {}. Perhaps error was transient. Retrying.", logFile.getOriginPath());
-                        mgr.processAsync(logFile);
-                    }
+                try (AutoCloseableIterator<LogFile> iterator = mgr.tracker.findMine(ImmutableSet.of(UPLOADING,PREPARED,UPLOAD_ERROR))){
+                    tryOneThenRetryAll(iterator, mgr);
                 }
             } catch (Exception e) {
                 //Observed causes:
                 // findMine throws org.skife.jdbi.v2.exceptions.UnableToCreateStatementException: org.postgresql.util.PSQLException: This connection has been closed.
                 // findMine throws org.skife.jdbi.v2.exceptions.UnableToExecuteStatementException: org.postgresql.util.PSQLException: An I/O error occured while sending to the backend.
-                throw new JobExecutionException("Failure pruning upload jobs.", e);
+                throw new JobExecutionException("Failure retrying upload jobs.", e);
+            }
+        }
+
+        /**
+         * Guards against situation where there are many files to retry and retries are failing. Attempt one and,
+         * if it succeeds, retry the others. Otherwise wait. Selection of one to try is random within the first
+         * PEEK_DEPTH records returned by teh database. This avoids iterating the whole result set.
+         * @param iterator
+         * @param mgr
+         */
+        private void tryOneThenRetryAll(Iterator<LogFile> iterator, UploadWorkerManager mgr) {
+            Pair<LogFile,IterableIterator<LogFile>> oneSelected = Iterators.takeOneFromTopN(iterator, PEEK_DEPTH);
+            if (oneSelected.left != null) {
+                //claim check not required for thread safety, but avoid spurious WARNs about retrying items while they are in-flight for the first time
+                LogFile trialLogFile = oneSelected.left;
+                if (!mgr.isClaimed(trialLogFile)) {
+                    try {
+                        logRetryMessageForState(trialLogFile);
+                        if (mgr.processSync(trialLogFile)) {
+                            if (oneSelected.right.hasNext()) {
+                                LOG.info("First retry succeeded. Will queue others.");
+                                for (LogFile logFile : oneSelected.right) {
+                                    //claim check not required for thread safety, but avoid spurious WARNs about retrying items while they are in-flight for the first time
+                                    if (!mgr.isClaimed(logFile)) {
+                                        logRetryMessageForState(logFile);
+                                        mgr.processAsync(logFile);
+                                    }
+                                }
+                            } else {
+                                LOG.info("First retry succeeded. There are no others left.");
+                            }
+                        } else {
+                            LOG.warn("Another thread claimed {} since last checked. Are two retry jobs running at once?", trialLogFile);
+                        }
+                    } catch (Exception e) {
+                        if (oneSelected.right.hasNext()) {
+                            LOG.warn("Retry of trial record {} failed. Will not try any others this time.", trialLogFile);
+                        } else {
+                            LOG.warn("Retry of trial record {} failed. There are no others left.", trialLogFile);
+                        }
+                    }
+                }
+            }
+        }
+
+        private void logRetryMessageForState(LogFile logFile) {
+            switch (logFile.getState()) {
+                case PREPARED:
+                    LOG.info("Found stale {} record for {}. Perhaps server was previously terminated before uploading it.",
+                            logFile.getState(),
+                            logFile);
+                    break;
+                case UPLOADING:
+                    LOG.info("Found stale {} record for {}. Perhaps server was previously terminated while uploading it.",
+                            logFile.getState(),
+                            logFile);
+                    break;
+                case UPLOAD_ERROR:
+                    LOG.info("Found {} record for {}. Perhaps a transient error occurred while uploading it.",
+                            logFile.getState(),
+                            logFile);
+                    break;
+                default:
+                    throw new IllegalStateException(String.format("Did not expect to be processing %s record for %s. Bug!", logFile.getState(), logFile));
             }
         }
     }
