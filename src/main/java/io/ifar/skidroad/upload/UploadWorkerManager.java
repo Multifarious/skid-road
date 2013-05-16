@@ -151,7 +151,7 @@ public class UploadWorkerManager implements LogFileStateListener {
 
         Map<String,Object> retryConfiguration = new HashMap<>(1);
         retryConfiguration.put(RetryJob.UPLOAD_WORKER_MANAGER, this);
-        scheduler.schedule(this.getClass().getSimpleName() + "_retry", RetryJob.class, retryIntervalSeconds, retryConfiguration);
+        scheduler.schedule(this.getClass().getSimpleName() + "_retry", RetryJob.class, retryIntervalSeconds * 1000, retryConfiguration);
     }
 
     public void stop() {
@@ -193,6 +193,7 @@ public class UploadWorkerManager implements LogFileStateListener {
     public static class RetryJob implements Job
     {
         public static final String UPLOAD_WORKER_MANAGER = "upload_worker_manager";
+        private static final Logger LOG = LoggerFactory.getLogger(RetryJob.class);
 
         public void execute(JobExecutionContext context) throws JobExecutionException {
             JobDataMap m = context.getMergedJobDataMap();

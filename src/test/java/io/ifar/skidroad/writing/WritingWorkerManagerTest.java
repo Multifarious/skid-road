@@ -27,7 +27,7 @@ import static org.mockito.Mockito.*;
 public class WritingWorkerManagerTest {
     private final static Logger LOG = LoggerFactory.getLogger(WritingWorkerManagerTest.class);
 
-    private final static int PRUNE_INTERVAL_MILLISECONDS = 100;
+    private final static int PRUNE_INTERVAL_SECONDS = 1;
     private final static int LAUNCH_MORE_WORKERS_THRESHOLD = 3;
     private final static int UNHEALTHY_QUEUE_SIZE = 10;
 
@@ -55,7 +55,7 @@ public class WritingWorkerManagerTest {
                 tracker,
                 factory,
                 scheduler,
-                PRUNE_INTERVAL_MILLISECONDS,
+                PRUNE_INTERVAL_SECONDS,
                 LAUNCH_MORE_WORKERS_THRESHOLD,
                 UNHEALTHY_QUEUE_SIZE);
         manager.start();
@@ -173,7 +173,7 @@ public class WritingWorkerManagerTest {
                 tracker,
                 factory,
                 scheduler,
-                PRUNE_INTERVAL_MILLISECONDS,
+                PRUNE_INTERVAL_SECONDS,
                 LAUNCH_MORE_WORKERS_THRESHOLD,
                 UNHEALTHY_QUEUE_SIZE);
         try {
@@ -192,7 +192,7 @@ public class WritingWorkerManagerTest {
 
     private void awaitNextPrune() throws InterruptedException {
         LOG.debug("Awaiting prune");
-        Thread.sleep(PRUNE_INTERVAL_MILLISECONDS + 500);
+        Thread.sleep(PRUNE_INTERVAL_SECONDS * 1000 + 500);
         LOG.debug("Hopefully pruned.");
     }
 

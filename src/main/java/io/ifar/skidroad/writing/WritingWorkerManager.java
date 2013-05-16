@@ -285,7 +285,7 @@ public class WritingWorkerManager<T> {
 
         Map<String,Object> pruneConfiguration = new HashMap<>(1);
         pruneConfiguration.put(PruneJob.FILE_WRITING_WORKER_MANAGER, this);
-        scheduler.schedule(this.getClass().getSimpleName()+"_prune", PruneJob.class, pruneIntervalSeconds, pruneConfiguration);
+        scheduler.schedule(this.getClass().getSimpleName()+"_prune", PruneJob.class, pruneIntervalSeconds * 1000, pruneConfiguration);
     }
 
     public void stop() throws InterruptedException {
