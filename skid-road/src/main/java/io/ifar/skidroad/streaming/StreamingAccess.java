@@ -1,11 +1,11 @@
 package io.ifar.skidroad.streaming;
 
 import com.google.common.io.ByteStreams;
-import com.sun.jersey.core.util.Base64;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.crypto.AESInputStream;
 import io.ifar.skidroad.crypto.StreamingBouncyCastleAESWithSIC;
 import io.ifar.skidroad.jets3t.JetS3tStorage;
+import org.bouncycastle.util.encoders.Base64;
 import org.jets3t.service.ServiceException;
 import org.jets3t.service.model.StorageObject;
 

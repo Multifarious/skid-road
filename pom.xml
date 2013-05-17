@@ -3,17 +3,14 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.ifar</groupId>
-    <artifactId>skid-road</artifactId>
+    <artifactId>skid-road-parent</artifactId>
     <version>0-SNAPSHOT</version>
-    <packaging>jar</packaging>
+    <packaging>pom</packaging>
     <scm>
         <!--<connection>scm:svn:http://somerepository.com/svn_repo/trunk</connection>-->
         <developerConnection>scm:git:git@github.com:Multifarious/skid-road.git</developerConnection>
         <!--<url>http://somerepository.com/view.cvs</url> -->
     </scm>
-
-    <name>Skid Road</name>
-    <description>Multi-host encrypted log rolling.</description>
 
     <organization>
         <name>Multifarious, Inc.</name>
@@ -27,6 +24,20 @@
             <distribution>repo</distribution>
         </license>
     </licenses>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <dropwizard.version>0.6.2</dropwizard.version>
+        <slf4j.version>1.7.4</slf4j.version> <!-- Same as Dropwizard 0.6.2 -->
+        <logback.version>1.0.10</logback.version> <!-- Same as Dropwizard 0.6.2 -->
+    </properties>
+
+    <modules>
+        <module>skid-road</module>
+        <module>skid-road-jdbi</module>
+        <module>skid-road-dropwizard</module>
+        <module>skid-road-examples</module>
+    </modules>
 
     <repositories>
         <repository>
@@ -42,83 +53,143 @@
         </repository>
     </repositories>
 
-    <dependencies>
-        <dependency>
-            <groupId>commons-lang</groupId>
-            <artifactId>commons-lang</artifactId>
-            <version>2.6</version>
-        </dependency>
-        <dependency>
-            <groupId>com.yammer.dropwizard</groupId>
-            <artifactId>dropwizard-core</artifactId>
-            <version>0.6.2</version>
-        </dependency>
-        <dependency>
-            <groupId>com.yammer.dropwizard</groupId>
-            <artifactId>dropwizard-jdbi</artifactId>
-            <version>0.6.2</version>
-        </dependency>
-        <dependency>
-            <groupId>com.yammer.dropwizard</groupId>
-            <artifactId>dropwizard-migrations</artifactId>
-            <version>0.6.2</version>
-        </dependency>
-        <dependency>
-            <groupId>org.joda</groupId>
-            <artifactId>joda-convert</artifactId>
-            <version>1.2</version>
-        </dependency>
-        <dependency>
-            <groupId>commons-io</groupId>
-            <artifactId>commons-io</artifactId>
-            <version>2.4</version>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>jcl-over-slf4j</artifactId>
-            <version>1.7.2</version>
-        </dependency>
-        <dependency>
-            <groupId>net.java.dev.jets3t</groupId>
-            <artifactId>jets3t</artifactId>
-            <version>0.9.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.quartz-scheduler</groupId>
-            <artifactId>quartz</artifactId>
-            <version>2.1.7</version>
-        </dependency>
-        <dependency>
-            <groupId>org.bouncycastle</groupId>
-            <artifactId>bcprov-jdk15on</artifactId>
-            <version>1.48</version>
-        </dependency>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.ifar</groupId>
+                <artifactId>skid-road</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.ifar</groupId>
+                <artifactId>skid-road-jdbi</artifactId>
+                <version>${project.version}</version>
+            </dependency>
 
-        <dependency>
-            <groupId>io.ifar</groupId>
-            <artifactId>dw-goodies</artifactId>
-            <version>0-SNAPSHOT</version>
-        </dependency>
 
-        <dependency>
-            <groupId>org.hsqldb</groupId>
-            <artifactId>hsqldb</artifactId>
-            <version>2.2.9</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.11</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-all</artifactId>
-            <version>1.9.0</version>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
+            <dependency>
+                <groupId>commons-lang</groupId>
+                <artifactId>commons-lang</artifactId>
+                <version>2.6</version>
+            </dependency>
+            <dependency>
+                <groupId>com.yammer.dropwizard</groupId>
+                <artifactId>dropwizard-core</artifactId>
+                <version>${dropwizard.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.yammer.dropwizard</groupId>
+                <artifactId>dropwizard-jdbi</artifactId>
+                <version>${dropwizard.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.yammer.dropwizard</groupId>
+                <artifactId>dropwizard-migrations</artifactId>
+                <version>${dropwizard.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.joda</groupId>
+                <artifactId>joda-convert</artifactId>
+                <version>1.2</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>14.0.1</version> <!-- same as Dropwizard 0.6.2 -->
+            </dependency>
+            <dependency>
+                <groupId>joda-time</groupId>
+                <artifactId>joda-time</artifactId>
+                <version>2.2</version> <!-- same as Dropwizard 0.6.2 -->
+            </dependency>
+            <dependency>
+                <groupId>com.yammer.metrics</groupId>
+                <artifactId>metrics-core</artifactId>
+                <version>2.2.0</version> <!-- same as Dropwizard 0.6.2 -->
+            </dependency>
+            <dependency>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>2.4</version>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>jcl-over-slf4j</artifactId>
+                <version>1.7.2</version>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>${slf4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>jul-to-slf4j</artifactId>
+                <version>${slf4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-core</artifactId>
+                <version>${logback.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-classic</artifactId>
+                <version>${logback.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>log4j-over-slf4j</artifactId>
+                <version>${slf4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jdbi</groupId>
+                <artifactId>jdbi</artifactId>
+                <version>2.41</version> <!-- Matches Dropwizard 0.6.2 -->
+            </dependency>
+
+            <dependency>
+                <groupId>net.java.dev.jets3t</groupId>
+                <artifactId>jets3t</artifactId>
+                <version>0.9.0</version>
+            </dependency>
+            <dependency>
+                <groupId>org.quartz-scheduler</groupId>
+                <artifactId>quartz</artifactId>
+                <version>2.1.7</version>
+            </dependency>
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcprov-jdk15on</artifactId>
+                <version>1.48</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.ifar</groupId>
+                <artifactId>dw-goodies</artifactId>
+                <version>0-SNAPSHOT</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.hsqldb</groupId>
+                <artifactId>hsqldb</artifactId>
+                <version>2.2.9</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>4.11</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-all</artifactId>
+                <version>1.9.0</version>
+                <scope>test</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <build>
         <defaultGoal>install</defaultGoal>
@@ -156,6 +227,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
+                <version>2.2.1</version>
                 <executions>
                     <execution>
                         <id>attach-sources</id>

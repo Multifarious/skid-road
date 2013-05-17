@@ -8,6 +8,7 @@ import com.yammer.dropwizard.config.Environment;
 import com.yammer.dropwizard.jdbi.DBIFactory;
 import io.ifar.goodies.AutoCloseableIterator;
 import io.ifar.goodies.CliConveniences;
+import io.ifar.goodies.JdbiAutoCloseableIterator;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.dropwizard.config.SkidRoadReadOnlyConfiguration;
 import io.ifar.skidroad.dropwizard.config.SkidRoadReadOnlyConfigurationStrategy;
@@ -112,7 +113,7 @@ public abstract class StreamLogsCommand <T extends Configuration> extends Config
             storage.start();
 
             JDBILogFileDAO dao = jdbi.onDemand(DefaultJDBILogFileDAO.class);
-            try (AutoCloseableIterator<LogFile> iter = new AutoCloseableIterator<LogFile>(dao.listLogFilesByDateAndState(states, startDate, endDate))) {
+            try (AutoCloseableIterator<LogFile> iter = JdbiAutoCloseableIterator.wrap(dao.listLogFilesByDateAndState(states, startDate, endDate))) {
 
             long files = dao.count(states, startDate, endDate);
             long totalBytes = dao.totalSize(states, startDate, endDate);

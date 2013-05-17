@@ -1,11 +1,11 @@
 package io.ifar.skidroad.prepping;
 
-import com.sun.jersey.core.util.Base64;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.crypto.AESOutputStream;
 import io.ifar.skidroad.tracking.LogFileTracker;
 import org.apache.commons.io.IOUtils;
 import org.bouncycastle.crypto.InvalidCipherTextException;
+import org.bouncycastle.util.encoders.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

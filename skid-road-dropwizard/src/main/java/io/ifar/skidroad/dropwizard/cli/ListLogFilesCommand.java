@@ -6,13 +6,14 @@ import com.yammer.dropwizard.config.Configuration;
 import com.yammer.dropwizard.config.Environment;
 import com.yammer.dropwizard.jdbi.DBIFactory;
 import io.ifar.goodies.AutoCloseableIterator;
+import io.ifar.goodies.CliConveniences;
+import io.ifar.goodies.JdbiAutoCloseableIterator;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.dropwizard.config.SkidRoadReadOnlyConfiguration;
 import io.ifar.skidroad.dropwizard.config.SkidRoadReadOnlyConfigurationStrategy;
 import io.ifar.skidroad.jdbi.DefaultJDBILogFileDAO;
 import io.ifar.skidroad.jdbi.JDBILogFileDAO;
 import io.ifar.skidroad.jdbi.JodaArgumentFactory;
-import io.ifar.goodies.CliConveniences;
 import io.ifar.skidroad.tracking.LogFileState;
 import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;
@@ -22,7 +23,10 @@ import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 import org.skife.jdbi.v2.DBI;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  *
@@ -84,7 +88,7 @@ public abstract class ListLogFilesCommand<T extends Configuration> extends Confi
             jdbi.registerArgumentFactory(new JodaArgumentFactory());
 
             JDBILogFileDAO dao = jdbi.onDemand(DefaultJDBILogFileDAO.class);
-            try (AutoCloseableIterator<LogFile> iter = new AutoCloseableIterator<>(dao.listLogFilesByDateAndState(states, startDate, endDate))) {
+            try (AutoCloseableIterator<LogFile> iter = JdbiAutoCloseableIterator.wrap(dao.listLogFilesByDateAndState(states, startDate, endDate))) {
                 if (iter.hasNext()) {
                     System.out.println(String.format("%-25s | %10s | %15s | %-25s","COHORT","SERIAL","SIZE","OWNER"));
                     System.out.println(StringUtils.repeat("_",25)
