@@ -6,7 +6,6 @@ import org.skife.jdbi.v2.ResultIterator;
 
 import java.sql.Timestamp;
 import java.util.List;
-import java.util.Set;
 
 /**
  * DAO used by JDBILogFileTracker. Either use {@link DefaultJDBILogFileDAO} with the standard table layout or implement your
@@ -28,7 +27,7 @@ public interface JDBILogFileDAO {
 
     int claimIndex(String rollingCohort, int serial, Timestamp startTime, String originUri, String ownerUri, Timestamp now);
 
-    ResultIterator<LogFile> findByOwnerAndState(String ownerUri, Set<String> states);
+    ResultIterator<LogFile> findByOwnerAndState(String ownerUri, String state);
 
     ResultIterator<String> listOwnerUris();
 
@@ -36,11 +35,11 @@ public interface JDBILogFileDAO {
 
     int countLogFilesByState(String state);
 
-    Long totalSize(Set<String> states, DateTime startDate, DateTime endDate);
+    Long totalSize(String state, DateTime startDate, DateTime endDate);
 
-    Long count(Set<String> states, DateTime startDate, DateTime endDate);
+    Long count(String state, DateTime startDate, DateTime endDate);
 
-    ResultIterator<LogFile> listLogFilesByDateAndState(Set<String> state, DateTime startDate, DateTime endDate);
+    ResultIterator<LogFile> listLogFilesByDateAndState(String state, DateTime startDate, DateTime endDate);
 
     LogFile findByRollingCohortAndSerial(String rollingCohort, int serial);
 

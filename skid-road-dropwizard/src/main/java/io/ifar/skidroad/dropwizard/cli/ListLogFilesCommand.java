@@ -7,12 +7,12 @@ import com.yammer.dropwizard.config.Environment;
 import com.yammer.dropwizard.jdbi.DBIFactory;
 import io.ifar.goodies.AutoCloseableIterator;
 import io.ifar.goodies.CliConveniences;
-import io.ifar.goodies.JdbiAutoCloseableIterator;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.dropwizard.config.SkidRoadReadOnlyConfiguration;
 import io.ifar.skidroad.dropwizard.config.SkidRoadReadOnlyConfigurationStrategy;
 import io.ifar.skidroad.jdbi.DefaultJDBILogFileDAO;
 import io.ifar.skidroad.jdbi.JDBILogFileDAO;
+import io.ifar.skidroad.jdbi.JDBILogFileDAOHelper;
 import io.ifar.skidroad.jdbi.JodaArgumentFactory;
 import io.ifar.skidroad.tracking.LogFileState;
 import net.sourceforge.argparse4j.inf.Namespace;
@@ -88,7 +88,7 @@ public abstract class ListLogFilesCommand<T extends Configuration> extends Confi
             jdbi.registerArgumentFactory(new JodaArgumentFactory());
 
             JDBILogFileDAO dao = jdbi.onDemand(DefaultJDBILogFileDAO.class);
-            try (AutoCloseableIterator<LogFile> iter = JdbiAutoCloseableIterator.wrap(dao.listLogFilesByDateAndState(states, startDate, endDate))) {
+            try (AutoCloseableIterator<LogFile> iter = JDBILogFileDAOHelper.listLogFilesByDateAndState(dao,states, startDate, endDate)) {
                 if (iter.hasNext()) {
                     System.out.println(String.format("%-25s | %10s | %15s | %-25s","COHORT","SERIAL","SIZE","OWNER"));
                     System.out.println(StringUtils.repeat("_",25)
@@ -100,7 +100,7 @@ public abstract class ListLogFilesCommand<T extends Configuration> extends Confi
                     System.out.println(String.format("%-25s | %10d | %15d | %-25s",lf.getRollingCohort(),lf.getSerial(),lf.getByteSize(),lf.getOwnerURI()));
                 }
             }
-            long totalSize = dao.totalSize(states, startDate, endDate);
+            long totalSize = JDBILogFileDAOHelper.totalSize(dao,states, startDate, endDate);
             if (totalSize != 0) {
                 System.out.println(StringUtils.repeat("_",25)
                         + "_|_" + StringUtils.repeat("_",10)

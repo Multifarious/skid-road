@@ -8,12 +8,12 @@ import com.yammer.dropwizard.config.Environment;
 import com.yammer.dropwizard.jdbi.DBIFactory;
 import io.ifar.goodies.AutoCloseableIterator;
 import io.ifar.goodies.CliConveniences;
-import io.ifar.goodies.JdbiAutoCloseableIterator;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.dropwizard.config.SkidRoadReadOnlyConfiguration;
 import io.ifar.skidroad.dropwizard.config.SkidRoadReadOnlyConfigurationStrategy;
 import io.ifar.skidroad.jdbi.DefaultJDBILogFileDAO;
 import io.ifar.skidroad.jdbi.JDBILogFileDAO;
+import io.ifar.skidroad.jdbi.JDBILogFileDAOHelper;
 import io.ifar.skidroad.jdbi.JodaArgumentFactory;
 import io.ifar.skidroad.jets3t.JetS3tStorage;
 import io.ifar.skidroad.jets3t.S3JetS3tStorage;
@@ -87,6 +87,7 @@ public abstract class StreamLogsCommand <T extends Configuration> extends Config
     }
 
 
+
     @Override
     protected void run(Bootstrap<T> bootstrap, Namespace namespace, T configuration) throws Exception {
         CliConveniences.quietLogging("ifar", "hsqldb.db");
@@ -113,38 +114,38 @@ public abstract class StreamLogsCommand <T extends Configuration> extends Config
             storage.start();
 
             JDBILogFileDAO dao = jdbi.onDemand(DefaultJDBILogFileDAO.class);
-            try (AutoCloseableIterator<LogFile> iter = JdbiAutoCloseableIterator.wrap(dao.listLogFilesByDateAndState(states, startDate, endDate))) {
+            try (AutoCloseableIterator<LogFile> iter = JDBILogFileDAOHelper.listLogFilesByDateAndState(dao, states, startDate, endDate)) {
 
-            long files = dao.count(states, startDate, endDate);
-            long totalBytes = dao.totalSize(states, startDate, endDate);
+                long files = JDBILogFileDAOHelper.count(dao, states, startDate, endDate);
+                long totalBytes = JDBILogFileDAOHelper.totalSize(dao, states, startDate, endDate);
 
-            StreamingAccess access = new StreamingAccess(storage,
-                    skidRoadConfiguration.getMasterKey(),
-                    skidRoadConfiguration.getMasterIV());
+                StreamingAccess access = new StreamingAccess(storage,
+                        skidRoadConfiguration.getMasterKey(),
+                        skidRoadConfiguration.getMasterIV());
 
-            System.out.print(String.format("[ %,d files / %,d total bytes ]: ",files, totalBytes));
-                for (LogFile logFile : iter) {
-                if (logFile.getArchiveURI() == null) {
-                    System.out.print("?");
-                    System.err.print(String.format("Cannot fetch %s, no archive URI set in database.", logFile));
-                    continue;
+                System.out.print(String.format("[ %,d files / %,d total bytes ]: ",files, totalBytes));
+                    for (LogFile logFile : iter) {
+                    if (logFile.getArchiveURI() == null) {
+                        System.out.print("?");
+                        System.err.print(String.format("Cannot fetch %s, no archive URI set in database.", logFile));
+                        continue;
+                    }
+
+                    try(InputStream is = access.streamFor(logFile)) {
+                        ByteStreams.copy(is,out);
+                    } catch (ServiceException e) {
+                        System.out.print("X");
+                        System.err.println(String.format("Cannot fetch %s due to %s from S3: (%s) %s",
+                                logFile.getArchiveURI(), e.getErrorCode(), e.getClass().getSimpleName(), e.getMessage()));
+                        continue;
+                    } catch (IOException ioe) {
+                        System.out.println("#");
+                        System.err.println(String.format("Cannot process data from %s: (%s) %s",
+                                logFile.getArchiveURI(), ioe.getClass().getSimpleName(), ioe.getMessage()));
+                        continue;
+                    }
+                    System.out.print(".");
                 }
-
-                try(InputStream is = access.streamFor(logFile)) {
-                    ByteStreams.copy(is,out);
-                } catch (ServiceException e) {
-                    System.out.print("X");
-                    System.err.println(String.format("Cannot fetch %s due to %s from S3: (%s) %s",
-                            logFile.getArchiveURI(), e.getErrorCode(), e.getClass().getSimpleName(), e.getMessage()));
-                    continue;
-                } catch (IOException ioe) {
-                    System.out.println("#");
-                    System.err.println(String.format("Cannot process data from %s: (%s) %s",
-                            logFile.getArchiveURI(), ioe.getClass().getSimpleName(), ioe.getMessage()));
-                    continue;
-                }
-                System.out.print(".");
-            }
             }
             System.out.println("[DONE]");
         } finally {
