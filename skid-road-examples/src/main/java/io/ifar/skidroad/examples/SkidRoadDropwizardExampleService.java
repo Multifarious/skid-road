@@ -18,6 +18,7 @@ import io.ifar.skidroad.examples.rest.ExampleResource;
 import io.ifar.skidroad.jdbi.DefaultJDBILogFileDAO;
 import io.ifar.skidroad.jdbi.JDBILogFileDAO;
 import io.ifar.skidroad.jdbi.JodaArgumentFactory;
+import io.ifar.skidroad.jersey.*;
 import io.ifar.skidroad.scheduling.SimpleQuartzScheduler;
 import io.ifar.skidroad.writing.WritingWorkerManager;
 import org.skife.jdbi.v2.DBI;
@@ -61,7 +62,7 @@ public class SkidRoadDropwizardExampleService extends Service<SkidRoadDropwizard
         final DBI jdbi = factory.build(environment, configuration.getSkidRoad().getDatabaseConfiguration(), "skid-road-example");
         jdbi.registerArgumentFactory(new JodaArgumentFactory());
         jdbi.setSQLLog(new LogbackLog());
-        // Fail fast on databaase connectivity.
+        // Fail fast on database connectivity.
         try {
             jdbi.open().getConnection().close();
         } catch (SQLException se) {
@@ -82,9 +83,12 @@ public class SkidRoadDropwizardExampleService extends Service<SkidRoadDropwizard
 
         ManagedPrepWorkerManager.buildWithEncryptAndCompress(configuration.getSkidRoad(), environment, tracker, scheduler);
 
-        WritingWorkerManager<AuditBean> writerManager = ManagedWritingWorkerManager.build(
-                tracker, new AuditBeanSerializer(environment.getObjectMapperFactory().build()), scheduler, configuration.getSkidRoad(), environment);
+        WritingWorkerManager<ContainerRequestAndResponse> writerManager = ManagedWritingWorkerManager.build(
+                tracker, new DefaultContainerRequestAndResponseSerializer(environment.getObjectMapperFactory().build()), scheduler, configuration.getSkidRoad(), environment);
 
-        environment.addResource(new ExampleResource(writerManager));
+        FilterHelper.addFilter(environment, new RequestEntityBytesCaptureFilter());
+        FilterHelper.addFilter(environment, new SkidRoadFilter(writerManager));
+
+        environment.addResource(new ExampleResource());
     }
 }

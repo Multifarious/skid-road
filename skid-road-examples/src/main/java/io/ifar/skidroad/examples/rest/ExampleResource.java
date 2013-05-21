@@ -1,23 +1,17 @@
 package io.ifar.skidroad.examples.rest;
 
-import io.ifar.skidroad.examples.AuditBean;
-import io.ifar.skidroad.writing.WritingWorkerManager;
-
 import javax.ws.rs.*;
 
 /**
  * Post to this resource with:
- * curl -X POST -H "Content-Type: application/json" -d '{"radius":1.2, "withGold":true}' http://localhost:8080/orders
+ * curl -X POST -H "Content-Type: application/json" -d '{"radius":1.2, "with_gold":true}' http://localhost:8080/orders
+ *
+ * Request and response will be logged because of applied container filters. Alternate approach would be for this
+ * resource (or a collaborator) to have a direct reference to a Skid Road WritingWorkerManager and explicitly pass
+ * data into it.
  */
 @Path("/")
 public class ExampleResource {
-
-    private WritingWorkerManager<AuditBean> writingWorkerManager;
-
-    public ExampleResource(WritingWorkerManager<AuditBean> writingWorkerManager) {
-        this.writingWorkerManager = writingWorkerManager;
-    }
-
     @POST
     @Path("orders")
     @Consumes("application/json")
@@ -29,9 +23,6 @@ public class ExampleResource {
         } else {
             rainbowColor = favoriteColor;
         }
-        RainbowRequestResponse response = new RainbowRequestResponse(true,rainbowColor);
-        AuditBean audit = new AuditBean(req, favoriteColor, response);
-        writingWorkerManager.record(System.currentTimeMillis(), audit);
-        return response;
+        return new RainbowRequestResponse(true,rainbowColor);
     }
 }

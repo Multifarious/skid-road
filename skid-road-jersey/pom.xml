@@ -9,22 +9,16 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>skid-road-examples</artifactId>
+    <artifactId>skid-road-jersey</artifactId>
 
-    <name>Skid Road Examples</name>
+    <name>Skid Road Jersey Integration</name>
+    <description>Provides Jersey Filters for collecting data</description>
+
 
     <dependencies>
         <dependency>
             <groupId>io.ifar</groupId>
             <artifactId>skid-road</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.ifar</groupId>
-            <artifactId>skid-road-dropwizard</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.ifar</groupId>
-            <artifactId>skid-road-jersey</artifactId>
         </dependency>
 
         <dependency>
@@ -76,7 +70,7 @@
         <dependency>
             <groupId>org.hsqldb</groupId>
             <artifactId>hsqldb</artifactId>
-            <scope>runtime</scope>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
@@ -90,43 +84,4 @@
         </dependency>
     </dependencies>
 
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <configuration>
-                    <createDependencyReducedPom>true</createDependencyReducedPom>
-                    <filters>
-                        <filter>
-                            <artifact>*:*</artifact>
-                            <excludes>
-                                <exclude>META-INF/*.SF</exclude>
-                                <exclude>META-INF/*.DSA</exclude>
-                                <exclude>META-INF/*.RSA</exclude>
-                            </excludes>
-                        </filter>
-                    </filters>
-                </configuration>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                        <configuration>
-                            <shadedArtifactAttached>false</shadedArtifactAttached>
-                            <finalName>skid-road-example</finalName>
-                            <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>io.ifar.skidroad.examples.SkidRoadDropwizardExampleService</mainClass>
-                                </transformer>
-                            </transformers>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
 </project>
