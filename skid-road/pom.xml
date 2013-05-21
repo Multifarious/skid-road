@@ -14,19 +14,6 @@
     <name>Skid Road</name>
     <description>Multi-host encrypted log rolling.</description>
 
-    <organization>
-        <name>Multifarious, Inc.</name>
-        <url>http://mult.ifario.us</url>
-    </organization>
-
-    <licenses>
-        <license>
-            <name>BSD 2-clause</name>
-            <url>http://opensource.org/licenses/BSD-2-Clause</url>
-            <distribution>repo</distribution>
-        </license>
-    </licenses>
-
     <dependencies>
         <dependency>
             <groupId>commons-lang</groupId>

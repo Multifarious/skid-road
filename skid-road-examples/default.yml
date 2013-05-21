@@ -1,0 +1,44 @@
+http:
+  port: 8080
+  admin_port: 8081
+
+logging:
+  level: INFO
+  loggers:
+    io.ifar: DEBUG
+
+skid_road:
+  node_id: skid-road-example-node-1
+
+  request_log_writer:
+    rolling_frequency: minutely
+    base_path: /tmp
+    prefix: skid-road-example-req
+    suffix: .log
+    file_flush_interval_seconds: 5
+    after_roll_close_file_delay_seconds: 30
+    spawn_new_worker_at_queue_depth: 20
+    report_unhealthy_at_queue_depth: 100
+
+  request_log_prep:
+    #openssl rand -base64 32
+    master_key: qPNEfd86XP0bJclgy8owF6Cyn0cnI4PCv+b0O/6ZK9s=
+    #openssl rand -base64 16
+    master_iv: ORG8WlhER/z9W/564tMS6g==
+    report_unhealthy_at_queue_depth: 10
+
+  request_log_upload:
+    access_key_id: #Your AWS creds here
+    secret_access_key: #Your AWS creds here
+    upload_path: # Your AWS bucket/path here
+    report_unhealthy_at_queue_depth: 10
+
+  database:
+    driver_class: org.hsqldb.jdbc.JDBCDriver
+    user: SA
+    password:
+    url: jdbc:hsqldb:file:target/example;shutdown=true;hsqldb.write_delay=false
+    properties:
+      charSet: UTF-8
+    # taken from http://javasplitter.blogspot.com/2011/01/keep-alive-query-in-hsqldb.html
+    validation_query: "/* Reporting Service Health Check */ SELECT 1 FROM INFORMATION_SCHEMA.SYSTEM_USERS"

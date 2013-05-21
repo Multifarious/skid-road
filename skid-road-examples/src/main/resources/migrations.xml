@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-2.0.xsd">
+
+    <changeSet id="1" author="lhn">
+        <comment>Create log_files table.</comment>
+        <createTable tableName="log_files">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" primaryKeyName="PK_log_files" />
+            </column>
+            <column name="rolling_cohort" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="serial" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="start_time" type="datetime">
+                <constraints nullable="false"/>
+            </column>
+            <column name="origin_uri" type="varchar(255)"/>
+            <column name="prep_uri" type="varchar(255)"/>
+            <column name="archive_key" type="varchar(255)"/>
+            <column name="archive_uri" type="varchar(255)"/>
+            <column name="archive_group" type="varchar(255)"/>
+            <column name="state" type="varchar(255)">
+                    <constraints nullable="false" />
+            </column>
+            <column name="owner_uri" type="varchar(255)"/>
+            <column name="bytes" type="bigint"/>
+            <column name="created_at" type="datetime">
+                <constraints nullable="false" />
+            </column>
+            <column name="updated_at" type="datetime"/>
+        </createTable>
+        <addUniqueConstraint tableName="log_files" columnNames="rolling_cohort, serial" constraintName="uniq_log_files_rolling_cohort_serial" />
+        <createIndex tableName="log_files" indexName="idx_log_files_state_archive_group">
+            <column name="state"/>
+            <column name="archive_group"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>

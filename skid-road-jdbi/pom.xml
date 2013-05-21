@@ -12,19 +12,7 @@
     <artifactId>skid-road-jdbi</artifactId>
 
     <name>Skid Road JDBI integration</name>
-
-    <organization>
-        <name>Multifarious, Inc.</name>
-        <url>http://mult.ifario.us</url>
-    </organization>
-
-    <licenses>
-        <license>
-            <name>BSD 2-clause</name>
-            <url>http://opensource.org/licenses/BSD-2-Clause</url>
-            <distribution>repo</distribution>
-        </license>
-    </licenses>
+    <description>Provides JDBI-based LogFileTracker implementation</description>
 
     <dependencies>
         <dependency>
