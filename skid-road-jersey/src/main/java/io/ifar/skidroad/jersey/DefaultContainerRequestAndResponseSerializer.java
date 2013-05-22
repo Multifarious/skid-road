@@ -1,6 +1,7 @@
 package io.ifar.skidroad.jersey;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.sun.jersey.spi.container.ContainerRequest;
 import io.ifar.skidroad.writing.Serializer;
@@ -52,6 +53,7 @@ public class DefaultContainerRequestAndResponseSerializer implements Serializer<
     private final ObjectMapper objectMapper;
 
     public DefaultContainerRequestAndResponseSerializer(ObjectMapper objectMapper) {
+        objectMapper.configure(SerializationFeature.INDENT_OUTPUT,false);
         this.objectMapper = objectMapper;
     }
 

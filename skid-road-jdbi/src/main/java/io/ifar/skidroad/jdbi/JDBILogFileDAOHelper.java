@@ -38,7 +38,7 @@ public class JDBILogFileDAOHelper {
                 Iterators.addAll(fetched, dao.findByOwnerAndState(owner.toString(), state.toString()));
                 result = (result == null) ? fetched.iterator() : Iterators.concat(result, fetched.iterator());
             }
-            return new AutoCloseableIterator(result);
+            return new AutoCloseableIterator<LogFile>(result);
         }
     }
 
@@ -60,7 +60,7 @@ public class JDBILogFileDAOHelper {
                 Iterators.addAll(fetched, dao.listLogFilesByDateAndState(state, startDate, endDate));
                 result = (result == null) ? fetched.iterator() : Iterators.concat(result, fetched.iterator());
             }
-            return new AutoCloseableIterator(result);
+            return new AutoCloseableIterator<LogFile>(result);
         }
     }
 

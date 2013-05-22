@@ -16,8 +16,11 @@ public class SkidRoadReadOnlyConfiguration {
     @NotEmpty
     private String masterKey;
 
+    /**
+     * Fixed master IV no longer used during encryption. May optionally be supplied
+     * for decrypting legacy data.
+     */
     @JsonProperty("master_iv")
-    @NotEmpty
     private String masterIV;
 
     @JsonProperty("access_key_id")

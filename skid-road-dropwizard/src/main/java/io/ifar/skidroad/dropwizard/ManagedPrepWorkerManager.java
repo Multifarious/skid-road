@@ -32,8 +32,7 @@ public class ManagedPrepWorkerManager extends PrepWorkerManager implements Manag
     public static ManagedPrepWorkerManager buildWithEncryptAndCompress(RequestLogPrepConfiguration prepConfiguration, Environment environment, LogFileTracker tracker, SimpleQuartzScheduler scheduler) {
 
         PrepWorkerFactory workerFactory = new EncryptAndCompressPrepWorkerFactory(
-                prepConfiguration.getMasterKey(),
-                prepConfiguration.getMasterIV()
+                prepConfiguration.getMasterKey()
         );
 
         return build(workerFactory, prepConfiguration, environment, tracker, scheduler);

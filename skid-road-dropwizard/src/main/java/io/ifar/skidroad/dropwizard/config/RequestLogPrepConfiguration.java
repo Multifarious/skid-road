@@ -15,8 +15,11 @@ public class RequestLogPrepConfiguration {
     @NotEmpty
     private String masterKey;
 
+    /**
+     * Fixed master IV no longer used during encryption. May optionally be supplied
+     * for decrypting legacy data.
+     */
     @JsonProperty("master_iv")
-    @NotEmpty
     private String masterIV;
 
     @JsonProperty("report_unhealthy_at_queue_depth")

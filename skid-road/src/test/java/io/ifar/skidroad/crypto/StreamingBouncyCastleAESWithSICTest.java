@@ -12,13 +12,26 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import static io.ifar.skidroad.crypto.StreamingBouncyCastleAESWithSIC.*;
+import static io.ifar.skidroad.crypto.V1KeyEncryption.*;
 import static org.junit.Assert.*;
 
 public class StreamingBouncyCastleAESWithSICTest {
     private final static Logger LOG = LoggerFactory.getLogger(StreamingBouncyCastleAESWithSICTest.class);
 
     @Test
-    public void testEncryptKeyAndIV() throws Exception {
+    public void testEncryptAndEncodeKey() throws Exception {
+        byte[] masterKey = generateRandomKey();
+        byte[] key = generateRandomKey();
+        byte[] iv = generateRandomKey();
+        String enc = encryptAndEncodeKey(key,iv,masterKey);
+        byte[][] result = decodeAndDecryptKey(enc, masterKey);
+        assertArrayEquals(key, result[0]);
+        assertArrayEquals(iv, result[1]);
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    public void testV0EncryptAndEncodeKey() throws Exception {
         //Specifically test for bug with FF bytes in the key or iv.
         byte[] masterKey = generateRandomKey();
         byte[] masterIV = generateRandomKey();
@@ -35,67 +48,73 @@ public class StreamingBouncyCastleAESWithSICTest {
                 (byte)0x5D, (byte)0xC9, (byte)0x5B, (byte)0xEF, (byte)0x68, (byte)0x8C,
                 (byte)0xEF, (byte)0xA7, (byte)0x48, (byte)0xFB
         };
-        String enc = encryptAndEncodeKeyAndIV(key, iv, masterKey, masterIV);
-        byte[][] result = decodeAndDecryptKeyAndIV(enc, masterKey, masterIV );
+        //full path here avoid deprecation warning on import
+        String enc = io.ifar.skidroad.crypto.V0KeyEncryption.v0EncryptAndEncodeKey(key, iv, masterKey, masterIV);
+        byte[][] result = io.ifar.skidroad.crypto.V0KeyEncryption.v0DecodeAndDecryptKey(enc, masterKey, masterIV);
 
-        //LOG.debug(StreamingBouncyCastleAESWithSIC.toHexString(key));
-        //LOG.debug(StreamingBouncyCastleAESWithSIC.toHexString(iv));
+        //LOG.debug(toHexString(key));
+        //LOG.debug(toHexString(iv));
         //LOG.debug(enc);
-        //LOG.debug(StreamingBouncyCastleAESWithSIC.toHexString(result[0]));
-        //LOG.debug(StreamingBouncyCastleAESWithSIC.toHexString(result[1]));
+        //LOG.debug(toHexString(result[0]));
+        //LOG.debug(toHexString(result[1]));
 
         assertArrayEquals(key, result[0]);
         assertArrayEquals(iv, result[1]);
     }
+
     @Test
-    public void testGenerateAndEncryptKeyAndIV() throws Exception {
+    @SuppressWarnings("deprecation")
+    public void testV1EncryptAndEncodeKey() throws Exception {
         byte[] masterKey = generateRandomKey();
-        byte[] masterIV = generateRandomIV();
+        byte[] masterIV = generateRandomKey();
+        //Specifically test for bug with FF bytes in the key or iv.
+        byte[] key = new byte[] {
+                (byte)0xDD, (byte)0xFE, (byte)0x99, (byte)0xA8, (byte)0x22, (byte)0x25,
+                (byte)0x97, (byte)0x6A, (byte)0xE6, (byte)0xEE, (byte)0x3B, (byte)0xE9,
+                (byte)0x3B, (byte)0x66, (byte)0x26, (byte)0x79, (byte)0xDC, (byte)0x79,
+                (byte)0x9B, (byte)0xDF, (byte)0xFF, (byte)0xCA, (byte)0x95, (byte)0xE1,
+                (byte)0x15, (byte)0x79, (byte)0xBE, (byte)0x2A, (byte)0x04, (byte)0x10,
+                (byte)0xC2, (byte)0x68
+        };
+        byte[] iv = new byte[] {
+                (byte)0x2A, (byte)0xD8, (byte)0xE1, (byte)0x3A, (byte)0x60, (byte)0x89,
+                (byte)0x5D, (byte)0xC9, (byte)0x5B, (byte)0xEF, (byte)0x68, (byte)0x8C,
+                (byte)0xEF, (byte)0xA7, (byte)0x48, (byte)0xFB
+        };
+        String enc = v1EncryptAndEncodeKey(key, iv, masterKey, masterIV);
+        byte[][] result = v1DecodeAndDecryptKey(enc, masterKey);
+        assertArrayEquals(key, result[0]);
+        assertArrayEquals(iv, result[1]);
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    public void testFallback() throws Exception {
+        byte[] masterKey = generateRandomKey();
+        byte[] masterIV = generateRandomKey();
         byte[] key = generateRandomKey();
-        byte[] iv = generateRandomIV();
-        String enc = encryptAndEncodeKeyAndIV(key, iv, masterKey, masterIV);
-        byte[][] result = decodeAndDecryptKeyAndIV(enc, masterKey, masterIV );
-
-        //LOG.debug(StreamingBouncyCastleAESWithSIC.toHexString(key));
-        //LOG.debug(StreamingBouncyCastleAESWithSIC.toHexString(iv));
-        //LOG.debug(enc);
-        //LOG.debug(StreamingBouncyCastleAESWithSIC.toHexString(result[0]));
-        //LOG.debug(StreamingBouncyCastleAESWithSIC.toHexString(result[1]));
-
+        byte[] iv = generateRandomKey();
+        //full path here avoid deprecation warning on import
+        String encV0 = io.ifar.skidroad.crypto.V0KeyEncryption.v0EncryptAndEncodeKey(key, iv, masterKey, masterIV);
+        String encV1 = v1EncryptAndEncodeKey(key, iv, masterKey, masterIV);
+        byte[][] result = decodeAndDecryptKey(encV1, masterKey, masterIV);
+        assertArrayEquals(key, result[0]);
+        assertArrayEquals(iv, result[1]);
+        result = decodeAndDecryptKey(encV0, masterKey, masterIV);
         assertArrayEquals(key, result[0]);
         assertArrayEquals(iv, result[1]);
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testDecryptBadBase64() throws Exception {
-        decodeAndDecryptKeyAndIV("not_base-64", generateRandomKey(), generateRandomIV());
+    public void testBadBase64() throws Exception {
+        decodeAndDecryptKey("not_base-64", generateRandomKey(), generateRandomIV());
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testDecryptMissingDelimiter() throws Exception {
         byte[] masterKey = generateRandomKey();
-        byte[] masterIV = generateRandomIV();
-        byte[] key = generateRandomKey();
-        byte[] iv = generateRandomIV();
-
-        String s = encryptAndEncodeKeyAndIV(key, iv, generateRandomKey(), generateRandomIV());
-        decodeAndDecryptKeyAndIV(
-                toString().replace(':', '_'),
-                masterKey, masterIV
-        );
-    }
-
-    @Test
-    public void testEncryptSingleUseKey() throws Exception {
-        byte[] masterKey = generateRandomKey();
-        byte[] masterIV = generateRandomIV();
-        byte[] key = generateRandomKey();
-        byte[] iv = generateRandomIV();
-        String enc = encryptSingleUseKey(key, iv, masterKey, masterIV);
-        byte[][] result = decryptSingleUseKey(enc, masterKey );
-
-        assertArrayEquals(key, result[0]);
-        assertArrayEquals(iv, result[1]);
+        String s = encryptAndEncodeKey(generateRandomKey(), generateRandomIV(), masterKey);
+        decodeAndDecryptKey(s.replace('$', '_'), masterKey);
     }
 
     @Test
@@ -152,7 +171,7 @@ public class StreamingBouncyCastleAESWithSICTest {
     }
 
     //too bad jUnit doesn't have assertArrayNotEquals
-    private void assertArrayNotEquals(byte[] a1, byte[] a2) {
+    private static void assertArrayNotEquals(byte[] a1, byte[] a2) {
         if (a1.length != a2.length)
             return;
         for (int i =0; i<a1.length; i++)
@@ -161,7 +180,7 @@ public class StreamingBouncyCastleAESWithSICTest {
         fail("arrays are the same");
     }
 
-    private void testBytesRoundTrip(byte[] plainBytes) throws IOException, InvalidCipherTextException {
+    private static void testBytesRoundTrip(byte[] plainBytes) throws IOException, InvalidCipherTextException {
         //Using the static encrypt / decrypt methods implicitly tests
         //AESInputStream and AESOutputStream.
 

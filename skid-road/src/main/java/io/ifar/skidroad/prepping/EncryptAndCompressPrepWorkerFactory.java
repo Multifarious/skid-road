@@ -6,23 +6,17 @@ import io.ifar.skidroad.tracking.LogFileTracker;
 import java.util.concurrent.Callable;
 
 /**
- * Created with IntelliJ IDEA.
- * User: lhn
- * Date: 3/21/13
- * Time: 11:52 AM
- * To change this template use File | Settings | File Templates.
+ * Constructs {@link EncryptAndCompressPrepper} objects.
  */
 public class EncryptAndCompressPrepWorkerFactory implements PrepWorkerFactory {
     private final String masterKeyBase64;
-    private final String masterIVBase64;
 
-    public EncryptAndCompressPrepWorkerFactory(String masterKeyBase64, String masterIVBase64) {
+    public EncryptAndCompressPrepWorkerFactory(String masterKeyBase64) {
         this.masterKeyBase64 = masterKeyBase64;
-        this.masterIVBase64 = masterIVBase64;
     }
 
     @Override
     public Callable<Boolean> buildWorker(LogFile logFile, LogFileTracker tracker) {
-        return new EncryptAndCompressPrepper(logFile, tracker, masterKeyBase64, masterIVBase64);
+        return new EncryptAndCompressPrepper(logFile, tracker, masterKeyBase64);
     }
 }

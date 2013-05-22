@@ -27,12 +27,12 @@ public class StreamingAccess {
      * Create a new instance wrapped around the supplied {@link JetS3tStorage}.
      * @param storage a configured (and started) S3 access instance
      * @param masterKey the master encryption key to use in decrypting files.
-     * @param masterIV the master IV to use in decrypting files.
+     * @param masterIV the master IV (may be null) to use in decrypting files whose key was encoded with the legacy algorithm which does not embed the master IV.
      */
     public StreamingAccess(JetS3tStorage storage, String masterKey, String masterIV) {
         this.storage = storage;
         this.masterKey = Base64.decode(masterKey);
-        this.masterIV = Base64.decode(masterIV);
+        this.masterIV = masterIV == null ? null : Base64.decode(masterIV);
     }
 
     /**
@@ -45,7 +45,7 @@ public class StreamingAccess {
      */
     public InputStream streamFor(LogFile logFile) throws ServiceException, IOException {
 
-        byte[][] fileKey = StreamingBouncyCastleAESWithSIC.decodeAndDecryptKeyAndIV(
+        byte[][] fileKey = StreamingBouncyCastleAESWithSIC.decodeAndDecryptKey(
                 logFile.getArchiveKey(),
                 masterKey,
                 masterIV

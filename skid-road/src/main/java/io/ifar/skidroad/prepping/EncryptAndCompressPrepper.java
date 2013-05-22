@@ -2,6 +2,7 @@ package io.ifar.skidroad.prepping;
 
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.crypto.AESOutputStream;
+import io.ifar.skidroad.crypto.StreamingBouncyCastleAESWithSIC;
 import io.ifar.skidroad.tracking.LogFileTracker;
 import org.apache.commons.io.IOUtils;
 import org.bouncycastle.crypto.InvalidCipherTextException;
@@ -22,18 +23,16 @@ import static java.nio.file.StandardOpenOption.*;
 /**
  * Not thread-safe.
  *
- * TODO: Test decrypting and decompressing output of this class
+ * TODO: Unit test decrypting and decompressing output of this class
  */
 public class EncryptAndCompressPrepper extends AbstractPrepWorker {
     private static final Logger LOG = LoggerFactory.getLogger(EncryptAndCompressPrepper.class);
 
     private final byte[] masterKey;
-    private final byte[] masterIV;
 
-    public EncryptAndCompressPrepper(LogFile logFile, LogFileTracker tracker, String masterKeyBase64, String masterIVBase64) {
+    public EncryptAndCompressPrepper(LogFile logFile, LogFileTracker tracker, String masterKeyBase64) {
         super(logFile, tracker);
         masterKey = Base64.decode(masterKeyBase64);
-        masterIV = Base64.decode(masterIVBase64);
     }
 
     @Override
@@ -41,9 +40,7 @@ public class EncryptAndCompressPrepper extends AbstractPrepWorker {
         Path outputPath = withNewExtension(inputPath, ".gz." + DEFAULT_EXTENSION);
         byte[] key = generateRandomKey();
         byte[] iv = generateRandomIV();
-        //LOG.debug("Generated archive key and iv {} / {} for {}", StreamingBouncyCastleAESWithSIC.toHexString(key), StreamingBouncyCastleAESWithSIC.toHexString(iv), logFile);
-        logFile.setArchiveKey(encryptAndEncodeKeyAndIV(key, iv, masterKey, masterIV));
-        //LOG.debug("Archive key encoded: " + logFile.getArchiveKey());
+        logFile.setArchiveKey(StreamingBouncyCastleAESWithSIC.encryptAndEncodeKey(key, iv, masterKey));
         if (tracker.updateArchiveKey(logFile) != 1)
             throw new PreparationException("Cannot record archive key for " + logFile);
 
