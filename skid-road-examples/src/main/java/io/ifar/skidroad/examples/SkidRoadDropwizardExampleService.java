@@ -21,6 +21,7 @@ import io.ifar.skidroad.jdbi.JodaArgumentFactory;
 import io.ifar.skidroad.jersey.*;
 import io.ifar.skidroad.jersey.capture.RequestEntityBytesCaptureFilter;
 import io.ifar.skidroad.jersey.capture.SkidRoadFilter;
+import io.ifar.skidroad.jersey.capture.StatusCodeContainerResponsePredicate;
 import io.ifar.skidroad.jersey.serialize.DefaultContainerRequestAndResponseSerializer;
 import io.ifar.skidroad.scheduling.SimpleQuartzScheduler;
 import io.ifar.skidroad.writing.WritingWorkerManager;
@@ -90,7 +91,8 @@ public class SkidRoadDropwizardExampleService extends Service<SkidRoadDropwizard
                 tracker, new DefaultContainerRequestAndResponseSerializer(environment.getObjectMapperFactory().build()), scheduler, configuration.getSkidRoad(), environment);
 
         JerseyFilterHelper.addFilter(environment, new RequestEntityBytesCaptureFilter());
-        JerseyFilterHelper.addFilter(environment, new SkidRoadFilter(writerManager));
+        //Only capture when result is successful.
+        JerseyFilterHelper.addFilter(environment, new SkidRoadFilter(StatusCodeContainerResponsePredicate.SUCCESS_PREDICATE, writerManager));
 
         environment.addResource(new ExampleResource());
     }

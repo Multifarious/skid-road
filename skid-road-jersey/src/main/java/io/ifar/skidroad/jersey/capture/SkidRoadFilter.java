@@ -13,7 +13,7 @@ import io.ifar.skidroad.writing.WritingWorkerManager;
  */
 public class SkidRoadFilter implements ContainerResponseFilter{
     private final WritingWorkerManager<ContainerRequestAndResponse> writingWorkerManager;
-    private final ContainerRequestResponsePredicate predicate;
+    private final ContainerResponsePredicate predicate;
 
     /**
      * Construct a SkidRoadFilter that captures all requests.
@@ -27,7 +27,7 @@ public class SkidRoadFilter implements ContainerResponseFilter{
      * Construct a SkidRoadFilter that captures requests which match the provided predicate.
      */
     public SkidRoadFilter(final ContainerRequestPredicate predicate, WritingWorkerManager<ContainerRequestAndResponse> writingWorkerManager) {
-        this.predicate = new ContainerRequestResponsePredicate() {
+        this.predicate = new ContainerResponsePredicate() {
             @Override
             public boolean isMatch(ContainerRequest request, ContainerResponse response) {
                 return predicate.isMatch(request);
@@ -39,7 +39,7 @@ public class SkidRoadFilter implements ContainerResponseFilter{
     /**
      * Construct a SkidRoadFilter that captures requests which match the provided predicate.
      */
-    public SkidRoadFilter(ContainerRequestResponsePredicate predicate, WritingWorkerManager<ContainerRequestAndResponse> writingWorkerManager) {
+    public SkidRoadFilter(ContainerResponsePredicate predicate, WritingWorkerManager<ContainerRequestAndResponse> writingWorkerManager) {
         this.predicate = predicate;
         this.writingWorkerManager = writingWorkerManager;
     }
