@@ -1,4 +1,4 @@
-package io.ifar.skidroad.jersey.serialize;
+package io.ifar.skidroad.jersey.headers;
 
 import com.google.common.collect.ImmutableSet;
 import com.sun.jersey.core.util.StringKeyObjectValueIgnoreCaseMultivaluedMap;
@@ -16,7 +16,7 @@ import java.util.*;
  *
  * Note that because SimpleHeaderExtractor implements both {@link RequestHeaderExtractor} and
  * {@link ResponseHeaderExtractor}, it must be cast to one of those interfaces in order to be used with
- * {@link DefaultContainerRequestAndResponseSerializer}'s overloaded {@code with} methods.
+ * {@link io.ifar.skidroad.jersey.combined.serialize.JSONContainerRequestAndResponseSerializer}'s overloaded {@code with} methods.
  *
  */
 public class SimpleHeaderExtractor implements RequestHeaderExtractor, ResponseHeaderExtractor {

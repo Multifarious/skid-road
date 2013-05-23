@@ -1,9 +1,10 @@
-package io.ifar.skidroad.jersey.capture;
+package io.ifar.skidroad.jersey.combined.capture;
 
 import com.sun.jersey.api.container.ContainerException;
 import com.sun.jersey.core.util.ReaderWriter;
 import com.sun.jersey.spi.container.ContainerRequest;
 import com.sun.jersey.spi.container.ContainerRequestFilter;
+import io.ifar.skidroad.jersey.predicate.request.ContainerRequestPredicate;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

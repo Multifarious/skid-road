@@ -1,4 +1,4 @@
-package io.ifar.skidroad.jersey.serialize;
+package io.ifar.skidroad.jersey.headers;
 
 import com.sun.jersey.spi.container.ContainerRequest;
 import com.sun.jersey.spi.container.ContainerResponse;
@@ -17,7 +17,7 @@ public interface ResponseHeaderExtractor {
     /**
      * @param request Request which generated the response.
      * @param response Response from which to extract HTTP headers
-     * @return Headers to serialize
+     * @return Headers to headers
      */
     MultivaluedMap<String,Object> extract(ContainerRequest request, ContainerResponse response);
 }

@@ -18,14 +18,14 @@ import io.ifar.skidroad.examples.rest.ExampleResource;
 import io.ifar.skidroad.jdbi.DefaultJDBILogFileDAO;
 import io.ifar.skidroad.jdbi.JDBILogFileDAO;
 import io.ifar.skidroad.jdbi.JodaArgumentFactory;
-import io.ifar.skidroad.jersey.*;
-import io.ifar.skidroad.jersey.capture.RequestEntityBytesCaptureFilter;
-import io.ifar.skidroad.jersey.capture.SkidRoadFilter;
-import io.ifar.skidroad.jersey.capture.StatusCodeContainerResponsePredicate;
-import io.ifar.skidroad.jersey.serialize.CommonHeaderExtractors;
-import io.ifar.skidroad.jersey.serialize.DefaultContainerRequestAndResponseSerializer;
-import io.ifar.skidroad.jersey.serialize.RequestHeaderExtractor;
-import io.ifar.skidroad.jersey.serialize.SimpleHeaderExtractor;
+import io.ifar.skidroad.jersey.combined.ContainerRequestAndResponse;
+import io.ifar.skidroad.jersey.combined.capture.RequestEntityBytesCaptureFilter;
+import io.ifar.skidroad.jersey.combined.capture.RecorderFilter;
+import io.ifar.skidroad.jersey.predicate.response.StatusCodeContainerResponsePredicate;
+import io.ifar.skidroad.jersey.headers.CommonHeaderExtractors;
+import io.ifar.skidroad.jersey.combined.serialize.JSONContainerRequestAndResponseSerializer;
+import io.ifar.skidroad.jersey.headers.RequestHeaderExtractor;
+import io.ifar.skidroad.jersey.headers.SimpleHeaderExtractor;
 import io.ifar.skidroad.scheduling.SimpleQuartzScheduler;
 import io.ifar.skidroad.writing.WritingWorkerManager;
 import org.skife.jdbi.v2.DBI;
@@ -92,17 +92,17 @@ public class SkidRoadDropwizardExampleService extends Service<SkidRoadDropwizard
 
         WritingWorkerManager<ContainerRequestAndResponse> writerManager = ManagedWritingWorkerManager.build(
                 tracker,
-                new DefaultContainerRequestAndResponseSerializer(environment.getObjectMapperFactory().build())
+                new JSONContainerRequestAndResponseSerializer(environment.getObjectMapperFactory().build())
                         .with((RequestHeaderExtractor) SimpleHeaderExtractor.only("User-Agent")) //only include the User-Agent request header
-                        .with(CommonHeaderExtractors.NO_RESPONSE_HEADERS) //don't serialize response headers
+                        .with(CommonHeaderExtractors.NO_RESPONSE_HEADERS) //don't headers response headers
                 ,
                 scheduler,
                 configuration.getSkidRoad(),
                 environment);
 
         JerseyFilterHelper.addFilter(environment, new RequestEntityBytesCaptureFilter());
-        //Only capture when result is successful.
-        JerseyFilterHelper.addFilter(environment, new SkidRoadFilter(StatusCodeContainerResponsePredicate.SUCCESS_PREDICATE, writerManager));
+        //Only request when result is successful.
+        JerseyFilterHelper.addFilter(environment, new RecorderFilter(StatusCodeContainerResponsePredicate.SUCCESS_PREDICATE, writerManager));
 
         environment.addResource(new ExampleResource());
     }

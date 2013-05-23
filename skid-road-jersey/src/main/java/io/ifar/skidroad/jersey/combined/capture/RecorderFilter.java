@@ -1,32 +1,35 @@
-package io.ifar.skidroad.jersey.capture;
+package io.ifar.skidroad.jersey.combined.capture;
 
 import com.sun.jersey.spi.container.ContainerRequest;
 import com.sun.jersey.spi.container.ContainerResponse;
 import com.sun.jersey.spi.container.ContainerResponseFilter;
-import io.ifar.skidroad.jersey.ContainerRequestAndResponse;
+import io.ifar.skidroad.jersey.combined.ContainerRequestAndResponse;
+import io.ifar.skidroad.jersey.predicate.request.ContainerRequestPredicate;
+import io.ifar.skidroad.jersey.predicate.response.ContainerResponsePredicate;
 import io.ifar.skidroad.writing.WritingWorkerManager;
 
 /**
- * Passes matching requests and their response to Skid-Road.
+ * A Jersey ContainerResponseFilter which bundles request/response pairs into {@link ContainerRequestAndResponse} beans
+ * and passes them to Skid-Road for serialization.
  *
- * Use in conjunction with a RequestEntityBytesCaptureFilter to capture POST/PUT payloads as well.
+ * Use in conjunction with a {@link io.ifar.skidroad.jersey.combined.capture.RequestEntityBytesCaptureFilter} to request POST/PUT payloads as well.
  */
-public class SkidRoadFilter implements ContainerResponseFilter{
+public class RecorderFilter implements ContainerResponseFilter{
     private final WritingWorkerManager<ContainerRequestAndResponse> writingWorkerManager;
     private final ContainerResponsePredicate predicate;
 
     /**
-     * Construct a SkidRoadFilter that captures all requests.
+     * Construct a RecorderFilter that captures all requests.
      */
-    public SkidRoadFilter(WritingWorkerManager<ContainerRequestAndResponse> writingWorkerManager) {
+    public RecorderFilter(WritingWorkerManager<ContainerRequestAndResponse> writingWorkerManager) {
         this.predicate = null;
         this.writingWorkerManager = writingWorkerManager;
     }
 
     /**
-     * Construct a SkidRoadFilter that captures requests which match the provided predicate.
+     * Construct a RecorderFilter that captures requests which match the provided predicate.
      */
-    public SkidRoadFilter(final ContainerRequestPredicate predicate, WritingWorkerManager<ContainerRequestAndResponse> writingWorkerManager) {
+    public RecorderFilter(final ContainerRequestPredicate predicate, WritingWorkerManager<ContainerRequestAndResponse> writingWorkerManager) {
         this.predicate = new ContainerResponsePredicate() {
             @Override
             public boolean isMatch(ContainerRequest request, ContainerResponse response) {
@@ -37,9 +40,9 @@ public class SkidRoadFilter implements ContainerResponseFilter{
     }
 
     /**
-     * Construct a SkidRoadFilter that captures requests which match the provided predicate.
+     * Construct a RecorderFilter that captures requests which match the provided predicate.
      */
-    public SkidRoadFilter(ContainerResponsePredicate predicate, WritingWorkerManager<ContainerRequestAndResponse> writingWorkerManager) {
+    public RecorderFilter(ContainerResponsePredicate predicate, WritingWorkerManager<ContainerRequestAndResponse> writingWorkerManager) {
         this.predicate = predicate;
         this.writingWorkerManager = writingWorkerManager;
     }

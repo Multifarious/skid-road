@@ -1,4 +1,4 @@
-package io.ifar.skidroad.jersey.serialize;
+package io.ifar.skidroad.jersey.headers;
 
 import com.sun.jersey.spi.container.ContainerRequest;
 
@@ -15,7 +15,7 @@ import javax.ws.rs.core.MultivaluedMap;
 public interface RequestHeaderExtractor {
     /**
      * @param request Request from which to extract HTTP headers
-     * @return Headers to serialize
+     * @return Headers to headers
      */
     MultivaluedMap<String,String> extract(ContainerRequest request);
 }

@@ -1,4 +1,4 @@
-package io.ifar.skidroad.jersey.serialize;
+package io.ifar.skidroad.jersey.combined.serialize;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -6,8 +6,11 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.sun.jersey.spi.container.ContainerRequest;
 import com.sun.jersey.spi.container.ContainerResponse;
-import io.ifar.skidroad.jersey.ContainerRequestAndResponse;
-import io.ifar.skidroad.jersey.capture.RequestEntityBytesCaptureFilter;
+import io.ifar.skidroad.jersey.combined.ContainerRequestAndResponse;
+import io.ifar.skidroad.jersey.combined.capture.RequestEntityBytesCaptureFilter;
+import io.ifar.skidroad.jersey.headers.CommonHeaderExtractors;
+import io.ifar.skidroad.jersey.headers.RequestHeaderExtractor;
+import io.ifar.skidroad.jersey.headers.ResponseHeaderExtractor;
 import io.ifar.skidroad.writing.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,7 +24,7 @@ import java.io.IOException;
  * Future: configure what to include (e.g. only some headers)
  * Future: allow customizing class used to deserialize request entity bytes
  */
-public class DefaultContainerRequestAndResponseSerializer implements Serializer<ContainerRequestAndResponse> {
+public class JSONContainerRequestAndResponseSerializer implements Serializer<ContainerRequestAndResponse> {
 
     private RequestHeaderExtractor requestHeaderExtractor = CommonHeaderExtractors.ALL_REQUEST_HEADERS;
     private ResponseHeaderExtractor responseHeaderExtractor = CommonHeaderExtractors.ALL_RESPONSE_HEADERS;
@@ -74,7 +77,7 @@ public class DefaultContainerRequestAndResponseSerializer implements Serializer<
 
     private final ObjectMapper objectMapper;
 
-    public DefaultContainerRequestAndResponseSerializer(ObjectMapper objectMapper) {
+    public JSONContainerRequestAndResponseSerializer(ObjectMapper objectMapper) {
         objectMapper.configure(SerializationFeature.INDENT_OUTPUT,false);
         this.objectMapper = objectMapper;
     }
@@ -84,12 +87,12 @@ public class DefaultContainerRequestAndResponseSerializer implements Serializer<
         return objectMapper.writeValueAsString(new OutputBean(item, objectMapper));
     }
 
-    public DefaultContainerRequestAndResponseSerializer with(RequestHeaderExtractor requestHeaderExtractor) {
+    public JSONContainerRequestAndResponseSerializer with(RequestHeaderExtractor requestHeaderExtractor) {
         this.requestHeaderExtractor = requestHeaderExtractor;
         return this;
     }
 
-    public DefaultContainerRequestAndResponseSerializer with(ResponseHeaderExtractor responseHeaderExtractor) {
+    public JSONContainerRequestAndResponseSerializer with(ResponseHeaderExtractor responseHeaderExtractor) {
         this.responseHeaderExtractor = responseHeaderExtractor;
         return this;
     }

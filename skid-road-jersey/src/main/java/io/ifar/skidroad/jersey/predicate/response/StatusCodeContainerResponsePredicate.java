@@ -1,4 +1,4 @@
-package io.ifar.skidroad.jersey.capture;
+package io.ifar.skidroad.jersey.predicate.response;
 
 import com.google.common.collect.ImmutableSet;
 import com.sun.jersey.spi.container.ContainerRequest;
