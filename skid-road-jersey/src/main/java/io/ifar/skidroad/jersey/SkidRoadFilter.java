@@ -47,9 +47,7 @@ public class SkidRoadFilter implements ContainerResponseFilter{
     public ContainerResponse filter(ContainerRequest request, ContainerResponse response) {
         //Future: consider introducing a predicate interface that takes response into account as well.
         if (predicate == null || predicate.isMatch(request, response)) {
-            if (request.getProperties().containsKey(RequestEntityBytesCaptureFilter.REQUEST_ENTITY)) {
-                writingWorkerManager.record(System.currentTimeMillis(), new ContainerRequestAndResponse(request, response));
-            }
+            writingWorkerManager.record(System.currentTimeMillis(), new ContainerRequestAndResponse(request, response));
         }
         return response;
     }
