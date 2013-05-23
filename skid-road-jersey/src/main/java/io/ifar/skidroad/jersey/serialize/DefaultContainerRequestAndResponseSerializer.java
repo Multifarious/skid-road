@@ -1,9 +1,11 @@
-package io.ifar.skidroad.jersey;
+package io.ifar.skidroad.jersey.serialize;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.sun.jersey.spi.container.ContainerRequest;
+import io.ifar.skidroad.jersey.ContainerRequestAndResponse;
+import io.ifar.skidroad.jersey.capture.RequestEntityBytesCaptureFilter;
 import io.ifar.skidroad.writing.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

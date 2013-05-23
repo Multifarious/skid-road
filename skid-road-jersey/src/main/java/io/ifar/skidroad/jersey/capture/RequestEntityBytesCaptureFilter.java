@@ -1,4 +1,4 @@
-package io.ifar.skidroad.jersey;
+package io.ifar.skidroad.jersey.capture;
 
 import com.sun.jersey.api.container.ContainerException;
 import com.sun.jersey.core.util.ReaderWriter;

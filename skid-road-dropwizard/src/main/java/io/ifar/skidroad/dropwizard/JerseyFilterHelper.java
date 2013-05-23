@@ -1,4 +1,4 @@
-package io.ifar.skidroad.jersey;
+package io.ifar.skidroad.dropwizard;
 
 import com.google.common.collect.ImmutableList;
 import com.sun.jersey.api.core.ResourceConfig;
@@ -9,11 +9,13 @@ import com.yammer.dropwizard.config.Environment;
 import java.util.List;
 
 /**
+ * Utility methods for managing Dropwizard's Jersey filters. Simplifies integration of the Skid Road filters into a
+ * Dropwizard project.
  */
-public class FilterHelper {
+public class JerseyFilterHelper {
 
     /**
-     * Adds provided filter to the Dropwizard Jersey configuration.
+     * Adds provided filter instance to the Dropwizard Jersey configuration.
      *
      * Note: do not use in combination with mechanisms that set the filter list via other formats (e.g. Strings, Class objects)
      */
@@ -28,7 +30,7 @@ public class FilterHelper {
     }
 
     /**
-     * Adds provided filter to the Dropwizard Jersey configuration.
+     * Adds provided filter instance to the Dropwizard Jersey configuration.
      *
      * Note: do not use in combination with mechanisms that set the filter list via other formats (e.g. Strings, Class objects)
      */

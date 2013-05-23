@@ -19,6 +19,9 @@ import io.ifar.skidroad.jdbi.DefaultJDBILogFileDAO;
 import io.ifar.skidroad.jdbi.JDBILogFileDAO;
 import io.ifar.skidroad.jdbi.JodaArgumentFactory;
 import io.ifar.skidroad.jersey.*;
+import io.ifar.skidroad.jersey.capture.RequestEntityBytesCaptureFilter;
+import io.ifar.skidroad.jersey.capture.SkidRoadFilter;
+import io.ifar.skidroad.jersey.serialize.DefaultContainerRequestAndResponseSerializer;
 import io.ifar.skidroad.scheduling.SimpleQuartzScheduler;
 import io.ifar.skidroad.writing.WritingWorkerManager;
 import org.skife.jdbi.v2.DBI;
@@ -86,8 +89,8 @@ public class SkidRoadDropwizardExampleService extends Service<SkidRoadDropwizard
         WritingWorkerManager<ContainerRequestAndResponse> writerManager = ManagedWritingWorkerManager.build(
                 tracker, new DefaultContainerRequestAndResponseSerializer(environment.getObjectMapperFactory().build()), scheduler, configuration.getSkidRoad(), environment);
 
-        FilterHelper.addFilter(environment, new RequestEntityBytesCaptureFilter());
-        FilterHelper.addFilter(environment, new SkidRoadFilter(writerManager));
+        JerseyFilterHelper.addFilter(environment, new RequestEntityBytesCaptureFilter());
+        JerseyFilterHelper.addFilter(environment, new SkidRoadFilter(writerManager));
 
         environment.addResource(new ExampleResource());
     }

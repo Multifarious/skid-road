@@ -1,8 +1,9 @@
-package io.ifar.skidroad.jersey;
+package io.ifar.skidroad.jersey.capture;
 
 import com.sun.jersey.spi.container.ContainerRequest;
 import com.sun.jersey.spi.container.ContainerResponse;
 import com.sun.jersey.spi.container.ContainerResponseFilter;
+import io.ifar.skidroad.jersey.ContainerRequestAndResponse;
 import io.ifar.skidroad.writing.WritingWorkerManager;
 
 /**
