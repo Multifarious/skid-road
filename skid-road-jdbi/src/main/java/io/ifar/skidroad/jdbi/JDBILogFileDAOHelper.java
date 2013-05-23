@@ -19,6 +19,16 @@ import java.util.*;
  * TODO: consolidate duplicate code
  */
 public class JDBILogFileDAOHelper {
+
+    public static Class<? extends DefaultJDBILogFileDAO> bestDefaultDAOForDriver(String jdbcDriverClass) {
+        if ("org.postgresql.Driver".equals(jdbcDriverClass)) {
+            //supports arrays
+            return DefaultPostgresJDBILogFileDAO.class;
+        } else {
+            return DefaultJDBILogFileDAO.class;
+        }
+    }
+
     public static AutoCloseableIterator<LogFile> findByOwnerAndState(JDBILogFileDAO dao, URI owner, Set<LogFileState> states) {
         if (dao instanceof JDBILogFileDAOWithArraySupport) {
             Set<String> stateStrings = new HashSet<>(states.size());
