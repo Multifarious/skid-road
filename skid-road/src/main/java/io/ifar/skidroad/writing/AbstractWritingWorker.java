@@ -5,47 +5,58 @@ import io.ifar.skidroad.tracking.LogFileTracker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedWriter;
+import java.io.Closeable;
+import java.io.Flushable;
 import java.io.IOException;
-import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-import static java.nio.file.StandardOpenOption.*;
-
 /**
- * A Thread which owns a file and pulls RequestBeans off of a shared queue.
+ * A Thread which owns a writer and pulls items to write off of a shared queue.
  *
  * Opt for our own Thread management rather than e.g. ForkJoin pool because we
- * ownership of a file across the handling of multiple requests. Could use a
+ * want ownership of a file across the handling of multiple requests. Could use a
  * model of single-request-Runnables checking out Writers from a common pool,
  * but that would make Writer lifecycle management (e.g. regular flushing) fiddly.
  * Also, since each item processes so quickly, we gain little from work-stealing.
  *
  * Future: Support max-file-size (or entry count) forced exit (thus rotating to new worker/file).
+ *
+ * @param <W> Type of objects to which items are written
+ * @param <T> Type of items to be written
  */
-public class FileWritingWorker<T> implements Runnable {
-    private static final Logger LOG = LoggerFactory.getLogger(FileWritingWorker.class);
+public abstract class AbstractWritingWorker<W extends Closeable & Flushable,T> implements Runnable {
+    private static final Logger LOG = LoggerFactory.getLogger(AbstractWritingWorker.class);
     public static final Charset UTF8 = Charset.forName("UTF-8");
 
     private final BlockingQueue<T> queue;
-    private final Serializer<T> serializer;
     private boolean shuttingDown;
     private final LogFile logFileRecord;
     private final int maxFlushIntervalSeconds;
     private String name;
     private final LogFileTracker tracker;
 
-    public FileWritingWorker(final BlockingQueue<T> queue, final Serializer<T> serializer, final LogFile logFileRecord, final int maxFlushIntervalSeconds, final LogFileTracker tracker) {
+    public AbstractWritingWorker(final BlockingQueue<T> queue, final LogFile logFileRecord, final int maxFlushIntervalSeconds, final LogFileTracker tracker) {
         this.queue = queue;
-        this.serializer = serializer;
         this.shuttingDown = false;
         this.logFileRecord = logFileRecord;
         this.maxFlushIntervalSeconds = maxFlushIntervalSeconds;
         this.tracker = tracker;
     }
+
+    /**
+     * Open a writer for the provided path. Note that this does not need to be a {@code java.io.Writer}.
+     */
+    abstract protected W openForWriting(Path path) throws IOException;
+
+    /**
+     * Write one item to the writer returned by {@link #openForWriting(java.nio.file.Path)}
+     */
+    abstract protected void writeItem(W writer, T item) throws IOException;
+
 
     @Override
     public void run() {
@@ -54,7 +65,7 @@ public class FileWritingWorker<T> implements Runnable {
             LOG.info("Starting worker thread {} for {}", this.name, this.logFileRecord.getOriginPath());
             T item = null;
             boolean dirty = false;
-            try (BufferedWriter writer = Files.newBufferedWriter(logFileRecord.getOriginPath(), UTF8, CREATE, WRITE, APPEND)) {
+            try (W writer = openForWriting(this.logFileRecord.getOriginPath())) {
                 try {
                     long nextFlush = 0L;
 
@@ -122,7 +133,7 @@ public class FileWritingWorker<T> implements Runnable {
         }
     }
 
-    private void flush(Writer writer) throws IOException {
+    private void flush(W writer) throws IOException {
         try {
             writer.flush();
         } catch (IOException e) {
@@ -133,13 +144,11 @@ public class FileWritingWorker<T> implements Runnable {
 
     }
 
-    private void write(Writer writer, T item) throws IOException {
-        String s = serializer.serialize(item);
+    private void write(W writer, T item) throws IOException {
         try {
-            writer.write(s);
-            writer.write('\n');
+            writeItem(writer, item);
         } catch (IOException e) {
-            LOG.error("{} error writing request to disk.", this.name, s, e);
+            LOG.error("{} error writing request to disk.", this.name, item, e);
             throw e;
         }
     }

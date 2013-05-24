@@ -3,11 +3,11 @@ package io.ifar.skidroad.writing;
 import com.yammer.metrics.Metrics;
 import com.yammer.metrics.core.Gauge;
 import com.yammer.metrics.core.HealthCheck;
+import io.ifar.goodies.AutoCloseableIterator;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.rolling.FileRollingScheme;
 import io.ifar.skidroad.scheduling.SimpleQuartzScheduler;
 import io.ifar.skidroad.tracking.LogFileTracker;
-import io.ifar.goodies.AutoCloseableIterator;
 import org.joda.time.DateTime;
 import org.quartz.*;
 import org.slf4j.Logger;
@@ -44,7 +44,6 @@ public class WritingWorkerManager<T> {
     public final HealthCheck healthcheck;
 
     private final FileRollingScheme rollingScheme;
-    private final Serializer<T> serializer;
     private final LogFileTracker tracker;
     private final WritingWorkerFactory<T> factory;
     private final int spawnNewWorkerAtQueueDepth;
@@ -63,7 +62,7 @@ public class WritingWorkerManager<T> {
     private final Map<DateTime, List<Thread>> workers;
     private final ExecutorService asyncWorkerCreator;
 
-    public WritingWorkerManager(FileRollingScheme rollingScheme, Serializer<T> serializer, LogFileTracker tracker,
+    public WritingWorkerManager(FileRollingScheme rollingScheme, LogFileTracker tracker,
                                 WritingWorkerFactory<T> factory, SimpleQuartzScheduler scheduler, int pruneIntervalSeconds,
                                 int spawnThreshold, int unhealthyThreshold) {
 
@@ -73,7 +72,6 @@ public class WritingWorkerManager<T> {
             throw new IllegalStateException("Cannot create or cannot write to output path " + logDir.getPath());
 
         this.rollingScheme = rollingScheme;
-        this.serializer = serializer;
         this.tracker = tracker;
         this.factory = factory;
         this.spawnNewWorkerAtQueueDepth = spawnThreshold;
@@ -254,7 +252,7 @@ public class WritingWorkerManager<T> {
         LOG.debug("Launching new worker for {}", rollingScheme.getRepresentation(startTime));
         String logFilePathPattern = rollingScheme.makeOutputPathPattern(startTime);
         LogFile logFileRecord = tracker.open(rollingScheme.getRepresentation(startTime), logFilePathPattern, startTime);
-        Thread worker = factory.buildWorker(queue, serializer, logFileRecord, tracker);
+        Thread worker = factory.buildWorker(queue, logFileRecord, tracker);
         synchronized (workers) {
             List<Thread> workersForQueue = workers.get(startTime);
             if (workersForQueue == null) {

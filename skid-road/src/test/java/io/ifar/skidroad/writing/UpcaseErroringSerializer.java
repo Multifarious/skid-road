@@ -1,5 +1,7 @@
 package io.ifar.skidroad.writing;
 
+import io.ifar.skidroad.writing.file.Serializer;
+
 import java.io.IOException;
 
 public class UpcaseErroringSerializer implements Serializer<String> {

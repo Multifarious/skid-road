@@ -1,4 +1,4 @@
-package io.ifar.skidroad.writing;
+package io.ifar.skidroad.writing.file;
 
 import java.io.IOException;
 

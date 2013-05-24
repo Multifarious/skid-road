@@ -11,7 +11,7 @@ import io.ifar.skidroad.jersey.combined.capture.RequestEntityBytesCaptureFilter;
 import io.ifar.skidroad.jersey.headers.CommonHeaderExtractors;
 import io.ifar.skidroad.jersey.headers.RequestHeaderExtractor;
 import io.ifar.skidroad.jersey.headers.ResponseHeaderExtractor;
-import io.ifar.skidroad.writing.Serializer;
+import io.ifar.skidroad.writing.file.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

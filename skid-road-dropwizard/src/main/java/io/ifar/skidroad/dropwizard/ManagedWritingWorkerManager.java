@@ -10,26 +10,26 @@ import io.ifar.skidroad.rolling.HourlyFileRollingScheme;
 import io.ifar.skidroad.rolling.MinutelyFileRollingScheme;
 import io.ifar.skidroad.scheduling.SimpleQuartzScheduler;
 import io.ifar.skidroad.tracking.LogFileTracker;
-import io.ifar.skidroad.writing.FileWritingWorkerFactory;
-import io.ifar.skidroad.writing.Serializer;
 import io.ifar.skidroad.writing.WritingWorkerFactory;
 import io.ifar.skidroad.writing.WritingWorkerManager;
+import io.ifar.skidroad.writing.csv.CSVWritingWorkerFactory;
+import io.ifar.skidroad.writing.file.FileWritingWorkerFactory;
+import io.ifar.skidroad.writing.file.Serializer;
 
 public class ManagedWritingWorkerManager<T> extends WritingWorkerManager<T> implements Managed {
 
-    public ManagedWritingWorkerManager(FileRollingScheme rollingScheme, Serializer<T> serializer, LogFileTracker tracker,
+    public ManagedWritingWorkerManager(FileRollingScheme rollingScheme, LogFileTracker tracker,
                                        WritingWorkerFactory<T> factory, SimpleQuartzScheduler scheduler, int pruneIntervalMillis,
                                        int spawnThreshold, int unhealthyThreshold) {
-        super(rollingScheme,serializer,tracker,factory,scheduler,pruneIntervalMillis,spawnThreshold,unhealthyThreshold);
+        super(rollingScheme,tracker,factory,scheduler,pruneIntervalMillis,spawnThreshold,unhealthyThreshold);
     }
 
     public static <T> ManagedWritingWorkerManager<T> build(LogFileTracker tracker, Serializer<T> serializer, SimpleQuartzScheduler scheduler, RequestLogWriterConfiguration logConf, Environment environment) {
         FileRollingScheme rollingScheme = getFileRollingScheme(logConf);
         int pruneIntervalMillis = 5000;
-        WritingWorkerFactory<T> workerFactory = new FileWritingWorkerFactory<>(logConf.getFileFlushIntervalSeconds());
+        WritingWorkerFactory<T> workerFactory = new FileWritingWorkerFactory<>(serializer, logConf.getFileFlushIntervalSeconds());
         ManagedWritingWorkerManager<T> writerManager = new ManagedWritingWorkerManager<>(
                 rollingScheme,
-                serializer,
                 tracker,
                 workerFactory,
                 scheduler,

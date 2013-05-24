@@ -60,7 +60,7 @@ public class DummyWritingWorkerFactory<T> implements WritingWorkerFactory<T> {
     private Map<BlockingQueue<T>, CountDownLatch> exitLatches = new LinkedHashMap<>();
 
     @Override
-    public Thread buildWorker(final BlockingQueue<T> queue, Serializer<T> serializer, LogFile logFileRecord, LogFileTracker tracker) {
+    public Thread buildWorker(final BlockingQueue<T> queue, LogFile logFileRecord, LogFileTracker tracker) {
         if (!runLatches.containsKey(queue)) {
             runLatches.put(queue, new CountDownLatch(1));
             drainFlags.put(queue, new AtomicBoolean(false));

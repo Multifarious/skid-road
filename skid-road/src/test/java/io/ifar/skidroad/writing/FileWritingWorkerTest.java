@@ -2,6 +2,7 @@ package io.ifar.skidroad.writing;
 
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.tracking.LogFileTracker;
+import io.ifar.skidroad.writing.file.FileWritingWorker;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;

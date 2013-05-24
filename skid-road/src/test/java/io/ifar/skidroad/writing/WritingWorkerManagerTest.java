@@ -37,13 +37,11 @@ public class WritingWorkerManagerTest {
     LogFileTracker tracker;
     private ManualRollingScheme rollingScheme;
     private SimpleQuartzScheduler scheduler;
-    UpcaseErroringSerializer serializer;
     DummyWritingWorkerFactory<String> factory;
     WritingWorkerManager<String> manager;
 
     @Before
     public void setup() throws Exception {
-        serializer = new UpcaseErroringSerializer();
         tracker = new TransientLogFileTracker();
         rollingScheme = new ManualRollingScheme();
         scheduler = new SimpleQuartzScheduler(getClass().getSimpleName() + "#" + name.getMethodName(), 1);
@@ -51,7 +49,6 @@ public class WritingWorkerManagerTest {
         factory = new DummyWritingWorkerFactory<>();
         manager = new WritingWorkerManager<>(
                 rollingScheme,
-                serializer,
                 tracker,
                 factory,
                 scheduler,
@@ -169,7 +166,6 @@ public class WritingWorkerManagerTest {
         scheduler.clear();
         WritingWorkerManager<String> manager = new WritingWorkerManager<>(
                 rollingScheme,
-                serializer,
                 tracker,
                 factory,
                 scheduler,
