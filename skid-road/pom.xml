@@ -75,6 +75,10 @@
             <groupId>com.yammer.metrics</groupId>
             <artifactId>metrics-core</artifactId>
         </dependency>
+        <dependency>
+            <groupId>net.sf.supercsv</groupId>
+            <artifactId>super-csv</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>io.ifar</groupId>

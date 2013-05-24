@@ -2,6 +2,7 @@ package io.ifar.skidroad.dropwizard;
 
 import com.yammer.dropwizard.config.Environment;
 import com.yammer.dropwizard.lifecycle.Managed;
+import io.ifar.goodies.Tuple;
 import io.ifar.skidroad.dropwizard.config.RequestLogWriterConfiguration;
 import io.ifar.skidroad.dropwizard.config.SkidRoadConfiguration;
 import io.ifar.skidroad.rolling.DailyFileRollingScheme;
@@ -42,9 +43,31 @@ public class ManagedWritingWorkerManager<T> extends WritingWorkerManager<T> impl
         return writerManager;
     }
 
-
     public static <T> ManagedWritingWorkerManager<T> build(LogFileTracker tracker, Serializer<T> serializer, SimpleQuartzScheduler scheduler, SkidRoadConfiguration skidRoadConfiguration, Environment environment) {
         return build(tracker, serializer, scheduler, skidRoadConfiguration.getRequestLogWriterConfiguration(), environment);
+
+    }
+
+    public static <T extends Tuple> ManagedWritingWorkerManager<T> buildCSV(LogFileTracker tracker, String nullRepresentation, SimpleQuartzScheduler scheduler, RequestLogWriterConfiguration logConf, Environment environment) {
+        FileRollingScheme rollingScheme = getFileRollingScheme(logConf);
+        int pruneIntervalMillis = 5000;
+        WritingWorkerFactory<T> workerFactory = new CSVWritingWorkerFactory<T>(nullRepresentation, logConf.getFileFlushIntervalSeconds());
+        ManagedWritingWorkerManager<T> writerManager = new ManagedWritingWorkerManager<>(
+                rollingScheme,
+                tracker,
+                workerFactory,
+                scheduler,
+                pruneIntervalMillis,
+                logConf.getSpawnNewWorkerAtQueueDepth(),
+                logConf.getReportUnhealthyAtQueueDepth()
+        );
+        environment.manage(writerManager);
+        environment.addHealthCheck(writerManager.healthcheck);
+        return writerManager;
+    }
+
+    public static <T extends Tuple> ManagedWritingWorkerManager<T> buildCSV(LogFileTracker tracker, String nullRepresentation, SimpleQuartzScheduler scheduler, SkidRoadConfiguration skidRoadConfiguration, Environment environment) {
+        return buildCSV(tracker, nullRepresentation, scheduler, skidRoadConfiguration.getRequestLogWriterConfiguration(), environment);
 
     }
 
