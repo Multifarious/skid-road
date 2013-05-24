@@ -20,6 +20,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.ifar.skidroad.tracking.LogFileState.*;
 
@@ -40,6 +41,7 @@ import static io.ifar.skidroad.tracking.LogFileState.*;
 public class WritingWorkerManager<T> {
     private static final Logger LOG = LoggerFactory.getLogger(WritingWorkerManager.class);
     private static final int NUM_PROCESSORS = Runtime.getRuntime().availableProcessors();
+    private static final AtomicInteger instanceCounter = new AtomicInteger(0);
 
     public final HealthCheck healthcheck;
 
@@ -121,7 +123,7 @@ public class WritingWorkerManager<T> {
 
     /**
      * Submit an item to be recorded in a log file.
-     * @param timeStamp
+     * @param timeStamp Time to attribute item to
      * @param item
      */
     public void record(DateTime timeStamp, T item) {
@@ -130,11 +132,19 @@ public class WritingWorkerManager<T> {
 
     /**
      * Submit an item to be recorded in a log file.
-     * @param timeStamp
+     * @param timeStamp Time to attribute item to
      * @param item
      */
     public void record(long timeStamp, T item) {
         getQueueFor(timeStamp).add(item);
+    }
+
+    /**
+     * Submit an item to be recorded in a log file.
+     * @param item
+     */
+    public void record(T item) {
+        getQueueFor(System.currentTimeMillis()).add(item);
     }
 
     protected BlockingQueue<T> getQueueFor(DateTime timeStamp) {
@@ -283,7 +293,7 @@ public class WritingWorkerManager<T> {
 
         Map<String,Object> pruneConfiguration = new HashMap<>(1);
         pruneConfiguration.put(PruneJob.FILE_WRITING_WORKER_MANAGER, this);
-        scheduler.schedule(this.getClass().getSimpleName()+"_prune", PruneJob.class, pruneIntervalSeconds * 1000, pruneConfiguration);
+        scheduler.schedule(this.getClass().getSimpleName()+"_prune_"+instanceCounter.incrementAndGet(), PruneJob.class, pruneIntervalSeconds * 1000, pruneConfiguration);
     }
 
     public void stop() throws InterruptedException {

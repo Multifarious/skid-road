@@ -5,7 +5,6 @@ import org.hibernate.validator.constraints.NotEmpty;
 
 import javax.validation.constraints.DecimalMin;
 import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Pattern;
 
 /**
  *
@@ -42,6 +41,24 @@ public class RequestLogWriterConfiguration {
     @NotNull
     private RollingFrequencyUnit rollingFrequency = RollingFrequencyUnit.hourly;
 
+    public RequestLogWriterConfiguration() {
+    }
+
+    public RequestLogWriterConfiguration(String basePath, String namePrefix, String nameSuffix, int fileFlushIntervalSeconds, int afterRollCloseFileDelaySeconds, int spawnNewWorkerAtQueueDepth, int reportUnhealthyAtQueueDepth, RollingFrequencyUnit rollingFrequency) {
+        this.basePath = basePath;
+        this.namePrefix = namePrefix;
+        this.nameSuffix = nameSuffix;
+        this.fileFlushIntervalSeconds = fileFlushIntervalSeconds;
+        this.afterRollCloseFileDelaySeconds = afterRollCloseFileDelaySeconds;
+        this.spawnNewWorkerAtQueueDepth = spawnNewWorkerAtQueueDepth;
+        this.reportUnhealthyAtQueueDepth = reportUnhealthyAtQueueDepth;
+        this.rollingFrequency = rollingFrequency;
+    }
+
+    public RequestLogWriterConfiguration copy() {
+        return new RequestLogWriterConfiguration(basePath,namePrefix,nameSuffix,fileFlushIntervalSeconds,afterRollCloseFileDelaySeconds,spawnNewWorkerAtQueueDepth,reportUnhealthyAtQueueDepth,rollingFrequency);
+    }
+
     public int getAfterRollCloseFileDelaySeconds() {
         return afterRollCloseFileDelaySeconds;
     }
@@ -72,5 +89,15 @@ public class RequestLogWriterConfiguration {
 
     public RollingFrequencyUnit getRollingFrequency() {
         return rollingFrequency;
+    }
+
+    public RequestLogWriterConfiguration setNamePrefix(String namePrefix) {
+        this.namePrefix = namePrefix;
+        return this;
+    }
+
+    public RequestLogWriterConfiguration setNameSuffix(String nameSuffix) {
+        this.nameSuffix = nameSuffix;
+        return this;
     }
 }

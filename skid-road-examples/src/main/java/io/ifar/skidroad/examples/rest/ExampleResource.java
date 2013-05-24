@@ -1,5 +1,11 @@
 package io.ifar.skidroad.examples.rest;
 
+import com.google.common.base.Function;
+import io.ifar.goodies.Triple;
+import io.ifar.skidroad.jersey.single.IDTypeTripleTransformFactory;
+import io.ifar.skidroad.jersey.single.RequestTimestampFilter;
+import io.ifar.skidroad.writing.WritingWorkerManager;
+
 import javax.ws.rs.*;
 
 /**
@@ -12,6 +18,13 @@ import javax.ws.rs.*;
  */
 @Path("/")
 public class ExampleResource {
+    private final WritingWorkerManager<Triple<String,String,String>> writingWorkerManager;
+    private final Function<String,Triple<String,String,String>> favColorCapture = IDTypeTripleTransformFactory.buildTransform("FAV_COLOR");
+
+    public ExampleResource(WritingWorkerManager<Triple<String, String, String>> writingWorkerManager) {
+        this.writingWorkerManager = writingWorkerManager;
+    }
+
     @POST
     @Path("orders")
     @Consumes("application/json")
@@ -23,6 +36,10 @@ public class ExampleResource {
         } else {
             rainbowColor = favoriteColor;
         }
+        writingWorkerManager.record(
+                RequestTimestampFilter.getRequestDateTime(),
+                favColorCapture.apply(favoriteColor)
+        );
         return new RainbowRequestResponse(true,rainbowColor);
     }
 }
