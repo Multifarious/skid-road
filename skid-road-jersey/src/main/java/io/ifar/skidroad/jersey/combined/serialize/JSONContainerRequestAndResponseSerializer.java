@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.sun.jersey.spi.container.ContainerRequest;
 import com.sun.jersey.spi.container.ContainerResponse;
-import io.ifar.skidroad.jersey.combined.ContainerRequestAndResponse;
+import io.ifar.skidroad.jersey.ContainerRequestAndResponse;
 import io.ifar.skidroad.jersey.combined.capture.RequestEntityBytesCaptureFilter;
 import io.ifar.skidroad.jersey.headers.CommonHeaderExtractors;
 import io.ifar.skidroad.jersey.headers.RequestHeaderExtractor;

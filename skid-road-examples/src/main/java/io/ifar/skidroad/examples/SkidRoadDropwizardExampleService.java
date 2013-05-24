@@ -3,7 +3,6 @@ package io.ifar.skidroad.examples;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.joda.JodaModule;
-import com.google.common.base.Function;
 import com.yammer.dropwizard.Service;
 import com.yammer.dropwizard.config.Bootstrap;
 import com.yammer.dropwizard.config.Environment;
@@ -20,7 +19,7 @@ import io.ifar.skidroad.examples.rest.ExampleResource;
 import io.ifar.skidroad.jdbi.DefaultJDBILogFileDAO;
 import io.ifar.skidroad.jdbi.JDBILogFileDAO;
 import io.ifar.skidroad.jdbi.JodaArgumentFactory;
-import io.ifar.skidroad.jersey.combined.ContainerRequestAndResponse;
+import io.ifar.skidroad.jersey.ContainerRequestAndResponse;
 import io.ifar.skidroad.jersey.combined.capture.RecorderFilter;
 import io.ifar.skidroad.jersey.combined.capture.RequestEntityBytesCaptureFilter;
 import io.ifar.skidroad.jersey.combined.serialize.JSONContainerRequestAndResponseSerializer;
@@ -31,13 +30,10 @@ import io.ifar.skidroad.jersey.predicate.response.StatusCodeContainerResponsePre
 import io.ifar.skidroad.jersey.single.*;
 import io.ifar.skidroad.scheduling.SimpleQuartzScheduler;
 import io.ifar.skidroad.writing.WritingWorkerManager;
-import org.joda.time.DateTime;
-import org.joda.time.format.ISODateTimeFormat;
 import org.skife.jdbi.v2.DBI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nullable;
 import java.net.URI;
 import java.sql.SQLException;
 
@@ -120,27 +116,21 @@ public class SkidRoadDropwizardExampleService extends Service<SkidRoadDropwizard
                 configuration.getSkidRoad().getRequestLogWriterConfiguration().copy().setNameSuffix(".csv"),
                 environment);
 
-        //generate a UUID for each request
+        //generate a UUID for each request to use in all CSV rows
         JerseyFilterHelper.addFilter(environment, new UUIDGeneratorFilter());
-        //generate a timestamp to use for all recordings of this request
+        //generate a timestamp to determine which output file will contain recordings for this request
         JerseyFilterHelper.addFilter(environment, new RequestTimestampFilter());
+
         //write the timestamp to the CSV file
-        JerseyFilterHelper.addFilter(environment, new RequestTimestampRecorder<>(
-                IDTypeTripleTransformFactory.<DateTime,String>buildTransform(
-                        RequestTimestampRecorder.TIMESTAMP_TYPE_KEY,
-                        new Function<DateTime,String>() {
-                            @Nullable
-                            @Override
-                            public String apply(@Nullable DateTime input) {
-                                return ISODateTimeFormat.basicDateTime().print(input);
-                            }
-                        }
-                        ),
+        JerseyFilterHelper.addFilter(environment, RecorderFilterFactory.build(
+                RecorderFilterFactory.EXTRACT_REQUEST_TIMESTAMP,
+                IDTagTripleTransformFactory.<String>isoDateTime("TIMESTAMP"),
                 csvWriterManager
         ));
         //write the request body to the CSV file
-        JerseyFilterHelper.addFilter(environment, new RequestEntityRecorder<>(
-                IDTypeTripleTransformFactory.<String>buildTransform(RequestEntityRecorder.REQUEST_TYPE_KEY),
+        JerseyFilterHelper.addFilter(environment, RecorderFilterFactory.build(
+                RecorderFilterFactory.EXTRACT_REQUEST_BODY,
+                IDTagTripleTransformFactory.<String>passThrough("REQUEST_BODY"),
                 csvWriterManager
         ));
 

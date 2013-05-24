@@ -6,6 +6,20 @@ import com.sun.jersey.spi.container.ContainerRequest;
  * Allows boolean logic combinations of ContainerRequestPredicates
  */
 public class ContainerRequestPredicateBuilder {
+    public final static ContainerRequestPredicate ALWAYS = new ContainerRequestPredicate() {
+        @Override
+        public boolean isMatch(ContainerRequest request) {
+            return true;
+        }
+    };
+
+    public final static ContainerRequestPredicate NEVER = new ContainerRequestPredicate() {
+        @Override
+        public boolean isMatch(ContainerRequest request) {
+            return false;
+        }
+    };
+
     /**
      * Builds new ContainerRequestPredicate that returns true if and only if all provided predicates return true.
      */

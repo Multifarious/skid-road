@@ -3,7 +3,7 @@ package io.ifar.skidroad.jersey.combined.capture;
 import com.sun.jersey.spi.container.ContainerRequest;
 import com.sun.jersey.spi.container.ContainerResponse;
 import com.sun.jersey.spi.container.ContainerResponseFilter;
-import io.ifar.skidroad.jersey.combined.ContainerRequestAndResponse;
+import io.ifar.skidroad.jersey.ContainerRequestAndResponse;
 import io.ifar.skidroad.jersey.predicate.request.ContainerRequestPredicate;
 import io.ifar.skidroad.jersey.predicate.response.ContainerResponsePredicate;
 import io.ifar.skidroad.writing.WritingWorkerManager;

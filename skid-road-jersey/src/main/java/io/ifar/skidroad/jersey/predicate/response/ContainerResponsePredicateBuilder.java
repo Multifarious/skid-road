@@ -7,6 +7,20 @@ import com.sun.jersey.spi.container.ContainerResponse;
  * Allows boolean logic combinations of ContainerRequestResponsePredicates
  */
 public class ContainerResponsePredicateBuilder {
+    public final static ContainerResponsePredicate ALWAYS = new ContainerResponsePredicate() {
+        @Override
+        public boolean isMatch(ContainerRequest request, ContainerResponse response) {
+            return true;
+        }
+    };
+
+    public final static ContainerResponsePredicate NEVER = new ContainerResponsePredicate() {
+        @Override
+        public boolean isMatch(ContainerRequest request, ContainerResponse response) {
+            return false;
+        }
+    };
+
     /**
      * Builds new ContainerResponsePredicate that returns true if and only if all provided predicates return true.
      */

@@ -1,4 +1,4 @@
-package io.ifar.skidroad.jersey.combined;
+package io.ifar.skidroad.jersey;
 
 import com.sun.jersey.spi.container.ContainerRequest;
 import com.sun.jersey.spi.container.ContainerResponse;
