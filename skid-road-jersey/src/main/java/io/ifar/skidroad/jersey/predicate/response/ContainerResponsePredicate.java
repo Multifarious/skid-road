@@ -1,7 +1,7 @@
 package io.ifar.skidroad.jersey.predicate.response;
 
-import com.sun.jersey.spi.container.ContainerRequest;
-import com.sun.jersey.spi.container.ContainerResponse;
+import com.google.common.base.Function;
+import io.ifar.skidroad.jersey.ContainerRequestAndResponse;
 
 /**
  * Predicate to apply to ContainerRequest / ContainerResponse pairs.
@@ -10,6 +10,6 @@ import com.sun.jersey.spi.container.ContainerResponse;
  *
  * ContainerResponsePredicate implementations should be thread-safe.
  */
-public interface ContainerResponsePredicate {
-    boolean isMatch(ContainerRequest request, ContainerResponse response);
+public interface ContainerResponsePredicate extends Function<ContainerRequestAndResponse,Boolean> {
+    Boolean apply(ContainerRequestAndResponse input);
 }

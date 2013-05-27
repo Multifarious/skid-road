@@ -1,7 +1,6 @@
 package io.ifar.skidroad.jersey.predicate.response;
 
-import com.sun.jersey.spi.container.ContainerRequest;
-import com.sun.jersey.spi.container.ContainerResponse;
+import io.ifar.skidroad.jersey.ContainerRequestAndResponse;
 
 /**
  * Allows boolean logic combinations of ContainerRequestResponsePredicates
@@ -9,14 +8,14 @@ import com.sun.jersey.spi.container.ContainerResponse;
 public class ContainerResponsePredicateBuilder {
     public final static ContainerResponsePredicate ALWAYS = new ContainerResponsePredicate() {
         @Override
-        public boolean isMatch(ContainerRequest request, ContainerResponse response) {
+        public Boolean apply(ContainerRequestAndResponse input) {
             return true;
         }
     };
 
     public final static ContainerResponsePredicate NEVER = new ContainerResponsePredicate() {
         @Override
-        public boolean isMatch(ContainerRequest request, ContainerResponse response) {
+        public Boolean apply(ContainerRequestAndResponse input) {
             return false;
         }
     };
@@ -27,9 +26,9 @@ public class ContainerResponsePredicateBuilder {
     public static ContainerResponsePredicate and (final ContainerResponsePredicate... predicates) {
         return new ContainerResponsePredicate() {
             @Override
-            public boolean isMatch(ContainerRequest request, ContainerResponse response) {
+            public Boolean apply(ContainerRequestAndResponse input) {
                 for (ContainerResponsePredicate p : predicates) {
-                    if (!p.isMatch(request, response)) {
+                    if (!p.apply(input)) {
                         return false;
                     }
                 }
@@ -44,9 +43,9 @@ public class ContainerResponsePredicateBuilder {
     public static ContainerResponsePredicate or (final ContainerResponsePredicate... predicates) {
         return new ContainerResponsePredicate() {
             @Override
-            public boolean isMatch(ContainerRequest request, ContainerResponse response) {
+            public Boolean apply(ContainerRequestAndResponse input) {
                 for (ContainerResponsePredicate p : predicates) {
-                    if (p.isMatch(request, response)) {
+                    if (p.apply(input)) {
                         return true;
                     }
                 }

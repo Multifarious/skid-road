@@ -32,8 +32,8 @@ public class RecorderFilter implements ContainerResponseFilter{
     public RecorderFilter(final ContainerRequestPredicate predicate, WritingWorkerManager<ContainerRequestAndResponse> writingWorkerManager) {
         this.predicate = new ContainerResponsePredicate() {
             @Override
-            public boolean isMatch(ContainerRequest request, ContainerResponse response) {
-                return predicate.isMatch(request);
+            public Boolean apply(ContainerRequestAndResponse input) {
+                return predicate.apply(input.getRequest());
             }
         };
         this.writingWorkerManager = writingWorkerManager;
@@ -50,7 +50,7 @@ public class RecorderFilter implements ContainerResponseFilter{
     @Override
     public ContainerResponse filter(ContainerRequest request, ContainerResponse response) {
         //Future: consider introducing a predicate interface that takes response into account as well.
-        if (predicate == null || predicate.isMatch(request, response)) {
+        if (predicate == null || predicate.apply(new ContainerRequestAndResponse(request, response))) {
             writingWorkerManager.record(System.currentTimeMillis(), new ContainerRequestAndResponse(request, response));
         }
         return response;

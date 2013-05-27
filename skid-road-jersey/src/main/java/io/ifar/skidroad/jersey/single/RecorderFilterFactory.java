@@ -11,10 +11,10 @@ import io.ifar.skidroad.jersey.predicate.request.ContainerRequestPredicate;
 import io.ifar.skidroad.jersey.predicate.request.ContainerRequestPredicateBuilder;
 import io.ifar.skidroad.jersey.predicate.response.ContainerResponsePredicate;
 import io.ifar.skidroad.jersey.predicate.response.ContainerResponsePredicateBuilder;
+import io.ifar.skidroad.recorder.BasicRecorder;
+import io.ifar.skidroad.recorder.Recorder;
 import io.ifar.skidroad.writing.WritingWorkerManager;
 import org.joda.time.DateTime;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import javax.ws.rs.core.Cookie;
@@ -57,6 +57,14 @@ public class RecorderFilterFactory {
         @Override
         public DateTime apply(@Nullable ContainerRequest request) {
             return RequestTimestampFilter.getRequestDateTime();
+        }
+    };
+
+    public final static Function<ContainerRequestAndResponse, DateTime> EXTRACT_REQUEST_TIMESTAMP_CRAR = new Function<ContainerRequestAndResponse, DateTime>() {
+        @Nullable
+        @Override
+        public DateTime apply(@Nullable ContainerRequestAndResponse input) {
+            return EXTRACT_REQUEST_TIMESTAMP.apply(input.getRequest());
         }
     };
 
@@ -111,8 +119,6 @@ public class RecorderFilterFactory {
         }
     };
 
-    private static final Logger LOG = LoggerFactory.getLogger(RecorderFilterFactory.class);
-
     public static Function<ContainerRequest,List<String>> extractHeader(final String header) {
         return new Function<ContainerRequest, List<String>>() {
             @Nullable
@@ -160,27 +166,18 @@ public class RecorderFilterFactory {
             final WritingWorkerManager<T> writingWorkerManager,
             final boolean skipNulls)
     {
+        final Recorder<ContainerRequest> recorder = new BasicRecorder<>(
+                predicate,
+                extractData,
+                transform,
+                determineTimestamp,
+                writingWorkerManager,
+                skipNulls
+        );
         return new ContainerRequestFilter() {
             @Override
             public ContainerRequest filter(ContainerRequest request) {
-                try {
-                    if (predicate == null || predicate.isMatch(request)) {
-                        F extracted = extractData.apply(request);
-
-                        if ( !(skipNulls && extracted == null)) {
-                            T transformed = transform.apply( extracted );
-
-                            if ( !(skipNulls && transformed == null)) {
-                                writingWorkerManager.record(
-                                        determineTimestamp.apply(request),
-                                        transformed);
-                            }
-                        }
-                    }
-                } catch (Exception e) {
-                    LOG.warn("ContainerRequestFilter exception.", e);
-
-                }
+                recorder.record(request);
                 return request;
             }
         };
@@ -243,42 +240,81 @@ public class RecorderFilterFactory {
 
     //---- ContainerResponseFilter
     public static <F,T> ContainerResponseFilter buildResponseFilter(
-            final ContainerResponsePredicate predicate,
-            final Function<ContainerRequestAndResponse, F> extractData,
-            final Function<F,T> transform,
-            final Function<ContainerRequest, DateTime> determineTimestamp,
-            final WritingWorkerManager<T> writingWorkerManager)
+            final Recorder<ContainerRequestAndResponse> recorder)
     {
         return new ContainerResponseFilter() {
             @Override
             public ContainerResponse filter(ContainerRequest request, ContainerResponse response) {
-                try {
-                    if (predicate == null || predicate.isMatch(request, response)) {
-                        writingWorkerManager.record(
-                                determineTimestamp.apply(request),
-                                transform.apply(
-                                        extractData.apply(
-                                                new ContainerRequestAndResponse(request, response)
-                                        )
-                                )
-                        );
-                    }
-                } catch (Exception e) {
-                    LOG.warn("ContainerResponseFilter exception.", e);
-
-                }
+                recorder.record(new ContainerRequestAndResponse(request, response));
                 return response;
             }
         };
     }
 
     public static <F,T> ContainerResponseFilter buildResponseFilter(
+            final ContainerResponsePredicate predicate,
             final Function<ContainerRequestAndResponse, F> extractData,
             final Function<F,T> transform,
-            final Function<ContainerRequest, DateTime> determineTimestamp,
+            final Function<ContainerRequestAndResponse, DateTime> determineTimestamp,
+            final WritingWorkerManager<T> writingWorkerManager,
+            final boolean skipNulls)
+    {
+        final Recorder<ContainerRequestAndResponse> recorder = new BasicRecorder<>(
+                predicate,
+                extractData,
+                transform,
+                determineTimestamp,
+                writingWorkerManager,
+                skipNulls);
+        return buildResponseFilter(recorder);
+    }
+
+    public static <F,T> ContainerResponseFilter buildResponseFilter(
+            final Function<ContainerRequestAndResponse, F> extractData,
+            final Function<F,T> transform,
+            final Function<ContainerRequestAndResponse, DateTime> determineTimestamp,
+            final WritingWorkerManager<T> writingWorkerManager,
+            boolean skipNulls)
+    {
+        return buildResponseFilter(ContainerResponsePredicateBuilder.ALWAYS, extractData, transform, determineTimestamp, writingWorkerManager, skipNulls);
+    }
+
+    public static <F,T> ContainerResponseFilter buildResponseFilter(
+            final Function<ContainerRequestAndResponse, F> extractData,
+            final Function<F,T> transform,
+            final WritingWorkerManager<T> writingWorkerManager,
+            final boolean skipNulls)
+    {
+        return buildResponseFilter(extractData, transform, RecorderFilterFactory.EXTRACT_REQUEST_TIMESTAMP_CRAR, writingWorkerManager, skipNulls);
+    }
+
+    public static <F,T> ContainerResponseFilter buildResponseFilter(
+            final ContainerResponsePredicate predicate,
+            final Function<ContainerRequestAndResponse, F> extractData,
+            final Function<F,T> transform,
+            final WritingWorkerManager<T> writingWorkerManager,
+            final boolean skipNulls)
+    {
+        return buildResponseFilter(predicate, extractData, transform, RecorderFilterFactory.EXTRACT_REQUEST_TIMESTAMP_CRAR, writingWorkerManager, skipNulls);
+    }
+
+        public static <F,T> ContainerResponseFilter buildResponseFilter(
+            final ContainerResponsePredicate predicate,
+            final Function<ContainerRequestAndResponse, F> extractData,
+            final Function<F,T> transform,
+            final Function<ContainerRequestAndResponse, DateTime> determineTimestamp,
+            final WritingWorkerManager<T> writingWorkerManager)
+        {
+            return buildResponseFilter(predicate, extractData, transform, determineTimestamp, writingWorkerManager, false);
+        }
+
+    public static <F,T> ContainerResponseFilter buildResponseFilter(
+            final Function<ContainerRequestAndResponse, F> extractData,
+            final Function<F,T> transform,
+            final Function<ContainerRequestAndResponse, DateTime> determineTimestamp,
             final WritingWorkerManager<T> writingWorkerManager)
     {
-        return buildResponseFilter(ContainerResponsePredicateBuilder.ALWAYS, extractData, transform, determineTimestamp, writingWorkerManager);
+        return buildResponseFilter(ContainerResponsePredicateBuilder.ALWAYS, extractData, transform, determineTimestamp, writingWorkerManager, false);
     }
 
     public static <F,T> ContainerResponseFilter buildResponseFilter(
@@ -286,7 +322,7 @@ public class RecorderFilterFactory {
             final Function<F,T> transform,
             final WritingWorkerManager<T> writingWorkerManager)
     {
-        return buildResponseFilter(extractData, transform, RecorderFilterFactory.EXTRACT_REQUEST_TIMESTAMP, writingWorkerManager);
+        return buildResponseFilter(extractData, transform, RecorderFilterFactory.EXTRACT_REQUEST_TIMESTAMP_CRAR, writingWorkerManager, false);
     }
 
     public static <F,T> ContainerResponseFilter buildResponseFilter(
@@ -295,6 +331,6 @@ public class RecorderFilterFactory {
             final Function<F,T> transform,
             final WritingWorkerManager<T> writingWorkerManager)
     {
-        return buildResponseFilter(predicate, extractData, transform, RecorderFilterFactory.EXTRACT_REQUEST_TIMESTAMP, writingWorkerManager);
+        return buildResponseFilter(predicate, extractData, transform, RecorderFilterFactory.EXTRACT_REQUEST_TIMESTAMP_CRAR, writingWorkerManager, false);
     }
 }

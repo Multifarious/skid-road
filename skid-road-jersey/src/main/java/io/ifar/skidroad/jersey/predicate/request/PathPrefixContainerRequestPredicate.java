@@ -14,7 +14,7 @@ public class PathPrefixContainerRequestPredicate implements ContainerRequestPred
     }
 
     @Override
-    public boolean isMatch(ContainerRequest request) {
+    public Boolean apply(ContainerRequest request) {
         return request.getPath().startsWith(prefix);
     }
 }

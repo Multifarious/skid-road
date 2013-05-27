@@ -8,14 +8,14 @@ import com.sun.jersey.spi.container.ContainerRequest;
 public class ContainerRequestPredicateBuilder {
     public final static ContainerRequestPredicate ALWAYS = new ContainerRequestPredicate() {
         @Override
-        public boolean isMatch(ContainerRequest request) {
+        public Boolean apply(ContainerRequest request) {
             return true;
         }
     };
 
     public final static ContainerRequestPredicate NEVER = new ContainerRequestPredicate() {
         @Override
-        public boolean isMatch(ContainerRequest request) {
+        public Boolean apply(ContainerRequest request) {
             return false;
         }
     };
@@ -26,9 +26,9 @@ public class ContainerRequestPredicateBuilder {
     public static ContainerRequestPredicate and (final ContainerRequestPredicate... predicates) {
         return new ContainerRequestPredicate() {
             @Override
-            public boolean isMatch(ContainerRequest request) {
+            public Boolean apply(ContainerRequest request) {
                 for (ContainerRequestPredicate p : predicates) {
-                    if (!p.isMatch(request)) {
+                    if (!p.apply(request)) {
                         return false;
                     }
                 }
@@ -43,9 +43,9 @@ public class ContainerRequestPredicateBuilder {
     public static ContainerRequestPredicate or (final ContainerRequestPredicate... predicates) {
         return new ContainerRequestPredicate() {
             @Override
-            public boolean isMatch(ContainerRequest request) {
+            public Boolean apply(ContainerRequest request) {
                 for (ContainerRequestPredicate p : predicates) {
-                    if (p.isMatch(request)) {
+                    if (p.apply(request)) {
                         return true;
                     }
                 }

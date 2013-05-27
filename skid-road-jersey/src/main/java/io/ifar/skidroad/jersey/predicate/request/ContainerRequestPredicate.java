@@ -1,5 +1,6 @@
 package io.ifar.skidroad.jersey.predicate.request;
 
+import com.google.common.base.Function;
 import com.sun.jersey.spi.container.ContainerRequest;
 
 /**
@@ -9,6 +10,7 @@ import com.sun.jersey.spi.container.ContainerRequest;
  *
  * ContainerRequestPredicate implementations should be thread-safe.
  */
-public interface ContainerRequestPredicate {
-    boolean isMatch(ContainerRequest request);
+public interface ContainerRequestPredicate extends Function<ContainerRequest,Boolean> {
+    @Override
+    Boolean apply(ContainerRequest request);
 }

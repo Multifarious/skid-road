@@ -1,8 +1,7 @@
 package io.ifar.skidroad.jersey.predicate.response;
 
 import com.google.common.collect.ImmutableSet;
-import com.sun.jersey.spi.container.ContainerRequest;
-import com.sun.jersey.spi.container.ContainerResponse;
+import io.ifar.skidroad.jersey.ContainerRequestAndResponse;
 
 import javax.ws.rs.core.Response;
 import java.util.HashSet;
@@ -36,7 +35,7 @@ public class StatusCodeContainerResponsePredicate implements ContainerResponsePr
     }
 
     @Override
-    public boolean isMatch(ContainerRequest request, ContainerResponse response) {
-        return statusCodes.contains(response.getStatus());
+    public Boolean apply(ContainerRequestAndResponse input) {
+        return statusCodes.contains(input.getResponse().getStatus());
     }
 }

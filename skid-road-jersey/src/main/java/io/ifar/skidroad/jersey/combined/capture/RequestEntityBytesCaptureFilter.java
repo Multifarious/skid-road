@@ -44,7 +44,7 @@ public class RequestEntityBytesCaptureFilter implements ContainerRequestFilter {
 
     @Override
     public ContainerRequest filter(ContainerRequest request) {
-        if (predicate == null || predicate.isMatch(request)) {
+        if (predicate == null || predicate.apply(request)) {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             InputStream in = request.getEntityInputStream();
             try {
