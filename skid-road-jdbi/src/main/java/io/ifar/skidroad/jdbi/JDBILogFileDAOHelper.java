@@ -74,6 +74,11 @@ public class JDBILogFileDAOHelper {
         }
     }
 
+    public static AutoCloseableIterator<LogFile> listLogFilesByDate(JDBILogFileDAO dao, DateTime startDate, DateTime endDate) {
+        return JdbiAutoCloseableIterator.wrap(dao.listLogFilesByDate(startDate, endDate));
+    }
+
+
     public static long count(JDBILogFileDAO dao, Set<String> states, DateTime startDate, DateTime endDate) {
         if (dao instanceof JDBILogFileDAOWithArraySupport) {
             return ((JDBILogFileDAOWithArraySupport)dao).count(states, startDate, endDate);

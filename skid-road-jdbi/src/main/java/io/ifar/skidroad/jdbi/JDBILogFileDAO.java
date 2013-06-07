@@ -3,6 +3,7 @@ package io.ifar.skidroad.jdbi;
 import io.ifar.skidroad.LogFile;
 import org.joda.time.DateTime;
 import org.skife.jdbi.v2.ResultIterator;
+import org.skife.jdbi.v2.sqlobject.Bind;
 
 import java.sql.Timestamp;
 import java.util.List;
@@ -39,7 +40,11 @@ public interface JDBILogFileDAO {
 
     Long count(String state, DateTime startDate, DateTime endDate);
 
+    Long count(DateTime startDate, DateTime endDate);
+
     ResultIterator<LogFile> listLogFilesByDateAndState(String state, DateTime startDate, DateTime endDate);
+
+    ResultIterator<LogFile> listLogFilesByDate(DateTime startDate, DateTime endDate);
 
     LogFile findByRollingCohortAndSerial(String rollingCohort, int serial);
 
