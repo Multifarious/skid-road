@@ -1,11 +1,12 @@
 package io.ifar.skidroad.recorder;
 
 import com.google.common.base.Function;
-import com.sun.istack.internal.Nullable;
 import io.ifar.skidroad.writing.WritingWorkerManager;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nullable;
 
 /**
  * Standard {@link Recorder} implementation.
@@ -68,6 +69,5 @@ public class BasicRecorder<S, T, U> implements Recorder<S> {
         } catch (Exception e) {
             LOG.warn(String.format("Unexpected Exception recording '%s'", item), e);
         }
-        //To change body of implemented methods use File | Settings | File Templates.
     }
 }
