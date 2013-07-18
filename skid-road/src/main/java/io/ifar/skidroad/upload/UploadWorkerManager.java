@@ -236,7 +236,7 @@ public class UploadWorkerManager implements LogFileStateListener {
             UploadWorkerManager mgr = (UploadWorkerManager) m.get(UPLOAD_WORKER_MANAGER);
 
             try {
-                try (AutoCloseableIterator<LogFile> iterator = mgr.tracker.findMine(ImmutableSet.of(UPLOADING,PREPARED,UPLOAD_ERROR))){
+                try (AutoCloseableIterator<LogFile> iterator = mgr.tracker.findMine(ImmutableSet.of(UPLOADING, PREPARED, UPLOAD_ERROR))){
                     tryOneThenRetryAll(iterator, mgr);
                 }
             } catch (Exception e) {
@@ -250,7 +250,7 @@ public class UploadWorkerManager implements LogFileStateListener {
         /**
          * Guards against situation where there are many files to retry and retries are failing. Attempt one and,
          * if it succeeds, retry the others. Otherwise wait. Selection of one to try is random within the first
-         * PEEK_DEPTH records returned by teh database. This avoids iterating the whole result set.
+         * PEEK_DEPTH records returned by the database. This avoids iterating the whole result set.
          * @param iterator
          * @param mgr
          */

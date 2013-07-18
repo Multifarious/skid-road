@@ -22,7 +22,7 @@ public class RecorderFactory {
     /**
      * Constructs a Recorder that accepts any input and writes it out as an (id, tag, data) tuple.
      *
-     * id is determined as recorder-creation-time from {@link UUIDGeneratorFilter}.
+     * id is determined at recorder-creation-time from {@link UUIDGeneratorFilter}.
      * timestamp is determined at recorder-creation-time from {@link RequestTimestampFilter}
      * tag is specified at recorder-creation-time.
      *
