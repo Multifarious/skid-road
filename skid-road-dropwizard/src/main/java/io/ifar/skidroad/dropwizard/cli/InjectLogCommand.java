@@ -30,7 +30,7 @@ public abstract class InjectLogCommand<T extends Configuration> extends Configur
         implements SkidRoadConfigurationStrategy<T>
 {
     private final static String START_DATE = "start";
-    private final static String FILE = "file";
+    private final static String FILE = "log_file";
     private final static String OWNER = "owner";
 
     public InjectLogCommand() {
@@ -61,7 +61,7 @@ public abstract class InjectLogCommand<T extends Configuration> extends Configur
     @Override
     protected void run(Bootstrap<T> bootstrap, Namespace namespace, T configuration) throws Exception {
         CliConveniences.quietLogging("ifar", "hsqldb.db");
-        DateTime startTime = ISODateTimeFormat.dateOptionalTimeParser().parseDateTime(namespace.getString(START_DATE));
+        DateTime startTime = ISODateTimeFormat.dateOptionalTimeParser().withZoneUTC().parseDateTime(namespace.getString(START_DATE));
         String inFile = namespace.getString(FILE);
 
         String owner = namespace.getString(OWNER) == null ?
