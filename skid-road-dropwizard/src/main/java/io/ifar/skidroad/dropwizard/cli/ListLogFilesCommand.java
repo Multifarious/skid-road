@@ -40,7 +40,7 @@ public abstract class ListLogFilesCommand<T extends Configuration> extends Confi
     private final static String START_DATE = "start";
     private final static String END_DATE = "end";
 
-    private final static DateTimeFormatter ISO_FMT = ISODateTimeFormat.date().withZoneUTC();
+    private final static DateTimeFormatter ISO_FMT = ISODateTimeFormat.dateOptionalTimeParser().withZoneUTC();
 
     public ListLogFilesCommand() {
         super("list-logs","List the log files stored in the system.");
@@ -62,12 +62,12 @@ public abstract class ListLogFilesCommand<T extends Configuration> extends Confi
         subparser.addArgument("-i","--start-date")
                 .required(true)
                 .dest(START_DATE)
-                .help("a start date in ISO format (yyyy-MM-dd); only files with a start on or after this date will be included.");
+                .help("a start date in ISO format (yyyy-MM-dd or yyyy-MM-ddThh:mm); only files with a start on or after this date will be included.");
 
         subparser.addArgument("-e","--end-date")
                 .required(true)
                 .dest(END_DATE)
-                .help("an end date in ISO format (yyyy-MM-dd); only files with a start on or before this date will be included.");
+                .help("an end date in ISO format (yyyy-MM-dd or yyyy-MM-ddThh:mm); only files with a start on or before this date will be included.");
 
     }
 
