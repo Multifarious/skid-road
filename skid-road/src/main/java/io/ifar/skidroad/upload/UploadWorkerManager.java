@@ -182,7 +182,7 @@ public class UploadWorkerManager implements LogFileStateListener {
         LOG.info("Starting {}.", UploadWorkerManager.class.getSimpleName());
         this.executor = new ThreadPoolExecutor(0, maxConcurrentUploads,
                                       60L, TimeUnit.SECONDS,
-                                      new SynchronousQueue<Runnable>());
+                                      new LinkedBlockingQueue<Runnable>());
         tracker.addListener(this);
 
         Map<String,Object> retryConfiguration = new HashMap<>(1);
