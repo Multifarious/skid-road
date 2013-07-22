@@ -174,7 +174,7 @@ public class PrepWorkerManager implements LogFileStateListener {
         LOG.info("Starting {}.", PrepWorkerManager.class.getSimpleName());
         this.executor = new ThreadPoolExecutor(0, maxConcurrentPrepWork,
                 60L, TimeUnit.SECONDS,
-                new SynchronousQueue<Runnable>());
+                new LinkedBlockingQueue<Runnable>());
         tracker.addListener(this);
         Map<String,Object> retryConfiguration = new HashMap<>(1);
         retryConfiguration.put(RetryJob.PREP_WORKER_MANAGER, this);
