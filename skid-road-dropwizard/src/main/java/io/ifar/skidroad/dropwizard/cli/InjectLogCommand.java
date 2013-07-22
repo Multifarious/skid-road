@@ -20,6 +20,7 @@ import org.joda.time.DateTime;
 import org.joda.time.format.ISODateTimeFormat;
 import org.skife.jdbi.v2.DBI;
 
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
 
@@ -94,6 +95,7 @@ public abstract class InjectLogCommand<T extends Configuration> extends Configur
                 }
             }
 
+            dao.updateSize(rollingCohort, serial, Files.size(Paths.get(inFile)), owner, new Timestamp(System.currentTimeMillis()));
             dao.updateState(rollingCohort, serial, LogFileState.WRITTEN.toString(), owner, new Timestamp(System.currentTimeMillis()));
 
             System.out.println("Database record marked as WRITTEN. File must remain available at provided path until it has been uploaded.");
