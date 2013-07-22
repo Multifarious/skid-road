@@ -29,11 +29,9 @@ public abstract class AbstractPrepWorker implements Callable<Boolean> {
             if (tracker.preparing(logFile) != 1)
                 throw new IllegalStateException("Cannot place " + logFile + " into into PREPARING state.");
 
-            final Path inputPath = logFile.getPrepPath() == null ? logFile.getOriginPath() : logFile.getPrepPath();
-            logFile.setPrepPath(prepare(inputPath));
+            logFile.setPrepPath(prepare(logFile.getOriginPath()));
             if (tracker.updatePrepPath(logFile) != 1)
                 throw new IllegalStateException("Cannot set prep path for " + logFile);
-
 
             LOG.debug("Prepared {} to {}", logFile, logFile.getPrepPath());
             tracker.prepared(logFile); //ignore update failures; worker exiting anyway
