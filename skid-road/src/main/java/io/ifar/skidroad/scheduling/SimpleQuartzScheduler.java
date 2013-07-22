@@ -1,7 +1,9 @@
 package io.ifar.skidroad.scheduling;
 
+import org.joda.time.DateTime;
 import org.quartz.*;
 import org.quartz.impl.DirectSchedulerFactory;
+import org.quartz.impl.matchers.GroupMatcher;
 import org.quartz.simpl.RAMJobStore;
 import org.quartz.simpl.SimpleThreadPool;
 import org.quartz.spi.JobStore;
@@ -9,7 +11,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.text.ParseException;
+import java.util.Date;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -137,5 +142,54 @@ public class SimpleQuartzScheduler {
             LOG.error("{} was NOT triggered", trigger.getKey(), e);
             return false;
         }
+    }
+        public boolean fire(TriggerKey triggerKey) {
+        try {
+            return fire(scheduler.getTrigger(triggerKey));
+        } catch (SchedulerException e) {
+            LOG.error("{} was NOT triggered", triggerKey, e);
+            return false;
+        }
+    }
+
+    public boolean fire(String triggerName) {
+        try {
+            for (TriggerKey triggerKey : getTriggerKeys()) {
+                if (triggerKey.getName().equals(triggerName)) {
+                    return fire(triggerKey);
+                }
+            }
+            return false;
+        } catch (SchedulerException e) {
+            LOG.error("{} was NOT triggered", triggerName, e);
+            return false;
+        }
+    }
+
+    public DateTime lastFired(TriggerKey triggerKey) throws SchedulerException {
+        Date d = scheduler.getTrigger(triggerKey).getPreviousFireTime();
+        return d == null ? null : new DateTime(d);
+    }
+
+    public DateTime nextFire(TriggerKey triggerKey) throws SchedulerException {
+        Date d = scheduler.getTrigger(triggerKey).getNextFireTime();
+        return d == null ? null : new DateTime(d);
+    }
+
+    public Set<TriggerKey> getTriggerKeys() throws SchedulerException {
+        Set<TriggerKey> result = new HashSet<>();
+        for (TriggerKey triggerKey : scheduler.getTriggerKeys(GroupMatcher.<TriggerKey>groupEquals(schedulerName))) {
+            result.add(triggerKey);
+        }
+        return result;
+    }
+
+    public Set<String> getTriggerNames() throws Exception {
+        Set<String> result = new HashSet<>();
+        for (TriggerKey triggerKey : getTriggerKeys()) {
+            result.add(triggerKey.getName());
+        }
+        return result;
+
     }
 }
