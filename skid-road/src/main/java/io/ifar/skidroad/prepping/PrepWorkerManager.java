@@ -216,48 +216,28 @@ public class PrepWorkerManager implements LogFileStateListener {
         }
     }
 
-    @DisallowConcurrentExecution
-    public static class RetryJob implements Job
-    {
-        public static final String PREP_WORKER_MANAGER = "prep_worker_manager";
-        private static final Logger LOG = LoggerFactory.getLogger(RetryJob.class);
-
-        public void execute(JobExecutionContext context) throws JobExecutionException {
-            JobDataMap m = context.getMergedJobDataMap();
-            PrepWorkerManager mgr = (PrepWorkerManager) m.get(PREP_WORKER_MANAGER);
-
-            try {
-                try (AutoCloseableIterator<LogFile> iterator = mgr.tracker.findMine(ImmutableSet.of(PREPARING,WRITTEN,PREP_ERROR))) {
-                    tryOneThenRetryAll(iterator,mgr);
-                }
-            } catch (Exception e) {
-                throw new JobExecutionException("Failure retrying prep jobs.", e);
-            }
-        }
-
-        /**
-         * Guards against situation where there are many files to retry and retries are failing. Attempt one and,
-         * if it succeeds, retry the others. Otherwise wait. Selection of one to try is random within the first
-         * PEEK_DEPTH records returned by teh database. This avoids iterating the whole result set.
-         * @param iterator
-         * @param mgr
-         */
-        private void tryOneThenRetryAll(Iterator<LogFile> iterator, PrepWorkerManager mgr) {
+    /**
+     * Guards against situation where there are many files to retry and retries are failing. Attempt one and,
+     * if it succeeds, retry the others. Otherwise wait. Selection of one to try is random within the first
+     * PEEK_DEPTH records returned by teh database. This avoids iterating the whole result set.
+     */
+    public void retryOneThenRetryAll() throws Exception {
+        try (AutoCloseableIterator<LogFile> iterator = tracker.findMine(ImmutableSet.of(PREPARING,WRITTEN,PREP_ERROR))) {
             Pair<LogFile,IterableIterator<LogFile>> oneSelected = Iterators.takeOneFromTopN(iterator, PEEK_DEPTH);
             if (oneSelected.left != null) {
                 //claim check not required for thread safety, but avoid spurious WARNs about retrying items while they are in-flight for the first time
                 LogFile trialLogFile = oneSelected.left;
-                if (!mgr.isClaimed(trialLogFile)) {
+                if (!isClaimed(trialLogFile)) {
                     try {
                         logRetryMessageForState(trialLogFile);
-                        if (mgr.processSync(trialLogFile)) {
+                        if (processSync(trialLogFile)) {
                             if (oneSelected.right.hasNext()) {
                                 LOG.info("First retry succeeded. Will queue others.");
                                 for (LogFile logFile : oneSelected.right) {
                                     //claim check not required for thread safety, but avoid spurious WARNs about retrying items while they are in-flight for the first time
-                                    if (!mgr.isClaimed(logFile)) {
+                                    if (!isClaimed(logFile)) {
                                         logRetryMessageForState(logFile);
-                                        mgr.processAsync(logFile);
+                                        processAsync(logFile);
                                     }
                                 }
                             } else {
@@ -276,27 +256,44 @@ public class PrepWorkerManager implements LogFileStateListener {
                 }
             }
         }
+    }
 
 
-        private void logRetryMessageForState(LogFile logFile) {
-            switch (logFile.getState()) {
-                case WRITTEN:
-                    LOG.info("Found stale {} record for {}. Perhaps server was previously terminated before preparing it.",
-                            logFile.getState(),
-                            logFile);
-                    break;
-                case PREPARING:
-                    LOG.info("Found stale {} record for {}. Perhaps server was previously terminated while preparing it.",
-                            logFile.getState(),
-                            logFile);
-                    break;
-                case PREP_ERROR:
-                    LOG.info("Found {} record for {}. Perhaps a transient error occurred while preparing it.",
-                            logFile.getState(),
-                            logFile);
-                    break;
-                default:
-                    throw new IllegalStateException(String.format("Did not expect to be processing %s record for %s. Bug!", logFile.getState(), logFile));
+    private void logRetryMessageForState(LogFile logFile) {
+        switch (logFile.getState()) {
+            case WRITTEN:
+                LOG.info("Found stale {} record for {}. Perhaps server was previously terminated before preparing it.",
+                        logFile.getState(),
+                        logFile);
+                break;
+            case PREPARING:
+                LOG.info("Found stale {} record for {}. Perhaps server was previously terminated while preparing it.",
+                        logFile.getState(),
+                        logFile);
+                break;
+            case PREP_ERROR:
+                LOG.info("Found {} record for {}. Perhaps a transient error occurred while preparing it.",
+                        logFile.getState(),
+                        logFile);
+                break;
+            default:
+                throw new IllegalStateException(String.format("Did not expect to be processing %s record for %s. Bug!", logFile.getState(), logFile));
+        }
+    }
+
+
+    @DisallowConcurrentExecution
+    public static class RetryJob implements Job
+    {
+        public static final String PREP_WORKER_MANAGER = "prep_worker_manager";
+
+        public void execute(JobExecutionContext context) throws JobExecutionException {
+            JobDataMap m = context.getMergedJobDataMap();
+            PrepWorkerManager mgr = (PrepWorkerManager) m.get(PREP_WORKER_MANAGER);
+            try {
+                mgr.retryOneThenRetryAll();
+            } catch (Exception e) {
+                throw new JobExecutionException("Failure retrying prep jobs.", e);
             }
         }
     }

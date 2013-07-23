@@ -99,6 +99,10 @@ public abstract class AbstractWritingWorker<W extends Closeable & Flushable,T> i
                             LOG.debug("{} caught InterruptedException. Stopping...", this.name);
                             shuttingDown = true;
                         }
+                        //Check for interrupt received while no blocking operation was in progress.
+                        if (Thread.interrupted()) {
+                            shuttingDown = true;
+                        }
                     }
                     flush(writer);
                     dirty = false;

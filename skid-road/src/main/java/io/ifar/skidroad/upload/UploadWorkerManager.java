@@ -225,51 +225,28 @@ public class UploadWorkerManager implements LogFileStateListener {
         }
     }
 
-    @DisallowConcurrentExecution
-    public static class RetryJob implements Job
-    {
-        public static final String UPLOAD_WORKER_MANAGER = "upload_worker_manager";
-        private static final Logger LOG = LoggerFactory.getLogger(RetryJob.class);
-
-        public void execute(JobExecutionContext context) throws JobExecutionException {
-            JobDataMap m = context.getMergedJobDataMap();
-            UploadWorkerManager mgr = (UploadWorkerManager) m.get(UPLOAD_WORKER_MANAGER);
-
-            try {
-                try (AutoCloseableIterator<LogFile> iterator = mgr.tracker.findMine(ImmutableSet.of(UPLOADING, PREPARED, UPLOAD_ERROR))){
-                    tryOneThenRetryAll(iterator, mgr);
-                }
-            } catch (Exception e) {
-                //Observed causes:
-                // findMine throws org.skife.jdbi.v2.exceptions.UnableToCreateStatementException: org.postgresql.util.PSQLException: This connection has been closed.
-                // findMine throws org.skife.jdbi.v2.exceptions.UnableToExecuteStatementException: org.postgresql.util.PSQLException: An I/O error occured while sending to the backend.
-                throw new JobExecutionException("Failure retrying upload jobs.", e);
-            }
-        }
-
-        /**
-         * Guards against situation where there are many files to retry and retries are failing. Attempt one and,
-         * if it succeeds, retry the others. Otherwise wait. Selection of one to try is random within the first
-         * PEEK_DEPTH records returned by the database. This avoids iterating the whole result set.
-         * @param iterator
-         * @param mgr
-         */
-        private void tryOneThenRetryAll(Iterator<LogFile> iterator, UploadWorkerManager mgr) {
+    /**
+     * Guards against situation where there are many files to retry and retries are failing. Attempt one and,
+     * if it succeeds, retry the others. Otherwise wait. Selection of one to try is random within the first
+     * PEEK_DEPTH records returned by the database. This avoids iterating the whole result set.
+     */
+    public void retryOneThenRetryAll() throws Exception {
+        try (AutoCloseableIterator<LogFile> iterator = tracker.findMine(ImmutableSet.of(UPLOADING, PREPARED, UPLOAD_ERROR))){
             Pair<LogFile,IterableIterator<LogFile>> oneSelected = Iterators.takeOneFromTopN(iterator, PEEK_DEPTH);
             if (oneSelected.left != null) {
                 //claim check not required for thread safety, but avoid spurious WARNs about retrying items while they are in-flight for the first time
                 LogFile trialLogFile = oneSelected.left;
-                if (!mgr.isClaimed(trialLogFile)) {
+                if (!isClaimed(trialLogFile)) {
                     try {
                         logRetryMessageForState(trialLogFile);
-                        if (mgr.processSync(trialLogFile)) {
+                        if (processSync(trialLogFile)) {
                             if (oneSelected.right.hasNext()) {
                                 LOG.info("First retry succeeded. Will queue others.");
                                 for (LogFile logFile : oneSelected.right) {
                                     //claim check not required for thread safety, but avoid spurious WARNs about retrying items while they are in-flight for the first time
-                                    if (!mgr.isClaimed(logFile)) {
+                                    if (!isClaimed(logFile)) {
                                         logRetryMessageForState(logFile);
-                                        mgr.processAsync(logFile);
+                                        processAsync(logFile);
                                     }
                                 }
                             } else {
@@ -288,26 +265,47 @@ public class UploadWorkerManager implements LogFileStateListener {
                 }
             }
         }
+    }
 
-        private void logRetryMessageForState(LogFile logFile) {
-            switch (logFile.getState()) {
-                case PREPARED:
-                    LOG.info("Found stale {} record for {}. Perhaps server was previously terminated before uploading it.",
-                            logFile.getState(),
-                            logFile);
-                    break;
-                case UPLOADING:
-                    LOG.info("Found stale {} record for {}. Perhaps server was previously terminated while uploading it.",
-                            logFile.getState(),
-                            logFile);
-                    break;
-                case UPLOAD_ERROR:
-                    LOG.info("Found {} record for {}. Perhaps a transient error occurred while uploading it.",
-                            logFile.getState(),
-                            logFile);
-                    break;
-                default:
-                    throw new IllegalStateException(String.format("Did not expect to be processing %s record for %s. Bug!", logFile.getState(), logFile));
+    private void logRetryMessageForState(LogFile logFile) {
+        switch (logFile.getState()) {
+            case PREPARED:
+                LOG.info("Found stale {} record for {}. Perhaps server was previously terminated before uploading it.",
+                        logFile.getState(),
+                        logFile);
+                break;
+            case UPLOADING:
+                LOG.info("Found stale {} record for {}. Perhaps server was previously terminated while uploading it.",
+                        logFile.getState(),
+                        logFile);
+                break;
+            case UPLOAD_ERROR:
+                LOG.info("Found {} record for {}. Perhaps a transient error occurred while uploading it.",
+                        logFile.getState(),
+                        logFile);
+                break;
+            default:
+                throw new IllegalStateException(String.format("Did not expect to be processing %s record for %s. Bug!", logFile.getState(), logFile));
+        }
+    }
+
+    @DisallowConcurrentExecution
+    public static class RetryJob implements Job
+    {
+        public static final String UPLOAD_WORKER_MANAGER = "upload_worker_manager";
+        private static final Logger LOG = LoggerFactory.getLogger(RetryJob.class);
+
+        public void execute(JobExecutionContext context) throws JobExecutionException {
+            JobDataMap m = context.getMergedJobDataMap();
+            UploadWorkerManager mgr = (UploadWorkerManager) m.get(UPLOAD_WORKER_MANAGER);
+
+            try {
+                mgr.retryOneThenRetryAll();
+            } catch (Exception e) {
+                //Observed causes:
+                // findMine throws org.skife.jdbi.v2.exceptions.UnableToCreateStatementException: org.postgresql.util.PSQLException: This connection has been closed.
+                // findMine throws org.skife.jdbi.v2.exceptions.UnableToExecuteStatementException: org.postgresql.util.PSQLException: An I/O error occured while sending to the backend.
+                throw new JobExecutionException("Failure retrying upload jobs.", e);
             }
         }
     }

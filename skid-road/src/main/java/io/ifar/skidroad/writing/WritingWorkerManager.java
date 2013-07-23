@@ -278,6 +278,20 @@ public class WritingWorkerManager<T> {
         LOG.info("Starting {}.",WritingWorkerManager.class.getSimpleName());
 
         //On startup, look for database records that were left hanging and tidy up.
+        cleanStaleEntries();
+
+        Map<String,Object> pruneConfiguration = new HashMap<>(1);
+        pruneConfiguration.put(PruneJob.FILE_WRITING_WORKER_MANAGER, this);
+        scheduler.schedule(this.getClass().getSimpleName()+"_prune_"+instanceCounter.incrementAndGet(), PruneJob.class, pruneIntervalSeconds * 1000, pruneConfiguration);
+    }
+
+    /**
+     * Find any WRITING entries, presume they are stale, and move them to WRITTEN or WRITE_ERROR state. This method should
+     * only be called when the server is not running (or just starting up), lest it stomp on a WRITING entry which is
+     * in-progress.
+     * @throws Exception
+     */
+    private void cleanStaleEntries() throws Exception {
         try (AutoCloseableIterator<LogFile> staleEntries = tracker.findMine(WRITING)){
             while (staleEntries.hasNext()) {
                 LogFile staleEntry = staleEntries.next();
@@ -290,10 +304,6 @@ public class WritingWorkerManager<T> {
                 }
             }
         }
-
-        Map<String,Object> pruneConfiguration = new HashMap<>(1);
-        pruneConfiguration.put(PruneJob.FILE_WRITING_WORKER_MANAGER, this);
-        scheduler.schedule(this.getClass().getSimpleName()+"_prune_"+instanceCounter.incrementAndGet(), PruneJob.class, pruneIntervalSeconds * 1000, pruneConfiguration);
     }
 
     public void stop() throws InterruptedException {
