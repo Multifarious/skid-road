@@ -15,7 +15,9 @@ public interface JDBILogFileDAOWithArraySupport extends JDBILogFileDAO {
 
     Long totalSize(Set<String> states, DateTime startDate, DateTime endDate);
 
-    Long count(Set<String> states, DateTime startDate, DateTime endDate);
+    int count(Set<String> states);
+
+    int count(Set<String> states, DateTime startDate, DateTime endDate);
 
     ResultIterator<LogFile> listLogFilesByDateAndState(Set<String> state, DateTime startDate, DateTime endDate);
 

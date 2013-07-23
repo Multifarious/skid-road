@@ -120,6 +120,11 @@ public interface LogFileTracker {
      */
     int getCount(LogFileState state);
 
+    /**
+     * Return count of LogFile records in the specified states.
+     */
+    int getCount(Set<LogFileState> states);
+
     boolean addListener(LogFileStateListener listener);
 
     boolean removeListener(LogFileStateListener listener);

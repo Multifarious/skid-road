@@ -108,7 +108,16 @@ public class JDBILogFileTracker extends AbstractLogFileTracker {
 
     @Override
     public int getCount(LogFileState state) {
-        return dao.countLogFilesByState(state.toString());
+        return dao.count(state.toString());
+    }
+
+    @Override
+    public int getCount(Set<LogFileState> states) {
+        Set<String> stateStrings = new HashSet<>(states.size());
+        for (LogFileState state : states) {
+            stateStrings.add(state.toString());
+        }
+        return JDBILogFileDAOHelper.count(dao, stateStrings);
     }
 
     @Override

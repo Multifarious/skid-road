@@ -79,13 +79,27 @@ public class JDBILogFileDAOHelper {
     }
 
 
-    public static long count(JDBILogFileDAO dao, Set<String> states, DateTime startDate, DateTime endDate) {
+    public static int count(JDBILogFileDAO dao, Set<String> states) {
+        if (dao instanceof JDBILogFileDAOWithArraySupport) {
+            return ((JDBILogFileDAOWithArraySupport)dao).count(states);
+        } else if (states.size() == 1) {
+            return dao.count(states.iterator().next());
+        } else {
+            int result = 0;
+            for (String state : states) {
+                result += dao.count(state);
+            }
+            return result;
+        }
+    }
+
+    public static int count(JDBILogFileDAO dao, Set<String> states, DateTime startDate, DateTime endDate) {
         if (dao instanceof JDBILogFileDAOWithArraySupport) {
             return ((JDBILogFileDAOWithArraySupport)dao).count(states, startDate, endDate);
         } else if (states.size() == 1) {
             return dao.count(states.iterator().next(), startDate, endDate);
         } else {
-            long result = 0;
+            int result = 0;
             for (String state : states) {
                 result += dao.count(state, startDate, endDate);
             }

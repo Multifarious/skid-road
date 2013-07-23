@@ -106,4 +106,8 @@ public class TransientLogFileTracker extends AbstractLogFileTracker {
         return 0;
     }
 
+    @Override
+    public int getCount(Set<LogFileState> states) {
+        return 0;
+    }
 }

@@ -34,8 +34,12 @@ public interface DefaultPostgresJDBILogFileDAO extends DefaultJDBILogFileDAO, JD
                    @Bind("last_ts") DateTime endDate);
 
     @Override
+    @SqlQuery("select count(*) from log_files where state = ANY(:states)")
+    int count(@Bind(value = "states", binder = StringCollectionBinder.class) Set<String> state);
+
+    @Override
     @SqlQuery("select count(*) from log_files where state = ANY(:states) and start_time >= :first_ts and start_time <= :last_ts")
-    Long count(@Bind(value = "states", binder = StringCollectionBinder.class) Set<String> state, @Bind("first_ts") DateTime startDate,
+    int count(@Bind(value = "states", binder = StringCollectionBinder.class) Set<String> state, @Bind("first_ts") DateTime startDate,
                @Bind("last_ts") DateTime endDate);
 }
 

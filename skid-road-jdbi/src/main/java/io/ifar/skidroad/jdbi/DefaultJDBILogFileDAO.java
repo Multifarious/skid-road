@@ -74,7 +74,7 @@ public interface DefaultJDBILogFileDAO extends JDBILogFileDAO {
 
     @Override
     @SqlQuery("select count(*) as cnt from log_files where state = :state")
-    int countLogFilesByState(@Bind("state") String state);
+    int count(@Bind("state") String state);
 
     @Override
     @SqlQuery("select sum(bytes) from log_files where state = :state and start_time >= :first_ts and start_time <= :last_ts")
@@ -83,12 +83,12 @@ public interface DefaultJDBILogFileDAO extends JDBILogFileDAO {
 
     @Override
     @SqlQuery("select count(*) from log_files where state = :state and start_time >= :first_ts and start_time <= :last_ts")
-    Long count(@Bind(value = "state") String state, @Bind("first_ts") DateTime startDate,
+    int count(@Bind(value = "state") String state, @Bind("first_ts") DateTime startDate,
                @Bind("last_ts") DateTime endDate);
 
     @Override
     @SqlQuery("select count(*) from log_files where start_time >= :first_ts and start_time <= :last_ts")
-    Long count(@Bind("first_ts") DateTime startDate,
+    int count(@Bind("first_ts") DateTime startDate,
                @Bind("last_ts") DateTime endDate);
 
 
