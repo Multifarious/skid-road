@@ -9,14 +9,12 @@ import org.bouncycastle.util.encoders.Base64;
 import org.bouncycastle.util.encoders.Hex;
 
 /**
- * Utility command to dump random key and iv for log encryption.
- * @deprecated Generating a static IV is not recommended.
- * @see GenerateRandomKey
+ * Utility command to dump random key for log encryption.
  */
-public class GenerateRandomKeyAndIv extends Command {
+public class GenerateRandomKey extends Command {
 
-    public GenerateRandomKeyAndIv() {
-        super("key-and-iv","Create a new key and IV for use with the encrypted log rolling.");
+    public GenerateRandomKey() {
+        super("random-key","Randomly generate a new key for use with the encrypted log rolling.");
     }
 
     @Override
@@ -27,13 +25,8 @@ public class GenerateRandomKeyAndIv extends Command {
     @Override
     public void run(Bootstrap<?> bootstrap, Namespace namespace) throws Exception {
         byte[] key = StreamingBouncyCastleAESWithSIC.generateRandomKey();
-        byte[] iv = StreamingBouncyCastleAESWithSIC.generateRandomIV();
-        System.err.println("WARNING: Use of a static IV is less secure and discouraged.");
         System.out.println("Key:");
         System.out.println(" Bytes:  " + new String(Hex.encode(key)));
         System.out.println(" Base64: " + new String(Base64.encode(key)));
-        System.out.println("IV:");
-        System.out.println(" Bytes:  " + new String(Hex.encode(iv)));
-        System.out.println(" Base64: " + new String(Base64.encode(iv)));
     }
 }

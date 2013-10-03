@@ -14,6 +14,7 @@ import com.yammer.dropwizard.json.ObjectMapperFactory;
 import com.yammer.dropwizard.migrations.MigrationsBundle;
 import io.ifar.goodies.Triple;
 import io.ifar.skidroad.dropwizard.*;
+import io.ifar.skidroad.dropwizard.cli.GenerateRandomKey;
 import io.ifar.skidroad.examples.config.SkidRoadDropwizardExampleConfiguration;
 import io.ifar.skidroad.examples.rest.ExampleResource;
 import io.ifar.skidroad.jdbi.DefaultJDBILogFileDAO;
@@ -61,6 +62,7 @@ public class SkidRoadDropwizardExampleService extends Service<SkidRoadDropwizard
                 return configuration.getSkidRoad().getDatabaseConfiguration();
             }
         });
+        bootstrap.addCommand(new GenerateRandomKey());
     }
 
     @Override
