@@ -319,7 +319,7 @@ public class WritingWorkerManager<T> {
                 remainingItems += q.size();
             if (remainingItems > 0) {
                 LOG.info("Waiting on queues to drain. {} items remaining.", remainingItems);
-                Thread.sleep(1000);
+                Thread.sleep(1000L);
             }
         }
         LOG.info("Queues drained. Stopping workers.");

@@ -20,21 +20,21 @@ import io.ifar.skidroad.writing.file.Serializer;
 public class ManagedWritingWorkerManager<T> extends WritingWorkerManager<T> implements Managed {
 
     public ManagedWritingWorkerManager(FileRollingScheme rollingScheme, LogFileTracker tracker,
-                                       WritingWorkerFactory<T> factory, SimpleQuartzScheduler scheduler, int pruneIntervalMillis,
+                                       WritingWorkerFactory<T> factory, SimpleQuartzScheduler scheduler, int pruneIntervalSeconds,
                                        int spawnThreshold, int unhealthyThreshold) {
-        super(rollingScheme,tracker,factory,scheduler,pruneIntervalMillis,spawnThreshold,unhealthyThreshold);
+        super(rollingScheme,tracker,factory,scheduler,pruneIntervalSeconds,spawnThreshold,unhealthyThreshold);
     }
 
     public static <T> ManagedWritingWorkerManager<T> build(LogFileTracker tracker, Serializer<T> serializer, SimpleQuartzScheduler scheduler, RequestLogWriterConfiguration logConf, Environment environment) {
         FileRollingScheme rollingScheme = getFileRollingScheme(logConf);
-        int pruneIntervalMillis = 5000;
+        int pruneIntervalSeconds = 5;
         WritingWorkerFactory<T> workerFactory = new FileWritingWorkerFactory<>(serializer, logConf.getFileFlushIntervalSeconds());
         ManagedWritingWorkerManager<T> writerManager = new ManagedWritingWorkerManager<>(
                 rollingScheme,
                 tracker,
                 workerFactory,
                 scheduler,
-                pruneIntervalMillis,
+                pruneIntervalSeconds,
                 logConf.getSpawnNewWorkerAtQueueDepth(),
                 logConf.getReportUnhealthyAtQueueDepth()
         );
@@ -50,14 +50,14 @@ public class ManagedWritingWorkerManager<T> extends WritingWorkerManager<T> impl
 
     public static <T extends Tuple> ManagedWritingWorkerManager<T> buildCSV(LogFileTracker tracker, String nullRepresentation, SimpleQuartzScheduler scheduler, RequestLogWriterConfiguration logConf, Environment environment) {
         FileRollingScheme rollingScheme = getFileRollingScheme(logConf);
-        int pruneIntervalMillis = 5000;
+        int pruneIntervalSeconds = 5;
         WritingWorkerFactory<T> workerFactory = new CSVWritingWorkerFactory<T>(nullRepresentation, logConf.getFileFlushIntervalSeconds());
         ManagedWritingWorkerManager<T> writerManager = new ManagedWritingWorkerManager<>(
                 rollingScheme,
                 tracker,
                 workerFactory,
                 scheduler,
-                pruneIntervalMillis,
+                pruneIntervalSeconds,
                 logConf.getSpawnNewWorkerAtQueueDepth(),
                 logConf.getReportUnhealthyAtQueueDepth()
         );
