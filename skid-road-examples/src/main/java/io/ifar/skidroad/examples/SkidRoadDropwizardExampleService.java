@@ -17,8 +17,8 @@ import io.ifar.skidroad.dropwizard.*;
 import io.ifar.skidroad.dropwizard.cli.GenerateRandomKey;
 import io.ifar.skidroad.examples.config.SkidRoadDropwizardExampleConfiguration;
 import io.ifar.skidroad.examples.rest.ExampleResource;
-import io.ifar.skidroad.jdbi.DefaultJDBILogFileDAO;
 import io.ifar.skidroad.jdbi.JDBILogFileDAO;
+import io.ifar.skidroad.jdbi.JDBILogFileDAOHelper;
 import io.ifar.skidroad.jdbi.JodaArgumentFactory;
 import io.ifar.skidroad.jersey.ContainerRequestAndResponse;
 import io.ifar.skidroad.jersey.combined.capture.RecorderFilter;
@@ -28,7 +28,10 @@ import io.ifar.skidroad.jersey.headers.CommonHeaderExtractors;
 import io.ifar.skidroad.jersey.headers.RequestHeaderExtractor;
 import io.ifar.skidroad.jersey.headers.SimpleHeaderExtractor;
 import io.ifar.skidroad.jersey.predicate.response.StatusCodeContainerResponsePredicate;
-import io.ifar.skidroad.jersey.single.*;
+import io.ifar.skidroad.jersey.single.IDTagTripleTransformFactory;
+import io.ifar.skidroad.jersey.single.RecorderFilterFactory;
+import io.ifar.skidroad.jersey.single.RequestTimestampFilter;
+import io.ifar.skidroad.jersey.single.UUIDGeneratorFilter;
 import io.ifar.skidroad.scheduling.SimpleQuartzScheduler;
 import io.ifar.skidroad.writing.WritingWorkerManager;
 import org.skife.jdbi.v2.DBI;
@@ -80,7 +83,7 @@ public class SkidRoadDropwizardExampleService extends Service<SkidRoadDropwizard
             LOG.error("Database connectivity error; unable to get a connection from a freshly initialized pool.",se);
             throw new RuntimeException(se);
         }
-        JDBILogFileDAO dao = jdbi.onDemand(DefaultJDBILogFileDAO.class);
+        JDBILogFileDAO dao = jdbi.onDemand(JDBILogFileDAOHelper.bestDefaultDAOForDriver(configuration.getSkidRoad().getDatabaseConfiguration().getDriverClass()));
 
         ManagedJDBILogFileTracker tracker = new ManagedJDBILogFileTracker(new URI("http://" + configuration.getSkidRoad().getNodeId()), dao);
         environment.manage(tracker);
