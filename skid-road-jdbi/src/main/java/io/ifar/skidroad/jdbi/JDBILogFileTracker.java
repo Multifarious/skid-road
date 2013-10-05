@@ -7,6 +7,7 @@ import io.ifar.skidroad.tracking.AbstractLogFileTracker;
 import io.ifar.skidroad.tracking.LogFileState;
 import io.ifar.skidroad.tracking.LogFileStateListener;
 import org.joda.time.DateTime;
+import org.skife.jdbi.v2.exceptions.UnableToExecuteStatementException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,16 +38,23 @@ public class JDBILogFileTracker extends AbstractLogFileTracker {
 
     @Override
     public LogFile open(String rollingCohort, String pathPattern, DateTime startTime) {
+        int attempt = 1;
         while(true) {
             Timestamp stamp = now();
             int serial = dao.determineNextSerial(rollingCohort) + 1;
             Path originPath = Paths.get(String.format(pathPattern, serial));
-            int rows = dao.claimIndex(rollingCohort, serial, new Timestamp(startTime.getMillis()), originPath.toUri().toString(), localUri.toString(), stamp);
-            if (rows == 1) {
+            try {
+                dao.claimIndex(rollingCohort, serial, new Timestamp(startTime.getMillis()), originPath.toUri().toString(), localUri.toString(), stamp);
                 return new LogFile(rollingCohort, serial, startTime, originPath, null, null, null, null, WRITING, localUri, null, new DateTime(stamp.getTime()), null);
-            } else {
-                LOG.debug("Another instance claimed {} serial {}. Will retry.", rollingCohort, serial);
+            } catch (UnableToExecuteStatementException e) {
+                if (attempt < 100) {
+                    LOG.debug("Another instance claimed {} serial {}. Will retry.", rollingCohort, serial);
+                } else {
+                    //Something very wrong; only except to ever go through this loop a couple times.
+                    throw e;
+                }
             }
+            attempt++;
         }
     }
 
