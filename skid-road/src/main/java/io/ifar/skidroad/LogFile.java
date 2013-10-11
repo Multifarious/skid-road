@@ -158,6 +158,10 @@ public class LogFile {
         return startTime;
     }
 
+    public void setStartTime(DateTime startTime) {
+        this.startTime = startTime;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

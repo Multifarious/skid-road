@@ -12,7 +12,10 @@ import java.net.URI;
 import java.net.URISyntaxException;
 
 /**
- * Constructs UploadWorkers that uploads LogFiles via JetS3t (e.g. to Amazon S3)
+ * Constructs UploadWorkers that uploads LogFiles via JetS3t (e.g. to Amazon S3).
+ *
+ * Log files are uploaded into a yyyy/MM/dd (implemented in {@link #determineArchiveURI(io.ifar.skidroad.LogFile)}). In
+ * the local tracker database they are assigned a yyyyMMdd group (implemented in {@link #determineArchiveGroup(io.ifar.skidroad.LogFile)}).
  */
 public class JetS3tUploadWorker extends AbstractUploadWorker {
     private final static DateTimeFormatter GROUP_FORMATTER = ISODateTimeFormat.basicDate();
