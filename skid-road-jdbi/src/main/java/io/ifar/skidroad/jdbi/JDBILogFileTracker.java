@@ -50,7 +50,7 @@ public class JDBILogFileTracker extends AbstractLogFileTracker {
                 if (attempt < 100) {
                     LOG.debug("Another instance claimed {} serial {}. Will retry.", rollingCohort, serial);
                 } else {
-                    //Something very wrong; only except to ever go through this loop a couple times.
+                    //Something very wrong; only expect to ever go through this loop a couple times.
                     throw e;
                 }
             }
