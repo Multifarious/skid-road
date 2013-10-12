@@ -4,6 +4,7 @@ import com.yammer.dropwizard.config.Environment;
 import com.yammer.dropwizard.lifecycle.Managed;
 import io.ifar.skidroad.dropwizard.config.RequestLogPrepConfiguration;
 import io.ifar.skidroad.dropwizard.config.SkidRoadConfiguration;
+import io.ifar.skidroad.prepping.CompressPrepWorkerFactory;
 import io.ifar.skidroad.prepping.EncryptAndCompressPrepWorkerFactory;
 import io.ifar.skidroad.prepping.PrepWorkerFactory;
 import io.ifar.skidroad.prepping.PrepWorkerManager;
@@ -38,7 +39,16 @@ public class ManagedPrepWorkerManager extends PrepWorkerManager implements Manag
         return build(workerFactory, prepConfiguration, environment, tracker, scheduler);
     }
 
+    public static ManagedPrepWorkerManager buildWithCompress(RequestLogPrepConfiguration prepConfiguration, Environment environment, LogFileTracker tracker, SimpleQuartzScheduler scheduler) {
+        PrepWorkerFactory workerFactory = new CompressPrepWorkerFactory();
+        return build(workerFactory, prepConfiguration, environment, tracker, scheduler);
+    }
+
     public static ManagedPrepWorkerManager buildWithEncryptAndCompress(SkidRoadConfiguration skidRoadConfiguration, Environment environment, LogFileTracker tracker, SimpleQuartzScheduler scheduler) {
         return buildWithEncryptAndCompress(skidRoadConfiguration.getRequestLogPrepConfiguration(), environment, tracker, scheduler);
+    }
+
+    public static ManagedPrepWorkerManager buildWithCompress(SkidRoadConfiguration skidRoadConfiguration, Environment environment, LogFileTracker tracker, SimpleQuartzScheduler scheduler) {
+        return buildWithCompress(skidRoadConfiguration.getRequestLogPrepConfiguration(), environment, tracker, scheduler);
     }
 }
