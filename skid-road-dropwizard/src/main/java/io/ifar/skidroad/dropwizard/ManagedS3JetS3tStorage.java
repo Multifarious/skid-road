@@ -10,10 +10,15 @@ import io.ifar.skidroad.upload.UploadWorkerFactory;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Map;
 
 public class ManagedS3JetS3tStorage extends S3JetS3tStorage implements Managed {
     public ManagedS3JetS3tStorage(String accessKeyID, String secretAccessKey) {
         super(accessKeyID, secretAccessKey);
+    }
+
+    public ManagedS3JetS3tStorage(String accessKeyID, String secretAccessKey, Map<String,String> propertyOverrides) {
+        super(accessKeyID, secretAccessKey, propertyOverrides);
     }
 
     public static ManagedS3JetS3tStorage buildStorage(RequestLogUploadConfiguration uploadConfiguration, Environment environment) {

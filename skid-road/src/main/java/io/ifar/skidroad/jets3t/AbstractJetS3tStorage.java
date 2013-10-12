@@ -1,14 +1,16 @@
  package io.ifar.skidroad.jets3t;
 
  import com.yammer.metrics.core.HealthCheck;
- import org.jets3t.service.ServiceException;
- import org.jets3t.service.StorageService;
- import org.jets3t.service.impl.rest.httpclient.RestStorageService;
- import org.jets3t.service.model.StorageObject;
- import org.slf4j.Logger;
- import org.slf4j.LoggerFactory;
+import org.jets3t.service.ServiceException;
+import org.jets3t.service.StorageService;
+import org.jets3t.service.impl.rest.httpclient.RestStorageService;
+import org.jets3t.service.model.StorageObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
- import java.io.File;
+import java.io.File;
+import java.util.Collections;
+import java.util.Map;
 
  /**
   */
@@ -20,8 +22,16 @@
      private StorageService svc;
      private final HealthCheck healthCheck;
      private final String urlScheme;
+     private final Map<String,String> propertiesOverrides;
 
      public AbstractJetS3tStorage(final String urlScheme, final String name) {
+         this(urlScheme, name, Collections.<String,String>emptyMap());
+     }
+
+     /**
+      * @param propertiesOverrides used to override default JetS3t configuration
+      */
+     public AbstractJetS3tStorage(final String urlScheme, final String name, Map<String,String> propertiesOverrides) {
          this.urlScheme = urlScheme;
          this.name = name;
          this.healthCheck = new HealthCheck(name) {
@@ -38,6 +48,7 @@
                  }
              }
          };
+         this.propertiesOverrides = propertiesOverrides;
      }
 
      @Override
@@ -51,6 +62,9 @@
      public void start() throws Exception {
          LOG.info("Starting {}.", name);
          this.svc = openStorageService();
+         for (Map.Entry<String,String> override : propertiesOverrides.entrySet()) {
+             svc.getJetS3tProperties().setProperty(override.getKey(), override.getValue());
+         }
          LOG.info("Started {}.", name);
       }
 
