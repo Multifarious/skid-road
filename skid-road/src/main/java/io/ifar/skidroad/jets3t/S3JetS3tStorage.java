@@ -1,5 +1,6 @@
 package io.ifar.skidroad.jets3t;
 
+import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.ServiceException;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.impl.rest.httpclient.RestStorageService;
@@ -24,8 +25,8 @@ public class S3JetS3tStorage extends AbstractJetS3tStorage {
     }
 
     @Override
-    RestStorageService openStorageService() throws ServiceException {
-        RestS3Service svc = new RestS3Service(creds);
+    RestStorageService openStorageService(Jets3tProperties properties) throws ServiceException {
+        RestS3Service svc = new RestS3Service(creds, "Skid Road", null, properties );
         return svc;
     }
 }

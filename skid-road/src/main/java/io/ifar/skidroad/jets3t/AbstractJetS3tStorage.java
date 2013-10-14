@@ -1,7 +1,8 @@
  package io.ifar.skidroad.jets3t;
 
  import com.yammer.metrics.core.HealthCheck;
-import org.jets3t.service.ServiceException;
+ import org.jets3t.service.Jets3tProperties;
+ import org.jets3t.service.ServiceException;
 import org.jets3t.service.StorageService;
 import org.jets3t.service.impl.rest.httpclient.RestStorageService;
 import org.jets3t.service.model.StorageObject;
@@ -56,15 +57,16 @@ import java.util.Map;
          return healthCheck;
      }
 
-     abstract RestStorageService openStorageService() throws ServiceException;
+     abstract RestStorageService openStorageService(Jets3tProperties properties) throws ServiceException;
 
      @Override
      public void start() throws Exception {
          LOG.info("Starting {}.", name);
-         this.svc = openStorageService();
+         Jets3tProperties jets3tProperties = new Jets3tProperties();
          for (Map.Entry<String,String> override : propertiesOverrides.entrySet()) {
-             svc.getJetS3tProperties().setProperty(override.getKey(), override.getValue());
+             jets3tProperties.setProperty(override.getKey(), override.getValue());
          }
+         this.svc = openStorageService(jets3tProperties);
          LOG.info("Started {}.", name);
       }
 
