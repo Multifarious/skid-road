@@ -1,7 +1,6 @@
 package io.ifar.skidroad.dropwizard.config;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.hibernate.validator.constraints.NotEmpty;
 import org.hibernate.validator.constraints.Range;
 
 import javax.validation.constraints.DecimalMin;
@@ -12,7 +11,7 @@ import javax.validation.constraints.DecimalMin;
 public class RequestLogPrepConfiguration {
 
     @JsonProperty("master_key")
-    @NotEmpty
+    //optional; only needed if using encryption
     private String masterKey;
 
     /**
