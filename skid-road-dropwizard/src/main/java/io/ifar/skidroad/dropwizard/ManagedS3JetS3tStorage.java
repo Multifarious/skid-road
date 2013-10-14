@@ -14,7 +14,7 @@ import java.util.Map;
 
 public class ManagedS3JetS3tStorage extends S3JetS3tStorage implements Managed {
     public ManagedS3JetS3tStorage(String accessKeyID, String secretAccessKey) {
-        super(accessKeyID, secretAccessKey);
+        this(accessKeyID, secretAccessKey, null);
     }
 
     public ManagedS3JetS3tStorage(String accessKeyID, String secretAccessKey, Map<String,String> propertyOverrides) {
@@ -22,9 +22,14 @@ public class ManagedS3JetS3tStorage extends S3JetS3tStorage implements Managed {
     }
 
     public static ManagedS3JetS3tStorage buildStorage(RequestLogUploadConfiguration uploadConfiguration, Environment environment) {
+        return buildStorage(uploadConfiguration, environment, null);
+    }
+
+    public static ManagedS3JetS3tStorage buildStorage(RequestLogUploadConfiguration uploadConfiguration, Environment environment, Map<String,String> propertyOverrides) {
         ManagedS3JetS3tStorage storage = new ManagedS3JetS3tStorage(
                 uploadConfiguration.getAccessKeyID(),
-                uploadConfiguration.getSecretAccessKey()
+                uploadConfiguration.getSecretAccessKey(),
+                propertyOverrides
         );
         environment.manage(storage);
         environment.addHealthCheck(storage.healthCheck());
@@ -42,7 +47,15 @@ public class ManagedS3JetS3tStorage extends S3JetS3tStorage implements Managed {
         return buildWorkerFactory(buildStorage(uploadConfiguration, environment), uploadConfiguration);
     }
 
+    public static UploadWorkerFactory buildWorkerFactory(RequestLogUploadConfiguration uploadConfiguration, Environment environment, Map<String,String> propertyOverrides) throws URISyntaxException {
+        return buildWorkerFactory(buildStorage(uploadConfiguration, environment, propertyOverrides), uploadConfiguration);
+    }
+
     public static UploadWorkerFactory buildWorkerFactory(SkidRoadConfiguration skidRoadConfiguration, Environment environment) throws URISyntaxException {
         return buildWorkerFactory(skidRoadConfiguration.getRequestLogUploadConfiguration(), environment);
+    }
+
+    public static UploadWorkerFactory buildWorkerFactory(SkidRoadConfiguration skidRoadConfiguration, Environment environment,Map<String,String> propertyOverrides) throws URISyntaxException {
+        return buildWorkerFactory(skidRoadConfiguration.getRequestLogUploadConfiguration(), environment, propertyOverrides);
     }
 }

@@ -25,7 +25,7 @@ import java.util.Map;
      private final Map<String,String> propertiesOverrides;
 
      public AbstractJetS3tStorage(final String urlScheme, final String name) {
-         this(urlScheme, name, Collections.<String,String>emptyMap());
+         this(urlScheme, name, null);
      }
 
      /**
@@ -48,7 +48,7 @@ import java.util.Map;
                  }
              }
          };
-         this.propertiesOverrides = propertiesOverrides;
+         this.propertiesOverrides = propertiesOverrides == null ? Collections.<String,String>emptyMap() : propertiesOverrides;
      }
 
      @Override
