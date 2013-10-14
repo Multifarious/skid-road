@@ -13,7 +13,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.zip.GZIPOutputStream;
 
-import static io.ifar.skidroad.crypto.StreamingBouncyCastleAESWithSIC.*;
 import static java.nio.file.StandardOpenOption.*;
 
 /**
@@ -30,7 +29,7 @@ public class CompressPrepper extends AbstractPrepWorker {
 
     @Override
     public Path prepare(Path inputPath) throws PreparationException {
-        Path outputPath = withNewExtension(inputPath, ".gz." + DEFAULT_EXTENSION);
+        Path outputPath = withNewExtension(inputPath, ".gz");
         if (tracker.updateArchiveKey(logFile) != 1)
             throw new PreparationException("Cannot record archive key for " + logFile);
 
