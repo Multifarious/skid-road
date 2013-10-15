@@ -178,16 +178,17 @@ public class WritingWorkerManager<T> {
             }
         }
 
-        if (shouldLaunchNewWorker)
+        if (shouldLaunchNewWorker) {
             asyncWorkerCreator.submit(new Runnable() {
                 public void run() {
                     try {
-                        launchNewWorker(queue, startTime);
+                        launchNewWorker(queue, startTime, 1);
                     } catch (Exception e) {
                         LOG.error("Could not launch WritingWorker", e);
                     }
                 }
             });
+        }
 
         return queue;
     }
@@ -254,7 +255,7 @@ public class WritingWorkerManager<T> {
                 List<Thread> workersForQueue = getWorkersForStartTime(startTime);
                 boolean needAnotherWorker = workersForQueue.isEmpty() || (queue.size() >= spawnNewWorkerAtQueueDepth && workersForQueue.size() < NUM_PROCESSORS);
                 if (needAnotherWorker)
-                    launchNewWorker(queue, startTime);
+                    launchNewWorker(queue, startTime, workersForQueue.size() + 1);
             }
         }
     }
@@ -269,20 +270,31 @@ public class WritingWorkerManager<T> {
         return result;
     }
 
-    protected void launchNewWorker(BlockingQueue<T> queue, DateTime startTime) {
-        LOG.debug("Launching new worker for {}", rollingScheme.getRepresentation(startTime));
-        String logFilePathPattern = rollingScheme.makeOutputPathPattern(startTime);
-        LogFile logFileRecord = tracker.open(rollingScheme.getRepresentation(startTime), logFilePathPattern, startTime);
-        Thread worker = factory.buildWorker(queue, logFileRecord, tracker);
+    /**
+     * CReates a new worker to consume from the provided queue.
+     * @param queue queue from which worker will fetch events
+     * @param startTime used to generate filename for worker's output
+     * @param maxCount abort if queue already has this many workers
+     */
+    protected void launchNewWorker(BlockingQueue<T> queue, DateTime startTime, int maxCount) {
         synchronized (workers) {
             List<Thread> workersForQueue = workers.get(startTime);
-            if (workersForQueue == null) {
-                workersForQueue = new LinkedList<>();
-                workers.put(startTime,workersForQueue);
+            int currentCount = workersForQueue == null ? 0 : workersForQueue.size();
+            if (currentCount < maxCount) {
+                LOG.debug("Launching new worker for {}", rollingScheme.getRepresentation(startTime));
+                String logFilePathPattern = rollingScheme.makeOutputPathPattern(startTime);
+                LogFile logFileRecord = tracker.open(rollingScheme.getRepresentation(startTime), logFilePathPattern, startTime);
+                Thread worker = factory.buildWorker(queue, logFileRecord, tracker);
+                if (workersForQueue == null) {
+                    workersForQueue = new LinkedList<>();
+                    workers.put(startTime,workersForQueue);
+                }
+                workersForQueue.add(worker);
+                worker.start();
+            } else {
+                LOG.debug("Skip launch of new worker for {}; already have {}.", rollingScheme.getRepresentation(startTime), maxCount);
             }
-            workersForQueue.add(worker);
         }
-        worker.start();
     }
 
     public void start() throws Exception {
