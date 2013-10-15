@@ -10,16 +10,16 @@ import java.net.URI;
 import java.util.concurrent.Callable;
 
 /**
- * Constructs {@link JetS3tUploadWorker}s that upload LogFiles via JetS3t (e.g. to Amazon S3)
- * @see JetS3tUploadWorker
+ * Constructs {@link JetS3tUploadByDirectoryWorker}s that upload LogFiles via JetS3t (e.g. to Amazon S3)
+ * @see JetS3tUploadByDirectoryWorker
  */
-public class JetS3tUploadWorkerFactory implements UploadWorkerFactory {
-    private final static Logger LOG = LoggerFactory.getLogger(JetS3tUploadWorkerFactory.class);
+public class JetS3tUploadByDirectoryWorkerFactory implements UploadWorkerFactory {
+    private final static Logger LOG = LoggerFactory.getLogger(JetS3tUploadByDirectoryWorkerFactory.class);
 
     private final URI uploadBaseURI;
     private final JetS3tStorage jetS3tStorage;
 
-    public JetS3tUploadWorkerFactory(JetS3tStorage storage, URI uploadBaseURI) {
+    public JetS3tUploadByDirectoryWorkerFactory(JetS3tStorage storage, URI uploadBaseURI) {
         this.jetS3tStorage = storage;
         this.uploadBaseURI = uploadBaseURI;
 
@@ -27,6 +27,6 @@ public class JetS3tUploadWorkerFactory implements UploadWorkerFactory {
 
     @Override
     public Callable<Boolean> buildWorker(final LogFile logFile, final LogFileTracker tracker) {
-        return new JetS3tUploadWorker(logFile, tracker, uploadBaseURI, jetS3tStorage);
+        return new JetS3tUploadByDirectoryWorker(logFile, tracker, uploadBaseURI, jetS3tStorage);
     }
 }

@@ -16,6 +16,9 @@ import java.net.URISyntaxException;
  *
  * Log files are uploaded into a /<em>&lt;parent&gt;</em>/yyyy/MM/dd (implemented in {@link #determineArchiveURI(io.ifar.skidroad.LogFile)}). In
  * the local tracker database they are assigned a <em>&lt;parent&gt;</em> group (implemented in {@link #determineArchiveGroup(io.ifar.skidroad.LogFile)}).
+ *
+ * For use in environments where multiple {@link io.ifar.skidroad.writing.WritingWorkerManager} and multiple
+ * {@link LogFileTracker}s are in use, sharing a single database and S3 configuration.
  */
 public class JetS3tUploadByDirectoryWorker extends AbstractUploadWorker {
     private final static DateTimeFormatter URI_FORMATTER = new DateTimeFormatterBuilder()
