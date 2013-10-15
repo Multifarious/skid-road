@@ -89,10 +89,11 @@ public class WritingWorkerManager<T> {
                 //Would be better to measure latency than depth, but that's more expensive.
                 int queueDepth = queueDepthGauge.value();
                 int queueCount = queueCountGauge.value();
+                int workerCount = workerCountGauge.value();
                 if (queueDepth < unhealthyQueueDepthThreshold)
-                    return Result.healthy(String.format("%d items across %d queues.", queueDepth, queueCount));
+                    return Result.healthy(String.format("%d items across %d queues with %d workers.", queueDepth, queueCount, workerCount));
                 else
-                    return Result.unhealthy(String.format("%d items across %d queues exceeds threshold (%d)", queueDepth, queueCount, unhealthyQueueDepthThreshold));
+                    return Result.unhealthy(String.format("%d items across %d queues exceeds depth threshold (%d); %d workers", queueDepth, queueCount, unhealthyQueueDepthThreshold, workerCount));
             }
         };
     }
@@ -118,6 +119,16 @@ public class WritingWorkerManager<T> {
                             sum += q.size();
                     }
                     return sum;
+                }
+            });
+
+    private final Gauge<Integer> workerCountGauge = Metrics.newGauge(this.getClass(),
+            "worker_count",
+                new Gauge<Integer>() {
+                @Override
+                public Integer value() {
+                    //skip synchronization, allow stale data
+                    return workers.size();
                 }
             });
 

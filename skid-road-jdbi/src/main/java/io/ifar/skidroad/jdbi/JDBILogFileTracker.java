@@ -21,7 +21,7 @@ import java.util.Set;
 import static io.ifar.skidroad.tracking.LogFileState.*;
 
 /**
- * A JDBI-based implementation of LogFileTracker that stores LogFile state is in a database table.
+ * A JDBI-based implementation of LogFileTracker that stores LogFile state in a database table.
  *
  * TODO (future): generate audit history as well in log_file_audit table.
  */
