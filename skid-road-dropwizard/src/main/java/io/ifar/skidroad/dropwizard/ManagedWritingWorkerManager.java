@@ -5,10 +5,7 @@ import com.yammer.dropwizard.lifecycle.Managed;
 import io.ifar.goodies.Tuple;
 import io.ifar.skidroad.dropwizard.config.RequestLogWriterConfiguration;
 import io.ifar.skidroad.dropwizard.config.SkidRoadConfiguration;
-import io.ifar.skidroad.rolling.DailyFileRollingScheme;
-import io.ifar.skidroad.rolling.FileRollingScheme;
-import io.ifar.skidroad.rolling.HourlyFileRollingScheme;
-import io.ifar.skidroad.rolling.MinutelyFileRollingScheme;
+import io.ifar.skidroad.rolling.*;
 import io.ifar.skidroad.scheduling.SimpleQuartzScheduler;
 import io.ifar.skidroad.tracking.LogFileTracker;
 import io.ifar.skidroad.writing.WritingWorkerFactory;
@@ -72,32 +69,7 @@ public class ManagedWritingWorkerManager<T> extends WritingWorkerManager<T> impl
     }
 
     public static FileRollingScheme getFileRollingScheme(RequestLogWriterConfiguration logConf) {
-        FileRollingScheme rollingScheme;
-        switch (logConf.getRollingFrequency()) {
-            case daily:
-                rollingScheme = new DailyFileRollingScheme(
-                        logConf.getBasePath(),
-                        logConf.getNamePrefix(),
-                        logConf.getNameSuffix(),
-                        logConf.getAfterRollCloseFileDelaySeconds());
-                break;
-            case hourly:
-                rollingScheme = new HourlyFileRollingScheme(
-                        logConf.getBasePath(),
-                        logConf.getNamePrefix(),
-                        logConf.getNameSuffix(),
-                        logConf.getAfterRollCloseFileDelaySeconds());
-                break;
-            case minutely:
-                rollingScheme = new MinutelyFileRollingScheme(
-                        logConf.getBasePath(),
-                        logConf.getNamePrefix(),
-                        logConf.getNameSuffix(),
-                        logConf.getAfterRollCloseFileDelaySeconds());
-                break;
-            default:
-                throw new IllegalArgumentException(String.format("Unrecognized rolling frequency '%s",logConf.getRollingFrequency()));
-        }
-        return rollingScheme;
+        return new BasicFileRollingScheme(logConf.getBasePath(), logConf.getNamePrefix(), logConf.getNameSuffix(),
+                logConf.getAfterRollCloseFileDelaySeconds(),logConf.getRollingFrequency().duration());
     }
 }
