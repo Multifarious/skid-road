@@ -55,8 +55,17 @@ public class DummyWritingWorkerFactory<T> implements WritingWorkerFactory<T> {
 
     private List<CountDownLatch> creationLatches = new LinkedList<>();
     private List<Thread> threadsCreated = new ArrayList<>();
+    /**
+     * For each queue, a latch that blocks workers from running
+     */
     private Map<BlockingQueue<T>, CountDownLatch> runLatches = new LinkedHashMap<>();
+    /**
+     * For each queue, a flag that controls whether workers should, when they run, drain the queue of work items before exiting
+     */
     private Map<BlockingQueue<T>, AtomicBoolean> drainFlags = new LinkedHashMap<>();
+    /**
+     * For each queue, a latch that blocks workers from exiting after they have run.
+     */
     private Map<BlockingQueue<T>, CountDownLatch> exitLatches = new LinkedHashMap<>();
 
     @Override
