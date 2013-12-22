@@ -33,6 +33,10 @@ public class SimpleQuartzScheduler {
      * @throws SchedulerException
      */
     public SimpleQuartzScheduler(String schedulerName, int maxThreads) throws SchedulerException {
+        //Ugh, why this behavior by default? Skip unless explicitly requested.
+        if (System.getProperty("org.quartz.scheduler.skipUpdateCheck") == null) {
+            System.setProperty("org.quartz.scheduler.skipUpdateCheck", "true");
+        }
         SimpleThreadPool threadPool = new SimpleThreadPool(maxThreads, Thread.NORM_PRIORITY);
         threadPool.initialize();
         JobStore jobStore = new RAMJobStore();
