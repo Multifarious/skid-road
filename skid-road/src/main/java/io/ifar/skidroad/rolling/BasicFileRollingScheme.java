@@ -55,13 +55,14 @@ public class BasicFileRollingScheme implements FileRollingScheme {
             minutes = true;
             startTimeFormatter = MINUTELY_FORMATTER;
         } else {
-            throw new IllegalArgumentException("Durations should be in whole days, hours, or minutes.");
+            throw new IllegalArgumentException("Durations should be in whole days, whole hours, or a number of minutes that evenly divides an hour.");
         }
         if ((days && ((duration.getStandardHours() % 24 != 0) || (duration.getStandardMinutes() % 60 != 0)))
                 || (hours && (duration.getStandardDays() > 0 || (duration.getStandardMinutes() % 60 != 0)))
-                || (minutes && (duration.getStandardDays() > 0) || duration.getStandardHours() > 0))
+                || (minutes && ((duration.getStandardDays() > 0) || (duration.getStandardHours() > 0)))
+                || (minutes && (60 != duration.getStandardMinutes() * (60 / duration.getStandardMinutes()))))
         {
-            throw new IllegalArgumentException("Durations should be in whole days, hours, or minutes.");
+            throw new IllegalArgumentException("Durations should be in whole days, whole hours, or a number of minutes that evenly divides an hour.");
         }
         this.duration = duration;
     }
