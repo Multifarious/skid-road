@@ -21,6 +21,7 @@
  import java.io.IOException;
  import java.nio.file.Files;
  import java.nio.file.Path;
+ import java.nio.file.StandardCopyOption;
  import java.util.Collections;
  import java.util.Map;
  import java.util.concurrent.atomic.AtomicInteger;
@@ -138,7 +139,13 @@
                          uri,ioe.getClass().getSimpleName(), ioe.getMessage());
                  throw Throwables.propagate(ioe);
              }
-             svc.getAmazonS3Client().getObject(getRequest,tmp.toFile());
+             try(S3Object s3o = svc.getAmazonS3Client().getObject(getRequest)) {
+                 Files.copy(s3o.getObjectContent(),tmp, StandardCopyOption.REPLACE_EXISTING);
+             } catch (IOException ioe) {
+                 LOG.error("Unable to download {} to local file {}: ({}) {}",
+                         uri,tmp,ioe.getClass().getSimpleName(), ioe.getMessage());
+                 throw Throwables.propagate(ioe);
+             }
              return tmp;
          } finally {
              downloadsInProgress.decrementAndGet();

@@ -3,6 +3,7 @@ package io.ifar.skidroad.crypto;
 import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.bouncycastle.crypto.paddings.PaddedBufferedBlockCipher;
 
+import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -86,5 +87,10 @@ public class AESInputStream extends InputStream {
                 //else haven't yet read a full 128 bit AES block. Keep going.
             }
         }
+    }
+
+    @Override
+    public void close() throws IOException {
+        in.close();
     }
 }

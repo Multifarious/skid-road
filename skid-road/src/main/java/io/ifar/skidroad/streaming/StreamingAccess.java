@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
+import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -53,9 +54,9 @@ public class StreamingAccess {
      * @throws IOException if one occurs during data handling, either due to network communications or due to uncompressing
      *         and decrypting data.
      */
-    public InputStream streamFor(LogFile logFile) throws IOException {
+    public InputStream streamFor(final LogFile logFile) throws IOException {
         Preconditions.checkNotNull(logFile);
-        Path p;
+        final Path p;
 
         try {
             p = storage.get(logFile.getArchiveURI().toString());
@@ -74,16 +75,15 @@ public class StreamingAccess {
                 masterIV
         );
 
-        InputStream is;
-        try {
-            is = Files.newInputStream(p, StandardOpenOption.DELETE_ON_CLOSE);
-            AESInputStream compressedStream = new AESInputStream(is, fileKey[0], fileKey[1]);
-            return new GZIPInputStream(compressedStream);
-        } catch (IOException ioe) {
-            LOG.error("Unable to prepare stream for reading {} from temporary file {}: ({}) {}",
-                    logFile.getID(),p,ioe.getClass(), ioe.getMessage());
-            throw Throwables.propagate(ioe);
-        }
+        return new GZIPInputStream(new AESInputStream(new FilterInputStream(Files.newInputStream(p)) {
+            @Override
+            public void close() throws IOException {
+                super.close();
+                if (!p.toFile().delete()) {
+                    LOG.debug("Unable to delete temporary working file {} for log file {}.",p,logFile.getID());
+                }
+            }
+        }, fileKey[0], fileKey[1]));
     }
 
     /**
