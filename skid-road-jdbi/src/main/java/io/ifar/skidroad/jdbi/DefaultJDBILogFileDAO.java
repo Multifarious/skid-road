@@ -6,6 +6,7 @@ import org.skife.jdbi.v2.ResultIterator;
 import org.skife.jdbi.v2.sqlobject.Bind;
 import org.skife.jdbi.v2.sqlobject.SqlQuery;
 import org.skife.jdbi.v2.sqlobject.SqlUpdate;
+import org.skife.jdbi.v2.sqlobject.customizers.FetchSize;
 import org.skife.jdbi.v2.sqlobject.customizers.RegisterMapper;
 
 import java.sql.Timestamp;
@@ -58,6 +59,7 @@ public interface DefaultJDBILogFileDAO extends JDBILogFileDAO {
     @SqlQuery("select rolling_cohort, serial, start_time, origin_uri, prep_uri, archive_key, archive_uri, archive_group," +
             " state, owner_uri, bytes, created_at, updated_at from log_files where state = :state and start_time >= :first_ts and start_time <= :last_ts" +
             " order by start_time asc")
+    @FetchSize(50)
     ResultIterator<LogFile> listLogFilesByDateAndState(@Bind(value="state") String state, @Bind("first_ts") DateTime startDate,
                                                  @Bind("last_ts") DateTime endDate);
 
@@ -65,6 +67,7 @@ public interface DefaultJDBILogFileDAO extends JDBILogFileDAO {
     @SqlQuery("select rolling_cohort, serial, start_time, origin_uri, prep_uri, archive_key, archive_uri, archive_group," +
             " state, owner_uri, bytes, created_at, updated_at from log_files where start_time >= :first_ts and start_time <= :last_ts" +
             " order by start_time asc")
+    @FetchSize(50)
     ResultIterator<LogFile> listLogFilesByDate(@Bind("first_ts") DateTime startDate,
                                                @Bind("last_ts") DateTime endDate);
 

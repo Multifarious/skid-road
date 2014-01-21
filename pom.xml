@@ -4,7 +4,7 @@
 
     <groupId>io.ifar</groupId>
     <artifactId>skid-road-parent</artifactId>
-    <version>0-SNAPSHOT</version>
+    <version>2-SNAPSHOT</version>
     <packaging>pom</packaging>
     <scm>
         <!--<connection>scm:svn:http://somerepository.com/svn_repo/trunk</connection>-->
@@ -77,6 +77,11 @@
                 <version>${project.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>com.amazonaws</groupId>
+                <artifactId>aws-java-sdk</artifactId>
+                <version>1.6.11</version>
+            </dependency>
 
             <dependency>
                 <groupId>commons-lang</groupId>
@@ -164,17 +169,6 @@
                 <version>2.41</version> <!-- Matches Dropwizard 0.6.2 -->
             </dependency>
 
-            <dependency>
-                <groupId>net.java.dev.jets3t</groupId>
-                <artifactId>jets3t</artifactId>
-                <version>0.9.0</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>commons-logging</groupId>
-                        <artifactId>commons-logging</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
             <dependency>
                 <groupId>org.quartz-scheduler</groupId>
                 <artifactId>quartz</artifactId>

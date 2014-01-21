@@ -92,7 +92,7 @@ public class SkidRoadDropwizardExampleService extends Service<SkidRoadDropwizard
                 configuration.getSkidRoad(),
                 environment,
                 tracker,
-                ManagedS3JetS3tStorage.buildWorkerFactory(configuration.getSkidRoad(), environment),
+                ManagedAwsS3ClientStorage.buildWorkerFactory(configuration.getSkidRoad(), environment),
                 scheduler);
 
         ManagedPrepWorkerManager.buildWithEncryptAndCompress(configuration.getSkidRoad(), environment, tracker, scheduler);

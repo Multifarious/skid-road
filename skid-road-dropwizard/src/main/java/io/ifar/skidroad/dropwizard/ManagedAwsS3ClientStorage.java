@@ -4,7 +4,7 @@ import com.yammer.dropwizard.config.Environment;
 import com.yammer.dropwizard.lifecycle.Managed;
 import io.ifar.skidroad.dropwizard.config.RequestLogUploadConfiguration;
 import io.ifar.skidroad.dropwizard.config.SkidRoadConfiguration;
-import io.ifar.skidroad.jets3t.S3JetS3tStorage;
+import io.ifar.skidroad.jets3t.AwsS3ClientStorage;
 import io.ifar.skidroad.upload.JetS3tUploadByDirectoryWorkerFactory;
 import io.ifar.skidroad.upload.JetS3tUploadWorkerFactory;
 import io.ifar.skidroad.upload.UploadWorkerFactory;
@@ -13,21 +13,21 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Map;
 
-public class ManagedS3JetS3tStorage extends S3JetS3tStorage implements Managed {
-    public ManagedS3JetS3tStorage(String accessKeyID, String secretAccessKey) {
+public class ManagedAwsS3ClientStorage extends AwsS3ClientStorage implements Managed {
+    public ManagedAwsS3ClientStorage(String accessKeyID, String secretAccessKey) {
         this(accessKeyID, secretAccessKey, null);
     }
 
-    public ManagedS3JetS3tStorage(String accessKeyID, String secretAccessKey, Map<String,String> propertyOverrides) {
+    public ManagedAwsS3ClientStorage(String accessKeyID, String secretAccessKey, Map<String, String> propertyOverrides) {
         super(accessKeyID, secretAccessKey, propertyOverrides);
     }
 
-    public static ManagedS3JetS3tStorage buildStorage(RequestLogUploadConfiguration uploadConfiguration, Environment environment) {
+    public static ManagedAwsS3ClientStorage buildStorage(RequestLogUploadConfiguration uploadConfiguration, Environment environment) {
         return buildStorage(uploadConfiguration, environment, null);
     }
 
-    public static ManagedS3JetS3tStorage buildStorage(RequestLogUploadConfiguration uploadConfiguration, Environment environment, Map<String,String> propertyOverrides) {
-        ManagedS3JetS3tStorage storage = new ManagedS3JetS3tStorage(
+    public static ManagedAwsS3ClientStorage buildStorage(RequestLogUploadConfiguration uploadConfiguration, Environment environment, Map<String,String> propertyOverrides) {
+        ManagedAwsS3ClientStorage storage = new ManagedAwsS3ClientStorage(
                 uploadConfiguration.getAccessKeyID(),
                 uploadConfiguration.getSecretAccessKey(),
                 propertyOverrides
@@ -37,14 +37,14 @@ public class ManagedS3JetS3tStorage extends S3JetS3tStorage implements Managed {
         return storage;
     }
 
-    public static UploadWorkerFactory buildWorkerFactory(S3JetS3tStorage storage, RequestLogUploadConfiguration uploadConfiguration) throws URISyntaxException {
+    public static UploadWorkerFactory buildWorkerFactory(AwsS3ClientStorage storage, RequestLogUploadConfiguration uploadConfiguration) throws URISyntaxException {
         return new JetS3tUploadWorkerFactory(
                 storage,
                 new URI(uploadConfiguration.getUploadPath())
         );
     }
 
-    public static UploadWorkerFactory buildByDirectoryWorkerFactory(S3JetS3tStorage storage, RequestLogUploadConfiguration uploadConfiguration) throws URISyntaxException {
+    public static UploadWorkerFactory buildByDirectoryWorkerFactory(AwsS3ClientStorage storage, RequestLogUploadConfiguration uploadConfiguration) throws URISyntaxException {
         return new JetS3tUploadByDirectoryWorkerFactory(
                 storage,
                 new URI(uploadConfiguration.getUploadPath())

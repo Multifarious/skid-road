@@ -1,9 +1,9 @@
 package io.ifar.skidroad.upload;
 
+import com.amazonaws.AmazonClientException;
 import io.ifar.skidroad.LogFile;
-import io.ifar.skidroad.jets3t.JetS3tStorage;
+import io.ifar.skidroad.jets3t.S3Storage;
 import io.ifar.skidroad.tracking.LogFileTracker;
-import org.jets3t.service.ServiceException;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.DateTimeFormatterBuilder;
 
@@ -11,7 +11,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 
 /**
- * A variation of {@link JetS3tUploadWorker} which uploads into a directory structure that reflects the local parent
+ * A variation of {@link AwsS3ClientUploadWorker} which uploads into a directory structure that reflects the local parent
  * directory of the {@link LogFile}.
  *
  * Log files are uploaded into a /<em>&lt;parent&gt;</em>/yyyy/MM/dd (implemented in {@link #determineArchiveURI(io.ifar.skidroad.LogFile)}). In
@@ -30,9 +30,9 @@ public class JetS3tUploadByDirectoryWorker extends AbstractUploadWorker {
             .toFormatter();
 
     private final URI uploadBasePath;
-    private final JetS3tStorage storage;
+    private final S3Storage storage;
 
-    public JetS3tUploadByDirectoryWorker(LogFile logFile, LogFileTracker tracker, URI uploadBaseURI, JetS3tStorage storage) {
+    public JetS3tUploadByDirectoryWorker(LogFile logFile, LogFileTracker tracker, URI uploadBaseURI, S3Storage storage) {
         super(logFile, tracker);
         this.uploadBasePath = uploadBaseURI;
         this.storage = storage;
@@ -64,7 +64,7 @@ public class JetS3tUploadByDirectoryWorker extends AbstractUploadWorker {
     }
 
     @Override
-    void push(LogFile logFile) throws ServiceException {
+    void push(LogFile logFile) throws AmazonClientException {
         storage.put(logFile.getArchiveURI().toString(), logFile.getPrepPath().toFile());
     }
 }
