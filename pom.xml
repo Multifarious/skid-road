@@ -4,7 +4,7 @@
 
     <groupId>io.ifar</groupId>
     <artifactId>skid-road-parent</artifactId>
-    <version>2</version>
+    <version>3-SNAPSHOT</version>
     <packaging>pom</packaging>
     <scm>
         <!--<connection>scm:svn:http://somerepository.com/svn_repo/trunk</connection>-->
