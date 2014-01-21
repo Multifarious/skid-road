@@ -4,7 +4,7 @@
 
     <groupId>io.ifar</groupId>
     <artifactId>skid-road-parent</artifactId>
-    <version>2-SNAPSHOT</version>
+    <version>2</version>
     <packaging>pom</packaging>
     <scm>
         <!--<connection>scm:svn:http://somerepository.com/svn_repo/trunk</connection>-->
@@ -42,14 +42,14 @@
 
     <repositories>
         <repository>
-            <id>multifarious-snapshots</id>
-            <name>Multifarious, Inc. Snapshot Repository</name>
-            <url>http://repository-multifarious.forge.cloudbees.com/snapshot/</url>
+            <id>multifarious-releases</id>
+            <name>Multifarious, Inc. Release Repository</name>
+            <url>http://repository-multifarious.forge.cloudbees.com/release/</url>
             <snapshots>
-                <enabled>true</enabled>
+                <enabled>false</enabled>
             </snapshots>
             <releases>
-                <enabled>false</enabled>
+                <enabled>true</enabled>
             </releases>
         </repository>
     </repositories>
@@ -183,7 +183,7 @@
             <dependency>
                 <groupId>io.ifar</groupId>
                 <artifactId>dw-goodies</artifactId>
-                <version>0-SNAPSHOT</version>
+                <version>0</version>
             </dependency>
 
             <dependency>
@@ -297,5 +297,15 @@
             </plugin>
         </plugins>
     </build>
+
+    <!-- This is an egregious hack.  It is also unfortunately necessary
+         until we move on to OSSRH. -->
+    <distributionManagement>
+        <repository>
+            <id>multifarious-cloudbees-releases</id>
+            <layout>default</layout>
+            <url>file:///Volumes/release</url>
+        </repository>
+    </distributionManagement>
 
 </project>
