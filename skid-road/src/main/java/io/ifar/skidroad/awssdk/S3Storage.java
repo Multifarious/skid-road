@@ -1,4 +1,4 @@
-package io.ifar.skidroad.jets3t;
+package io.ifar.skidroad.awssdk;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
@@ -6,6 +6,7 @@ import com.amazonaws.services.s3.model.S3Object;
 import com.yammer.metrics.core.HealthCheck;
 
 import java.io.File;
+import java.nio.file.Path;
 
 public interface S3Storage {
     HealthCheck healthCheck();
@@ -16,5 +17,5 @@ public interface S3Storage {
 
     void put(String uri, File f) throws AmazonServiceException, AmazonClientException;
 
-    S3Object get(String uri) throws AmazonServiceException, AmazonClientException;
+    Path get(String uri) throws AmazonServiceException, AmazonClientException;
 }

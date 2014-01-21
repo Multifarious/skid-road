@@ -40,7 +40,7 @@ public abstract class AbstractUploadWorker implements Callable<Boolean> {
             tracker.uploaded(logFile); //ignore update failures; worker exiting anyway
             return Boolean.TRUE;
         } catch (Exception e) {
-            //org.jets3t.service.ServiceException needs to be toString'd to see the useful parts.
+            //org.awssdk.service.ServiceException needs to be toString'd to see the useful parts.
             //Otherwise all we get is the getMessage() of "S3 Error Message".
             LOG.warn("Upload for {} failed {}: ", logFile, e, e);
             tracker.uploadError(logFile); //ignore update failures; worker exiting anyway

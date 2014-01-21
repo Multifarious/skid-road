@@ -117,7 +117,8 @@ public class WritingWorkerManagerTest {
         awaitLatch(creationLatch);
         factory.drainNextQueue();
         awaitNextPrune();
-        assertFalse("Worker for current queue should not be pruned (even if queue empty).", manager.getWorkerThreadSnapshot().isEmpty());
+        assertFalse("Worker for current queue should not be pruned (even if queue empty).",
+                manager.getWorkerThreadSnapshot().isEmpty());
     }
 
     @Test
@@ -193,7 +194,7 @@ public class WritingWorkerManagerTest {
     }
 
     private void awaitLatch(CountDownLatch latch) throws InterruptedException {
-        assertTrue("timeout waiting for latch.", latch.await(10, TimeUnit.SECONDS));
+        assertTrue("timeout waiting for latch.", latch.await(8, TimeUnit.SECONDS));
     }
 
 

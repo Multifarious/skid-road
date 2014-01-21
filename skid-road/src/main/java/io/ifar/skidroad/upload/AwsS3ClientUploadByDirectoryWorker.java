@@ -2,7 +2,7 @@ package io.ifar.skidroad.upload;
 
 import com.amazonaws.AmazonClientException;
 import io.ifar.skidroad.LogFile;
-import io.ifar.skidroad.jets3t.S3Storage;
+import io.ifar.skidroad.awssdk.S3Storage;
 import io.ifar.skidroad.tracking.LogFileTracker;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.DateTimeFormatterBuilder;
@@ -20,7 +20,7 @@ import java.net.URISyntaxException;
  * For use in environments where multiple {@link io.ifar.skidroad.writing.WritingWorkerManager} and multiple
  * {@link LogFileTracker}s are in use, sharing a single database and S3 configuration.
  */
-public class JetS3tUploadByDirectoryWorker extends AbstractUploadWorker {
+public class AwsS3ClientUploadByDirectoryWorker extends AbstractUploadWorker {
     private final static DateTimeFormatter URI_FORMATTER = new DateTimeFormatterBuilder()
             .appendYear(4,4)
             .appendLiteral('/')
@@ -32,7 +32,7 @@ public class JetS3tUploadByDirectoryWorker extends AbstractUploadWorker {
     private final URI uploadBasePath;
     private final S3Storage storage;
 
-    public JetS3tUploadByDirectoryWorker(LogFile logFile, LogFileTracker tracker, URI uploadBaseURI, S3Storage storage) {
+    public AwsS3ClientUploadByDirectoryWorker(LogFile logFile, LogFileTracker tracker, URI uploadBaseURI, S3Storage storage) {
         super(logFile, tracker);
         this.uploadBasePath = uploadBaseURI;
         this.storage = storage;

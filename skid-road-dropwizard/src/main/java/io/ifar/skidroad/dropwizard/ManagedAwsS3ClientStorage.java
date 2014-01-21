@@ -4,9 +4,9 @@ import com.yammer.dropwizard.config.Environment;
 import com.yammer.dropwizard.lifecycle.Managed;
 import io.ifar.skidroad.dropwizard.config.RequestLogUploadConfiguration;
 import io.ifar.skidroad.dropwizard.config.SkidRoadConfiguration;
-import io.ifar.skidroad.jets3t.AwsS3ClientStorage;
-import io.ifar.skidroad.upload.JetS3tUploadByDirectoryWorkerFactory;
-import io.ifar.skidroad.upload.JetS3tUploadWorkerFactory;
+import io.ifar.skidroad.awssdk.AwsS3ClientStorage;
+import io.ifar.skidroad.upload.AwsS3ClientUploadByDirectoryWorkerFactory;
+import io.ifar.skidroad.upload.AwsS3ClientUploadWorkerFactory;
 import io.ifar.skidroad.upload.UploadWorkerFactory;
 
 import java.net.URI;
@@ -38,14 +38,14 @@ public class ManagedAwsS3ClientStorage extends AwsS3ClientStorage implements Man
     }
 
     public static UploadWorkerFactory buildWorkerFactory(AwsS3ClientStorage storage, RequestLogUploadConfiguration uploadConfiguration) throws URISyntaxException {
-        return new JetS3tUploadWorkerFactory(
+        return new AwsS3ClientUploadWorkerFactory(
                 storage,
                 new URI(uploadConfiguration.getUploadPath())
         );
     }
 
     public static UploadWorkerFactory buildByDirectoryWorkerFactory(AwsS3ClientStorage storage, RequestLogUploadConfiguration uploadConfiguration) throws URISyntaxException {
-        return new JetS3tUploadByDirectoryWorkerFactory(
+        return new AwsS3ClientUploadByDirectoryWorkerFactory(
                 storage,
                 new URI(uploadConfiguration.getUploadPath())
         );

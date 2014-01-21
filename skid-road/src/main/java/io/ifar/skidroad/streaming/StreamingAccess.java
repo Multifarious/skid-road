@@ -1,17 +1,26 @@
 package io.ifar.skidroad.streaming;
 
 import com.amazonaws.AmazonClientException;
+import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.model.S3Object;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 import com.google.common.io.ByteStreams;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.crypto.AESInputStream;
 import io.ifar.skidroad.crypto.StreamingBouncyCastleAESWithSIC;
-import io.ifar.skidroad.jets3t.S3Storage;
+import io.ifar.skidroad.awssdk.S3Storage;
 import org.bouncycastle.util.encoders.Base64;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.OpenOption;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.zip.GZIPInputStream;
 
 /**
@@ -19,12 +28,14 @@ import java.util.zip.GZIPInputStream;
  */
 public class StreamingAccess {
 
+    private static final Logger LOG = LoggerFactory.getLogger(StreamingAccess.class);
+
     private final S3Storage storage;
     private final byte[] masterKey;
     private final byte[] masterIV;
 
     /**
-     * Create a new instance wrapped around the supplied {@link io.ifar.skidroad.jets3t.S3Storage}.
+     * Create a new instance wrapped around the supplied {@link io.ifar.skidroad.awssdk.S3Storage}.
      * @param storage a configured (and started) S3 access instance
      * @param masterKey the master encryption key to use in decrypting files.
      * @param masterIV the master IV (may be null) to use in decrypting files whose key was encoded with the legacy algorithm which does not embed the master IV.
@@ -43,6 +54,19 @@ public class StreamingAccess {
      *         and decrypting data.
      */
     public InputStream streamFor(LogFile logFile) throws IOException {
+        Preconditions.checkNotNull(logFile);
+        Path p;
+
+        try {
+            p = storage.get(logFile.getArchiveURI().toString());
+        } catch (AmazonServiceException ase) {
+            LOG.error("Unable to download log file {} from S3 [ {} / {} ]: ({}) {}",
+                    logFile.getID(), ase.getStatusCode(), ase.getErrorCode(), ase.getClass().getSimpleName(),
+                    ase.getMessage());
+            throw Throwables.propagate(ase);
+        } catch (AmazonClientException ace) {
+            throw Throwables.propagate(ace);
+        }
 
         byte[][] fileKey = StreamingBouncyCastleAESWithSIC.decodeAndDecryptKey(
                 logFile.getArchiveKey(),
@@ -50,16 +74,16 @@ public class StreamingAccess {
                 masterIV
         );
 
-        S3Object so;
+        InputStream is;
         try {
-            so = storage.get(logFile.getArchiveURI().toString());
-        } catch (AmazonClientException e) {
-            throw new RuntimeException("Cannot fetch " + logFile.getArchiveURI().toString() + ": " + e.getClass().getSimpleName() + ": " + e.toString());
+            is = Files.newInputStream(p, StandardOpenOption.DELETE_ON_CLOSE);
+            AESInputStream compressedStream = new AESInputStream(is, fileKey[0], fileKey[1]);
+            return new GZIPInputStream(compressedStream);
+        } catch (IOException ioe) {
+            LOG.error("Unable to prepare stream for reading {} from temporary file {}: ({}) {}",
+                    logFile.getID(),p,ioe.getClass(), ioe.getMessage());
+            throw Throwables.propagate(ioe);
         }
-
-        InputStream encryptedCompressedStream = so.getObjectContent();
-        AESInputStream compressedStream = new AESInputStream(encryptedCompressedStream, fileKey[0], fileKey[1]);
-        return new GZIPInputStream(compressedStream);
     }
 
     /**

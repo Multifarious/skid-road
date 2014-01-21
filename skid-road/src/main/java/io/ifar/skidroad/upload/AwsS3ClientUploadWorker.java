@@ -2,7 +2,7 @@ package io.ifar.skidroad.upload;
 
 import com.amazonaws.AmazonClientException;
 import io.ifar.skidroad.LogFile;
-import io.ifar.skidroad.jets3t.S3Storage;
+import io.ifar.skidroad.awssdk.S3Storage;
 import io.ifar.skidroad.tracking.LogFileTracker;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.DateTimeFormatterBuilder;

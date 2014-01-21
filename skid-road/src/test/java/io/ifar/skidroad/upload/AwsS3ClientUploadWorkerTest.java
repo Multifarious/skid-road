@@ -11,7 +11,7 @@ import java.net.URISyntaxException;
 
 import static org.junit.Assert.*;
 
-public class JetS3tUploadWorkerTest {
+public class AwsS3ClientUploadWorkerTest {
 
     @Test
     public void testDetermineArchiveURI() throws URISyntaxException {

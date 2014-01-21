@@ -1,10 +1,11 @@
- package io.ifar.skidroad.jets3t;
+ package io.ifar.skidroad.awssdk;
 
  import com.amazonaws.AmazonClientException;
  import com.amazonaws.ClientConfiguration;
  import com.amazonaws.auth.AWSCredentials;
  import com.amazonaws.auth.BasicAWSCredentials;
  import com.amazonaws.services.s3.AmazonS3Client;
+ import com.amazonaws.services.s3.model.GetObjectRequest;
  import com.amazonaws.services.s3.model.ObjectMetadata;
  import com.amazonaws.services.s3.model.PutObjectRequest;
  import com.amazonaws.services.s3.model.S3Object;
@@ -18,6 +19,8 @@
  import java.io.File;
  import java.io.FileInputStream;
  import java.io.IOException;
+ import java.nio.file.Files;
+ import java.nio.file.Path;
  import java.util.Collections;
  import java.util.Map;
  import java.util.concurrent.atomic.AtomicInteger;
@@ -107,14 +110,11 @@
              om.setContentEncoding("gzip");
          }
          uploadsInProgress.incrementAndGet();
-         try (FileInputStream is = new FileInputStream(f)) {
-             PutObjectRequest req = new PutObjectRequest(parts[0],parts[1],is,om);
+         try {
+             PutObjectRequest req = new PutObjectRequest(parts[0],parts[1],f);
+             req.setMetadata(om);
              UploadResult resp = svc.upload(req).waitForUploadResult();
              LOG.trace("Uploaded " + uri + " with ETag " + resp.getETag());
-         } catch (IOException ioe) {
-             LOG.error("Unexpected IOException while uploading {} to {}: ({}) {}",
-                     f.getPath(),uri,ioe.getClass(), ioe.getMessage());
-             throw Throwables.propagate(ioe);
          } catch (InterruptedException ie) {
              LOG.error("Interrupted while uploading {} to {}.",
                      f.getPath(), uri);
@@ -125,11 +125,21 @@
      }
 
      @Override
-     public S3Object get(String uri) throws AmazonClientException {
+     public Path get(String uri) throws AmazonClientException {
          String[] parts = pieces(uri);
          downloadsInProgress.incrementAndGet();
          try {
-             return svc.getAmazonS3Client().getObject(parts[0],parts[1]);
+             GetObjectRequest getRequest = new GetObjectRequest(parts[0],parts[1]);
+             Path tmp;
+             try {
+                 tmp = Files.createTempFile("s3",".download");
+             } catch (IOException ioe) {
+                 LOG.error("Unable to create temporary file for download of {}: ({}) {}",
+                         uri,ioe.getClass().getSimpleName(), ioe.getMessage());
+                 throw Throwables.propagate(ioe);
+             }
+             svc.getAmazonS3Client().getObject(getRequest,tmp.toFile());
+             return tmp;
          } finally {
              downloadsInProgress.decrementAndGet();
          }
