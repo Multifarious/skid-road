@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import static io.ifar.skidroad.prepping.PrepWorkerManagerTest.MAX_TEST_DURATION;
 
 /**
  * A PrepWorkerFactory which creates dummy workers and provides explict controls over when the workers run, consume
@@ -26,6 +27,7 @@ public class DummyPrepWorkerFactory implements PrepWorkerFactory {
 
     @Override
     public Callable<Boolean> buildWorker(LogFile logFileRecord, LogFileTracker tracker) {
+        LOG.debug("Creating worker for " + logFileRecord);
         Callable<Boolean> worker = new Callable<Boolean>() {
             @Override
             public Boolean call() throws Exception {
@@ -33,7 +35,7 @@ public class DummyPrepWorkerFactory implements PrepWorkerFactory {
                     LOG.debug("Worker {} is alive.", Thread.currentThread().getName());
                     for (CountDownLatch creationLatch : runCountLatches)
                         creationLatch.countDown();
-                    if (!exitLatch.await(1, TimeUnit.SECONDS))
+                    if (!exitLatch.await(MAX_TEST_DURATION, TimeUnit.SECONDS))
                         LOG.error("Unreported test failure; took too long for exit latch to be released.");
                     return Boolean.TRUE;
                 } catch (InterruptedException e) {

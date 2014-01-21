@@ -38,7 +38,7 @@ public class PrepWorkerManager implements LogFileStateListener {
     private final int retryIntervalSeconds;
     private final int maxConcurrentPrepWork;
     private ExecutorService executor;
-    private final Set<String> activeFiles;
+    private final Set<String> activeFiles; //either being worked or queued for work in the executor
 
     public final HealthCheck healthcheck;
     private final AtomicInteger queueDepth = new AtomicInteger(0);
@@ -117,7 +117,7 @@ public class PrepWorkerManager implements LogFileStateListener {
     }
 
     /**
-     * Wraps increment/decrement of queueDepth around provided worker
+     * Wraps increment/decrement of queueDepth and release of claim around provided worker
      * @param worker
      * @param logFile
      * @return
@@ -132,6 +132,7 @@ public class PrepWorkerManager implements LogFileStateListener {
                    return worker.call();
                } finally {
                    queueDepth.decrementAndGet();
+                   release(logFile);
                }
             }
         };
@@ -145,12 +146,7 @@ public class PrepWorkerManager implements LogFileStateListener {
      */
     private Boolean processSync(final LogFile logFile) throws Exception {
         if (claim(logFile)) {
-            try {
-                final Callable<Boolean> worker = wrapWorker(workerFactory.buildWorker(logFile, tracker),logFile);
-                return worker.call();
-            } finally {
-                release(logFile);
-            }
+            return wrapWorker(workerFactory.buildWorker(logFile, tracker),logFile).call();
         } else {
             LOG.trace("{} is already being prepped on another thread. No-op on this thread.", logFile);
             return Boolean.FALSE;
@@ -159,12 +155,8 @@ public class PrepWorkerManager implements LogFileStateListener {
 
     private void processAsync(final LogFile logFile) {
         if (claim(logFile)) {
-            try {
-                final Callable<Boolean> worker = wrapWorker(workerFactory.buildWorker(logFile, tracker), logFile);
-                executor.submit(worker);
-            } finally {
-                release(logFile);
-            }
+            final Callable<Boolean> worker = wrapWorker(workerFactory.buildWorker(logFile, tracker), logFile);
+            executor.submit(worker);
         } else {
             LOG.trace("{} is already being prepped on another thread. No-op on this thread.", logFile);
         }
