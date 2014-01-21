@@ -1,5 +1,6 @@
 package io.ifar.skidroad.dropwizard.cli;
 
+import com.amazonaws.AmazonServiceException;
 import com.google.common.io.ByteStreams;
 import com.yammer.dropwizard.cli.ConfiguredCommand;
 import com.yammer.dropwizard.config.Bootstrap;
@@ -10,13 +11,12 @@ import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.dropwizard.config.SkidRoadReadOnlyConfiguration;
 import io.ifar.skidroad.dropwizard.config.SkidRoadReadOnlyConfigurationStrategy;
 import io.ifar.skidroad.jdbi.DefaultJDBILogFileDAO;
-import io.ifar.skidroad.jets3t.JetS3tStorage;
-import io.ifar.skidroad.jets3t.S3JetS3tStorage;
+import io.ifar.skidroad.jets3t.S3Storage;
+import io.ifar.skidroad.jets3t.AwsS3ClientStorage;
 import io.ifar.skidroad.streaming.StreamingAccess;
 import io.ifar.goodies.CliConveniences;
 import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;
-import org.jets3t.service.ServiceException;
 import org.skife.jdbi.v2.DBI;
 
 import java.io.IOException;
@@ -61,7 +61,7 @@ public abstract class FetchLogFileCommand<T extends Configuration> extends Confi
     protected void run(Bootstrap<T> bootstrap, Namespace namespace, T configuration) throws Exception {
         CliConveniences.quietLogging("io.ifar","hsqldb.db");
 
-        JetS3tStorage storage = null;
+        S3Storage storage = null;
         String cohort = namespace.getString(COHORT);
         int serial = namespace.getInt(SERIAL);
         Environment env = CliConveniences.fabricateEnvironment(getName(), configuration);
@@ -85,7 +85,7 @@ public abstract class FetchLogFileCommand<T extends Configuration> extends Confi
             }
 
             //System.err.println(String.format("Fetching %s", logFile.getArchiveURI()));
-            storage = new S3JetS3tStorage(
+            storage = new AwsS3ClientStorage(
                     skidRoadReadOnlyConfiguration.getAccessKeyID(),
                     skidRoadReadOnlyConfiguration.getSecretAccessKey()
             );
@@ -113,9 +113,9 @@ public abstract class FetchLogFileCommand<T extends Configuration> extends Confi
                 out.flush();
                 out.close();
                 System.err.println("Wrote " + byteCount + " bytes to " + path.toAbsolutePath());
-            } catch (ServiceException se) {
+            } catch (AmazonServiceException se) {
                 System.err.println(String.format("Unable to download from S3: (%d) %s",
-                        se.getResponseCode(),se.getErrorMessage()));
+                        se.getStatusCode(),se.getMessage()));
             } catch (IOException ioe) {
                 System.err.println(String.format("Unable to process stream: (%s) %s",
                         ioe.getClass().getSimpleName(), ioe.getMessage()));

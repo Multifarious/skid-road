@@ -1,6 +1,7 @@
 package io.ifar.skidroad.dropwizard.config;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.yammer.dropwizard.validation.ValidationMethod;
 import org.hibernate.validator.constraints.Range;
 
 import javax.validation.Valid;
@@ -19,6 +20,9 @@ public class RequestLogUploadConfiguration {
     @JsonProperty("secret_access_key")
     private String secretAccessKey;
 
+    @JsonProperty("disable_certificate_checks")
+    private boolean disableCertificateChecks = false;
+
     @NotNull
     @Valid
     @JsonProperty("upload_path")
@@ -35,6 +39,14 @@ public class RequestLogUploadConfiguration {
     @Range(min = 1)
     @JsonProperty("retry_interval_seconds")
     private int retryIntervalSeconds= 300;
+
+    @ValidationMethod
+    public boolean isCerficateCheckingDisabled() {
+        if (disableCertificateChecks) {
+            System.setProperty("com.amazonaws.sdk.disableCertChecking","true");
+        }
+        return true;
+    }
 
     public String getAccessKeyID() {
         return accessKeyID;

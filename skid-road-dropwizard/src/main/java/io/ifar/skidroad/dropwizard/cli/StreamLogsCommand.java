@@ -1,5 +1,6 @@
 package io.ifar.skidroad.dropwizard.cli;
 
+import com.amazonaws.AmazonServiceException;
 import com.google.common.io.ByteStreams;
 import com.yammer.dropwizard.cli.ConfiguredCommand;
 import com.yammer.dropwizard.config.Bootstrap;
@@ -15,13 +16,12 @@ import io.ifar.skidroad.jdbi.DefaultJDBILogFileDAO;
 import io.ifar.skidroad.jdbi.JDBILogFileDAO;
 import io.ifar.skidroad.jdbi.JDBILogFileDAOHelper;
 import io.ifar.skidroad.jdbi.JodaArgumentFactory;
-import io.ifar.skidroad.jets3t.JetS3tStorage;
-import io.ifar.skidroad.jets3t.S3JetS3tStorage;
+import io.ifar.skidroad.jets3t.AwsS3ClientStorage;
+import io.ifar.skidroad.jets3t.S3Storage;
 import io.ifar.skidroad.streaming.StreamingAccess;
 import io.ifar.skidroad.tracking.LogFileState;
 import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;
-import org.jets3t.service.ServiceException;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
@@ -91,7 +91,7 @@ public abstract class StreamLogsCommand <T extends Configuration> extends Config
     @Override
     protected void run(Bootstrap<T> bootstrap, Namespace namespace, T configuration) throws Exception {
         CliConveniences.quietLogging("ifar", "hsqldb.db");
-        JetS3tStorage storage = null;
+        S3Storage storage = null;
         Set<String> states = new HashSet<>(namespace.<String>getList(STATE));
         DateTime startDate = ISO_FMT.parseDateTime(namespace.getString(START_DATE));
         DateTime endDate = ISO_FMT.parseDateTime(namespace.getString(END_DATE));
@@ -107,7 +107,7 @@ public abstract class StreamLogsCommand <T extends Configuration> extends Config
             DBI jdbi = factory.build(env, skidRoadConfiguration.getDatabaseConfiguration(), "logfile");
             jdbi.registerArgumentFactory(new JodaArgumentFactory());
 
-            storage = new S3JetS3tStorage(
+            storage = new AwsS3ClientStorage(
                     skidRoadConfiguration.getAccessKeyID(),
                     skidRoadConfiguration.getSecretAccessKey()
             );
@@ -133,7 +133,7 @@ public abstract class StreamLogsCommand <T extends Configuration> extends Config
 
                     try(InputStream is = access.streamFor(logFile)) {
                         ByteStreams.copy(is,out);
-                    } catch (ServiceException e) {
+                    } catch (AmazonServiceException e) {
                         System.out.print("X");
                         System.err.println(String.format("Cannot fetch %s due to %s from S3: (%s) %s",
                                 logFile.getArchiveURI(), e.getErrorCode(), e.getClass().getSimpleName(), e.getMessage()));
