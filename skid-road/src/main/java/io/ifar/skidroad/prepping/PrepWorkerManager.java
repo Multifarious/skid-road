@@ -127,7 +127,6 @@ public class PrepWorkerManager implements LogFileStateListener {
             @Override
             public Boolean call() throws Exception {
                LOG.debug("Preparing {} from {}.", logFile, logFile.getOriginPath());
-               queueDepth.incrementAndGet();
                try {
                    return worker.call();
                } finally {
@@ -146,6 +145,7 @@ public class PrepWorkerManager implements LogFileStateListener {
      */
     private Boolean processSync(final LogFile logFile) throws Exception {
         if (claim(logFile)) {
+            queueDepth.incrementAndGet();
             return wrapWorker(workerFactory.buildWorker(logFile, tracker),logFile).call();
         } else {
             LOG.trace("{} is already being prepped on another thread. No-op on this thread.", logFile);
@@ -156,6 +156,7 @@ public class PrepWorkerManager implements LogFileStateListener {
     private void processAsync(final LogFile logFile) {
         if (claim(logFile)) {
             final Callable<Boolean> worker = wrapWorker(workerFactory.buildWorker(logFile, tracker), logFile);
+            queueDepth.incrementAndGet();
             executor.submit(worker);
         } else {
             LOG.trace("{} is already being prepped on another thread. No-op on this thread.", logFile);
@@ -185,7 +186,9 @@ public class PrepWorkerManager implements LogFileStateListener {
      */
     private boolean claim(LogFile f) {
         synchronized (activeFiles) {
-            return activeFiles.add(f.getID());
+            boolean claimed = activeFiles.add(f.getID());
+            LOG.trace("{}ble to claim {} on thread {}.",claimed? "A" : "Una", f.getID(),Thread.currentThread().getId());
+            return claimed;
         }
     }
 
@@ -196,6 +199,7 @@ public class PrepWorkerManager implements LogFileStateListener {
     private void release(LogFile f) {
         synchronized (activeFiles) {
             activeFiles.remove(f.getID());
+            LOG.trace("Released {} on thread {}.",f.getID(),Thread.currentThread().getId());
         }
     }
 

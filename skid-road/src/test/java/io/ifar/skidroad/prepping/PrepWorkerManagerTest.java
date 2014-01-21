@@ -24,7 +24,7 @@ public class PrepWorkerManagerTest {
     DummyPrepWorkerFactory factory;
     SimpleQuartzScheduler scheduler;
     private static final int RETRY_INTERVAL_SECONDS = 3;
-    public static final int MAX_TEST_DURATION = 10; //must be > 2 * RETRY_INTERVAL
+    public static final int MAX_TEST_DURATION = 12; //must be > 2 * RETRY_INTERVAL
 
     @Rule
     public TestName name = new TestName();
@@ -81,14 +81,16 @@ public class PrepWorkerManagerTest {
 
     @Test
     public void testRetry() throws Exception {
+        // Wait a little less this time out.
+        factory.setSecondsToWait(5L);
         CountDownLatch oneWorkerCreated = factory.getRunCountLatch(1);
-        CountDownLatch twoWorkersCreated = factory.getRunCountLatch(2);
+        CountDownLatch secondWorkerCreated = factory.getRunCountLatch(2);
         LogFile logFile = tracker.open("foo", "/biz/baz/%s.log", DateTime.now());
         manager.start(); //start manager first so it can register to receive notifications
         tracker.written(logFile);
         awaitLatch(oneWorkerCreated);
         logFile.setState(LogFileState.PREP_ERROR); //simulate failure of first prep attempt
-        awaitLatch(twoWorkersCreated); //wait for retry
+        awaitLatch(secondWorkerCreated); //wait for retry
     }
 
     @Test
