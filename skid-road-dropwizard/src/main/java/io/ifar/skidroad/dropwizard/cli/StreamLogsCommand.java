@@ -7,7 +7,6 @@ import com.yammer.dropwizard.config.Bootstrap;
 import com.yammer.dropwizard.config.Configuration;
 import com.yammer.dropwizard.config.Environment;
 import com.yammer.dropwizard.jdbi.DBIFactory;
-import io.ifar.goodies.AutoCloseableIterator;
 import io.ifar.goodies.CliConveniences;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.dropwizard.config.SkidRoadReadOnlyConfiguration;
@@ -26,6 +25,7 @@ import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 import org.skife.jdbi.v2.DBI;
+import org.skife.jdbi.v2.ResultIterator;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -114,7 +114,7 @@ public abstract class StreamLogsCommand <T extends Configuration> extends Config
             storage.start();
 
             JDBILogFileDAO dao = jdbi.onDemand(DefaultJDBILogFileDAO.class);
-            try (AutoCloseableIterator<LogFile> iter = JDBILogFileDAOHelper.listLogFilesByDateAndState(dao, states, startDate, endDate)) {
+            try (ResultIterator<LogFile> iter = JDBILogFileDAOHelper.listLogFilesByDateAndState(dao, states, startDate, endDate)) {
 
                 long files = JDBILogFileDAOHelper.count(dao, states, startDate, endDate);
                 long totalBytes = JDBILogFileDAOHelper.totalSize(dao, states, startDate, endDate);
@@ -124,7 +124,9 @@ public abstract class StreamLogsCommand <T extends Configuration> extends Config
                         skidRoadConfiguration.getMasterIV());
 
                 System.out.print(String.format("[ %,d files / %,d total bytes ]: ",files, totalBytes));
-                    for (LogFile logFile : iter) {
+
+                while (iter.hasNext()) {
+                    LogFile logFile = iter.next();
                     if (logFile.getArchiveURI() == null) {
                         System.out.print("?");
                         System.err.print(String.format("Cannot fetch %s, no archive URI set in database.", logFile));

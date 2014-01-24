@@ -30,7 +30,8 @@ public class ManagedPrepWorkerManager extends PrepWorkerManager implements Manag
         return prepManager;
     }
 
-    public static ManagedPrepWorkerManager buildWithEncryptAndCompress(RequestLogPrepConfiguration prepConfiguration, Environment environment, LogFileTracker tracker, SimpleQuartzScheduler scheduler) {
+    public static ManagedPrepWorkerManager buildWithEncryptAndCompress(RequestLogPrepConfiguration prepConfiguration,
+                                                                       Environment environment, LogFileTracker tracker, SimpleQuartzScheduler scheduler) {
 
         PrepWorkerFactory workerFactory = new EncryptAndCompressPrepWorkerFactory(
                 prepConfiguration.getMasterKey()
@@ -39,12 +40,18 @@ public class ManagedPrepWorkerManager extends PrepWorkerManager implements Manag
         return build(workerFactory, prepConfiguration, environment, tracker, scheduler);
     }
 
-    public static ManagedPrepWorkerManager buildWithCompress(RequestLogPrepConfiguration prepConfiguration, Environment environment, LogFileTracker tracker, SimpleQuartzScheduler scheduler) {
+    public static ManagedPrepWorkerManager buildWithCompress(RequestLogPrepConfiguration prepConfiguration,
+                                                             Environment environment, LogFileTracker tracker,
+                                                             SimpleQuartzScheduler scheduler)
+    {
         PrepWorkerFactory workerFactory = new CompressPrepWorkerFactory();
         return build(workerFactory, prepConfiguration, environment, tracker, scheduler);
     }
 
-    public static ManagedPrepWorkerManager buildWithEncryptAndCompress(SkidRoadConfiguration skidRoadConfiguration, Environment environment, LogFileTracker tracker, SimpleQuartzScheduler scheduler) {
+    public static ManagedPrepWorkerManager buildWithEncryptAndCompress(SkidRoadConfiguration skidRoadConfiguration,
+                                                                       Environment environment, LogFileTracker tracker,
+                                                                       SimpleQuartzScheduler scheduler)
+    {
         return buildWithEncryptAndCompress(skidRoadConfiguration.getRequestLogPrepConfiguration(), environment, tracker, scheduler);
     }
 

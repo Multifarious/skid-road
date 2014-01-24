@@ -1,12 +1,11 @@
 package io.ifar.skidroad.jdbi;
 
 import com.google.common.collect.ImmutableSet;
-import io.ifar.goodies.AutoCloseableIterator;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.tracking.AbstractLogFileTracker;
 import io.ifar.skidroad.tracking.LogFileState;
-import io.ifar.skidroad.tracking.LogFileStateListener;
 import org.joda.time.DateTime;
+import org.skife.jdbi.v2.ResultIterator;
 import org.skife.jdbi.v2.exceptions.UnableToExecuteStatementException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +17,7 @@ import java.sql.Timestamp;
 import java.util.HashSet;
 import java.util.Set;
 
-import static io.ifar.skidroad.tracking.LogFileState.*;
+import static io.ifar.skidroad.tracking.LogFileState.WRITING;
 
 /**
  * A JDBI-based implementation of LogFileTracker that stores LogFile state in a database table.
@@ -28,12 +27,10 @@ import static io.ifar.skidroad.tracking.LogFileState.*;
 public class JDBILogFileTracker extends AbstractLogFileTracker {
     private final static Logger LOG = LoggerFactory.getLogger(JDBILogFileTracker.class);
     private final JDBILogFileDAO dao;
-    private final Set<LogFileStateListener> listeners;
 
     public JDBILogFileTracker(URI localUri, JDBILogFileDAO dao) {
         super(localUri);
         this.dao = dao;
-        this.listeners = new HashSet<>();
     }
 
     @Override
@@ -100,13 +97,23 @@ public class JDBILogFileTracker extends AbstractLogFileTracker {
     }
 
     @Override
-    public AutoCloseableIterator<LogFile> findMine(LogFileState state) {
+    public ResultIterator<LogFile> findMine(LogFileState state) {
         return findMine(ImmutableSet.of(state));
     }
 
     @Override
-    public AutoCloseableIterator<LogFile> findMine(Set<LogFileState> states) {
+    public ResultIterator<LogFile> findMine(Set<LogFileState> states) {
         return JDBILogFileDAOHelper.findByOwnerAndState(dao, localUri, states);
+    }
+
+    @Override
+    public ResultIterator<LogFile> findMine(LogFileState state, DateTime start, DateTime end) {
+        return JDBILogFileDAOHelper.listLogFilesByOwnerAndDateAndState(dao, localUri, ImmutableSet.of(state), start, end);
+    }
+
+    @Override
+    public ResultIterator<LogFile> findMine(Set<LogFileState> states, DateTime start, DateTime end) {
+        return JDBILogFileDAOHelper.listLogFilesByOwnerAndDateAndState(dao, localUri, states,start,end);
     }
 
     @Override

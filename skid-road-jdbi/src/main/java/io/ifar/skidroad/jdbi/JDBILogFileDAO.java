@@ -48,4 +48,6 @@ public interface JDBILogFileDAO {
     LogFile findByRollingCohortAndSerial(String rollingCohort, int serial);
 
     void close();
+
+    ResultIterator<LogFile> listLogFilesByOwnerAndDateAndState(String state, String owner, DateTime startDate, DateTime endDate);
 }

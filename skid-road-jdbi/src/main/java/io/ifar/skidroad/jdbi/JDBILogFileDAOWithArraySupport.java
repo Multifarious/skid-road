@@ -22,4 +22,6 @@ public interface JDBILogFileDAOWithArraySupport extends JDBILogFileDAO {
     ResultIterator<LogFile> listLogFilesByDateAndState(Set<String> state, DateTime startDate, DateTime endDate);
 
     void close();
+
+    ResultIterator<LogFile> listLogFilesByOwnerAndDateAndState(Set<String> states, String s, DateTime startDate, DateTime endDate);
 }

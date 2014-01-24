@@ -1,14 +1,17 @@
 package io.ifar.skidroad.writing;
 
-import io.ifar.goodies.AutoCloseableIterator;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.scheduling.SimpleQuartzScheduler;
 import io.ifar.skidroad.tracker.TransientLogFileTracker;
 import io.ifar.skidroad.tracking.LogFileState;
 import io.ifar.skidroad.tracking.LogFileTracker;
 import org.joda.time.DateTime;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.TestName;
+import org.skife.jdbi.v2.ResultIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,6 +19,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
@@ -162,7 +166,28 @@ public class WritingWorkerManagerTest {
         Path path = Files.createTempFile(name.getMethodName(), ".1");
         dummyFiles.get(0).setOriginPath(path);
         dummyFiles.get(1).setOriginPath(Paths.get("bogus/bogus/bogus"));
-        when(tracker.findMine(LogFileState.WRITING)).thenReturn(new AutoCloseableIterator<>(dummyFiles.iterator()));
+        final Iterator<LogFile> dummyFilesIter = dummyFiles.iterator();
+        when(tracker.findMine(LogFileState.WRITING)).thenReturn(new ResultIterator<LogFile>() {
+            @Override
+            public void close() {
+                // no op
+            }
+
+            @Override
+            public boolean hasNext() {
+                return dummyFilesIter.hasNext();
+            }
+
+            @Override
+            public LogFile next() {
+                return dummyFilesIter.next();
+            }
+
+            @Override
+            public void remove() {
+                throw new UnsupportedOperationException();
+            }
+        });
 
         scheduler.clear();
         WritingWorkerManager<String> manager = new WritingWorkerManager<>(

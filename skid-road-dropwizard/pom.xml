@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>io.ifar</groupId>
+        <groupId>io.ifar.skid-road</groupId>
         <artifactId>skid-road-parent</artifactId>
         <version>3-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
@@ -28,11 +28,11 @@
 
     <dependencies>
         <dependency>
-            <groupId>io.ifar</groupId>
+            <groupId>io.ifar.skid-road</groupId>
             <artifactId>skid-road</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.ifar</groupId>
+            <groupId>io.ifar.skid-road</groupId>
             <artifactId>skid-road-jdbi</artifactId>
         </dependency>
 
@@ -47,6 +47,13 @@
         <dependency>
             <groupId>com.yammer.dropwizard</groupId>
             <artifactId>dropwizard-jdbi</artifactId>
+            <exclusions>
+                <!-- get more up to date JDBI. -->
+                <exclusion>
+                    <groupId>org.jdbi</groupId>
+                    <artifactId>jdbi</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.yammer.dropwizard</groupId>
@@ -74,7 +81,7 @@
         </dependency>
 
         <dependency>
-            <groupId>io.ifar</groupId>
+            <groupId>io.ifar.dw-goodies</groupId>
             <artifactId>dw-goodies</artifactId>
         </dependency>
 

@@ -6,7 +6,6 @@ import com.yammer.dropwizard.config.Bootstrap;
 import com.yammer.dropwizard.config.Configuration;
 import com.yammer.dropwizard.config.Environment;
 import com.yammer.dropwizard.jdbi.DBIFactory;
-import io.ifar.goodies.AutoCloseableIterator;
 import io.ifar.goodies.CliConveniences;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.dropwizard.config.SkidRoadReadOnlyConfiguration;
@@ -23,15 +22,15 @@ import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 import org.skife.jdbi.v2.DBI;
+import org.skife.jdbi.v2.ResultIterator;
 
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 /**
  *
  */
+@SuppressWarnings("unused")
 public abstract class ListLogFilesCommand<T extends Configuration> extends ConfiguredCommand<T>
         implements SkidRoadReadOnlyConfigurationStrategy<T>
 {
@@ -42,6 +41,7 @@ public abstract class ListLogFilesCommand<T extends Configuration> extends Confi
 
     private final static DateTimeFormatter ISO_FMT = ISODateTimeFormat.dateOptionalTimeParser().withZoneUTC();
 
+    @SuppressWarnings("unused")
     public ListLogFilesCommand() {
         super("list-logs","List the log files stored in the system.");
     }
@@ -49,10 +49,7 @@ public abstract class ListLogFilesCommand<T extends Configuration> extends Confi
     @Override
     public void configure(Subparser subparser) {
         super.configure(subparser);
-        List<String> states = new ArrayList<>();
-        for (LogFileState state : LogFileState.values()) {
-            states.add(state.name());
-        }
+
         subparser.addArgument("-s", "--state")
                 .required(false)
                 .dest(STATE)
@@ -62,7 +59,7 @@ public abstract class ListLogFilesCommand<T extends Configuration> extends Confi
         subparser.addArgument("-i","--start-date")
                 .required(true)
                 .dest(START_DATE)
-                .help("a start date in ISO format (yyyy-MM-dd or yyyy-MM-ddThh:mm); only files with a start on or after this date will be included.");
+                .help("a start date in ISO format (yyyy-MnM-dd or yyyy-MM-ddThh:mm); only files with a start on or after this date will be included.");
 
         subparser.addArgument("-e","--end-date")
                 .required(true)
@@ -100,7 +97,7 @@ public abstract class ListLogFilesCommand<T extends Configuration> extends Confi
             jdbi.registerArgumentFactory(new JodaArgumentFactory());
 
             JDBILogFileDAO dao = jdbi.onDemand(DefaultJDBILogFileDAO.class);
-            try (AutoCloseableIterator<LogFile> iter = (states.isEmpty())
+            try (ResultIterator<LogFile> iter = (states.isEmpty())
                     ? JDBILogFileDAOHelper.listLogFilesByDate(dao,startDate,endDate)
                     : JDBILogFileDAOHelper.listLogFilesByDateAndState(dao,states, startDate, endDate)) {
                 if (iter.hasNext()) {
@@ -111,7 +108,8 @@ public abstract class ListLogFilesCommand<T extends Configuration> extends Confi
                             + "_|_" + StringUtils.repeat("_",15)
                             + "_|_" + StringUtils.repeat("_",25));
                 }
-                for (LogFile lf : iter) {
+                while (iter.hasNext()) {
+                    LogFile lf = iter.next();
                     System.out.println(String.format("%-14s | %20s | %10d | %15d | %-25s",
                             lf.getRollingCohort(),
                             lf.getState(),

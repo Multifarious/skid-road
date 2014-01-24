@@ -3,13 +3,13 @@ package io.ifar.skidroad.writing;
 import com.yammer.metrics.Metrics;
 import com.yammer.metrics.core.Gauge;
 import com.yammer.metrics.core.HealthCheck;
-import io.ifar.goodies.AutoCloseableIterator;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.rolling.FileRollingScheme;
 import io.ifar.skidroad.scheduling.SimpleQuartzScheduler;
 import io.ifar.skidroad.tracking.LogFileTracker;
 import org.joda.time.DateTime;
 import org.quartz.*;
+import org.skife.jdbi.v2.ResultIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,7 +22,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static io.ifar.skidroad.tracking.LogFileState.*;
+import static io.ifar.skidroad.tracking.LogFileState.WRITING;
 
 /**
  * Manages writing workers and the input queues to feed data into them.
@@ -315,7 +315,7 @@ public class WritingWorkerManager<T> {
      * @throws Exception
      */
     private void cleanStaleEntries() throws Exception {
-        try (AutoCloseableIterator<LogFile> staleEntries = tracker.findMine(WRITING)){
+        try (ResultIterator<LogFile> staleEntries = tracker.findMine(WRITING)){
             while (staleEntries.hasNext()) {
                 LogFile staleEntry = staleEntries.next();
                 if (Files.exists(staleEntry.getOriginPath())) {

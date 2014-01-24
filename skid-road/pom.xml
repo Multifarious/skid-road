@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>io.ifar</groupId>
+        <groupId>io.ifar.skid-road</groupId>
         <artifactId>skid-road-parent</artifactId>
         <version>3-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
@@ -11,10 +11,18 @@
 
     <artifactId>skid-road</artifactId>
 
-    <name>Skid Road</name>
+    <name>Skid Road Core</name>
     <description>Multi-host encrypted log rolling.</description>
 
     <dependencies>
+        <dependency>
+            <groupId>org.jdbi</groupId>
+            <artifactId>jdbi</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.ifar.dw-goodies</groupId>
+            <artifactId>dw-goodies</artifactId>
+        </dependency>
         <dependency>
             <groupId>commons-lang</groupId>
             <artifactId>commons-lang</artifactId>
@@ -80,12 +88,6 @@
             <groupId>net.sf.supercsv</groupId>
             <artifactId>super-csv</artifactId>
         </dependency>
-
-        <dependency>
-            <groupId>io.ifar</groupId>
-            <artifactId>dw-goodies</artifactId>
-        </dependency>
-
         <dependency>
             <groupId>com.google.code.findbugs</groupId>
             <artifactId>jsr305</artifactId>

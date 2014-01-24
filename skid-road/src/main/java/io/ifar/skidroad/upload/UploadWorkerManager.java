@@ -5,7 +5,6 @@ import com.yammer.metrics.Metrics;
 import com.yammer.metrics.core.Gauge;
 import com.yammer.metrics.core.HealthCheck;
 import com.yammer.metrics.core.Meter;
-import io.ifar.goodies.AutoCloseableIterator;
 import io.ifar.goodies.IterableIterator;
 import io.ifar.goodies.Iterators;
 import io.ifar.goodies.Pair;
@@ -14,10 +13,14 @@ import io.ifar.skidroad.scheduling.SimpleQuartzScheduler;
 import io.ifar.skidroad.tracking.LogFileStateListener;
 import io.ifar.skidroad.tracking.LogFileTracker;
 import org.quartz.*;
+import org.skife.jdbi.v2.ResultIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -75,6 +78,7 @@ public class UploadWorkerManager implements LogFileStateListener {
 
     private final Meter errorMeter = Metrics.newMeter(this.getClass(), "upload_errors", "errors", TimeUnit.SECONDS);
     private final Meter successMeter = Metrics.newMeter(this.getClass(), "upload_successes", "successes", TimeUnit.SECONDS);
+    private Trigger trigger;
 
     /**
      * @param workerFactory Provides workers to perform the LogFile uploads.
@@ -179,12 +183,15 @@ public class UploadWorkerManager implements LogFileStateListener {
 
         Map<String,Object> retryConfiguration = new HashMap<>(1);
         retryConfiguration.put(RetryJob.UPLOAD_WORKER_MANAGER, this);
-        scheduler.schedule(this.getClass().getSimpleName() + "_retry", RetryJob.class, retryIntervalSeconds * 1000, retryConfiguration);
+        trigger = scheduler.schedule(this.getClass().getSimpleName() + "_retry", RetryJob.class, retryIntervalSeconds * 1000, retryConfiguration);
     }
 
     public void stop() {
         LOG.info("Stopping {}.",UploadWorkerManager.class.getSimpleName());
         tracker.removeListener(this);
+        if (trigger != null) {
+            scheduler.unschedule(trigger);
+        }
         this.executor.shutdown();
     }
 
@@ -223,7 +230,7 @@ public class UploadWorkerManager implements LogFileStateListener {
      * PEEK_DEPTH records returned by the database. This avoids iterating the whole result set.
      */
     public void retryOneThenRetryAll() throws Exception {
-        try (AutoCloseableIterator<LogFile> iterator = tracker.findMine(ImmutableSet.of(UPLOADING, PREPARED, UPLOAD_ERROR))){
+        try (ResultIterator<LogFile> iterator = tracker.findMine(ImmutableSet.of(UPLOADING, PREPARED, UPLOAD_ERROR))){
             Pair<LogFile,IterableIterator<LogFile>> oneSelected = Iterators.takeOneFromTopN(iterator, PEEK_DEPTH);
             if (oneSelected.left != null) {
                 //claim check not required for thread safety, but avoid spurious WARNs about retrying items while they are in-flight for the first time

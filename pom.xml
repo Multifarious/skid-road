@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <name>Skid Road Parent POM</name>
-    <groupId>io.ifar</groupId>
+    <groupId>io.ifar.skid-road</groupId>
     <artifactId>skid-road-parent</artifactId>
     <version>3-SNAPSHOT</version>
     <packaging>pom</packaging>
@@ -58,22 +58,22 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>io.ifar</groupId>
+                <groupId>io.ifar.skid-road</groupId>
                 <artifactId>skid-road</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.ifar</groupId>
+                <groupId>io.ifar.skid-road</groupId>
                 <artifactId>skid-road-dropwizard</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.ifar</groupId>
+                <groupId>io.ifar.skid-road</groupId>
                 <artifactId>skid-road-jdbi</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.ifar</groupId>
+                <groupId>io.ifar.skid-road</groupId>
                 <artifactId>skid-road-jersey</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -82,6 +82,12 @@
                 <groupId>com.amazonaws</groupId>
                 <artifactId>aws-java-sdk</artifactId>
                 <version>1.6.12</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.sun.jersey</groupId>
+                <artifactId>jersey-server</artifactId>
+                <version>1.17.1</version> <!-- matches DW. -->
             </dependency>
 
             <dependency>
@@ -167,7 +173,7 @@
             <dependency>
                 <groupId>org.jdbi</groupId>
                 <artifactId>jdbi</artifactId>
-                <version>2.41</version> <!-- Matches Dropwizard 0.6.2 -->
+                <version>2.53</version>
             </dependency>
 
             <dependency>
@@ -182,9 +188,9 @@
             </dependency>
 
             <dependency>
-                <groupId>io.ifar</groupId>
+                <groupId>io.ifar.dw-goodies</groupId>
                 <artifactId>dw-goodies</artifactId>
-                <version>0</version>
+                <version>1-SNAPSHOT</version>
             </dependency>
 
             <dependency>
@@ -228,6 +234,64 @@
                     <artifactId>maven-jar-plugin</artifactId>
                     <version>2.3.2</version>
                 </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-source-plugin</artifactId>
+                    <version>2.2.1</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>buildnumber-maven-plugin</artifactId>
+                    <version>1.2</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-install-plugin</artifactId>
+                    <version>2.5.1</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-javadoc-plugin</artifactId>
+                    <version>2.9.1</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-deploy-plugin</artifactId>
+                    <version>2.8</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-release-plugin</artifactId>
+                    <version>2.4.2</version>
+                    <configuration>
+                        <providerImplementations>
+                            <git>jgit</git>
+                        </providerImplementations>
+                    </configuration>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.apache.maven.scm</groupId>
+                            <artifactId>maven-scm-provider-jgit</artifactId>
+                            <version>1.9</version>
+                        </dependency>
+                    </dependencies>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-scm-plugin</artifactId>
+                    <version>1.9</version>
+                    <configuration>
+                        <connectionType>developerConnection</connectionType>
+                        <providerImplementations>
+                            <git>jgit</git>
+                        </providerImplementations>
+                    </configuration>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.apache.maven.scm</groupId>
+                            <artifactId>maven-scm-provider-jgit</artifactId>
+                            <version>1.9</version>
+                        </dependency>
+                    </dependencies>
+                </plugin>
             </plugins>
         </pluginManagement>
         <plugins>
@@ -235,9 +299,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-scm-plugin</artifactId>
                 <version>1.8.1</version>
-                <configuration>
-                    <connectionType>developerConnection</connectionType>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -250,13 +311,23 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
-                <version>2.2.1</version>
                 <executions>
                     <execution>
                         <id>attach-sources</id>
                         <phase>verify</phase>
                         <goals>
                             <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
                         </goals>
                     </execution>
                 </executions>

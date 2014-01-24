@@ -49,7 +49,7 @@ public interface DefaultJDBILogFileDAO extends JDBILogFileDAO {
     @Override
     @SqlQuery("select rolling_cohort, serial, start_time, origin_uri, prep_uri, archive_key, archive_uri, archive_group," +
             " state, owner_uri, bytes, created_at, updated_at from log_files where owner_uri = :owner_uri and state = :state order by start_time asc")
-    ResultIterator<LogFile> findByOwnerAndState(@Bind("owner_uri") String ownerUri, @Bind(value="state") String state);
+    ResultIterator<LogFile> findByOwnerAndState(@Bind("owner_uri") String ownerUri, @Bind("state") String state);
 
     @Override
     @SqlQuery("select distinct owner_uri from log_files")
@@ -60,7 +60,7 @@ public interface DefaultJDBILogFileDAO extends JDBILogFileDAO {
             " state, owner_uri, bytes, created_at, updated_at from log_files where state = :state and start_time >= :first_ts and start_time <= :last_ts" +
             " order by start_time asc")
     @FetchSize(50)
-    ResultIterator<LogFile> listLogFilesByDateAndState(@Bind(value="state") String state, @Bind("first_ts") DateTime startDate,
+    ResultIterator<LogFile> listLogFilesByDateAndState(@Bind("state") String state, @Bind("first_ts") DateTime startDate,
                                                  @Bind("last_ts") DateTime endDate);
 
     @Override
@@ -81,12 +81,12 @@ public interface DefaultJDBILogFileDAO extends JDBILogFileDAO {
 
     @Override
     @SqlQuery("select sum(bytes) from log_files where state = :state and start_time >= :first_ts and start_time <= :last_ts")
-    Long totalSize(@Bind(value = "state") String state, @Bind("first_ts") DateTime startDate,
+    Long totalSize(@Bind("state") String state, @Bind("first_ts") DateTime startDate,
                    @Bind("last_ts") DateTime endDate);
 
     @Override
     @SqlQuery("select count(*) from log_files where state = :state and start_time >= :first_ts and start_time <= :last_ts")
-    int count(@Bind(value = "state") String state, @Bind("first_ts") DateTime startDate,
+    int count(@Bind("state") String state, @Bind("first_ts") DateTime startDate,
                @Bind("last_ts") DateTime endDate);
 
     @Override
@@ -99,6 +99,17 @@ public interface DefaultJDBILogFileDAO extends JDBILogFileDAO {
     @SqlQuery("select rolling_cohort, serial, start_time, origin_uri, prep_uri, archive_key, archive_uri, archive_group," +
             " state, owner_uri, bytes, created_at, updated_at from log_files where rolling_cohort = :rolling_cohort and serial = :serial")
     LogFile findByRollingCohortAndSerial(@Bind("rolling_cohort") String rollingCohort, @Bind("serial") int serial);
+
+    @Override
+    @SqlQuery("select rolling_cohort, serial, start_time, origin_uri, prep_uri, archive_key, archive_uri, archive_group," +
+            " state, owner_uri, bytes, created_at, updated_at from log_files" +
+            " where owner_uri = :owner, state = :state and start_time >= :first_ts and start_time <= :last_ts" +
+            " order by start_time asc")
+    @FetchSize(50)
+    ResultIterator<LogFile> listLogFilesByOwnerAndDateAndState(@Bind("state") String state,
+                                                               @Bind("owner") String owner,
+                                                               @Bind("first_ts") DateTime startDate,
+                                                               @Bind("last_ts") DateTime endDate);
 
     void close();
 }

@@ -1,24 +1,21 @@
 package io.ifar.skidroad.tracker;
 
 import com.google.common.collect.ImmutableSet;
-import io.ifar.goodies.AutoCloseableIterator;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.tracking.AbstractLogFileTracker;
 import io.ifar.skidroad.tracking.LogFileState;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
+import org.skife.jdbi.v2.ResultIterator;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static io.ifar.skidroad.tracking.LogFileState.*;
+import static io.ifar.skidroad.tracking.LogFileState.WRITING;
 
 /**
  * A simplistic LogFileTracker that merely generates LogFile records with unique serial numbers and does not actually
@@ -57,18 +54,81 @@ public class TransientLogFileTracker extends AbstractLogFileTracker {
     }
 
     @Override
-    public AutoCloseableIterator<LogFile> findMine(LogFileState state) {
+    public ResultIterator<LogFile> findMine(LogFileState state) {
         return findMine(ImmutableSet.of(state));
     }
 
     @Override
-    public AutoCloseableIterator<LogFile> findMine(Set<LogFileState> states) {
+    public ResultIterator<LogFile> findMine(Set<LogFileState> states) {
         List<LogFile> result = new LinkedList<>();
-        for (LogFile logFile : logFiles)
-            if (states.contains(logFile.getState()) && logFile.getOwnerURI().equals(localUri))
+        for (LogFile logFile : logFiles) {
+            if (states.contains(logFile.getState()) &&
+                    (logFile.getOwnerURI().toASCIIString().equals(localUri.toASCIIString())))
                 result.add(logFile);
+        }
+        final Iterator<LogFile> resultIterator = result.iterator();
+        return new ResultIterator<LogFile>() {
+            @Override
+            public void close() {
+                // no op
+            }
 
-        return new AutoCloseableIterator<>(result.iterator());
+            @Override
+            public boolean hasNext() {
+                return resultIterator.hasNext();
+            }
+
+            @Override
+            public LogFile next() {
+                return resultIterator.next();
+            }
+
+            @Override
+            public void remove() {
+                throw new UnsupportedOperationException();
+            }
+        };
+    }
+
+    @Override
+    public ResultIterator<LogFile> findMine(LogFileState state, DateTime start, DateTime end) {
+        return findMine(ImmutableSet.of(state),start,end);
+    }
+
+    @Override
+    public ResultIterator<LogFile> findMine(Set<LogFileState> states, DateTime start, DateTime end) {
+        List<LogFile> results = new LinkedList<>();
+        ResultIterator<LogFile> mine = findMine(states);
+        while (mine.hasNext()) {
+            LogFile lf = mine.next();
+            if (lf.getUpdatedAt() != null && lf.getUpdatedAt().isBefore(end)
+                    && (lf.getUpdatedAt().isAfter(start) || lf.getUpdatedAt().equals(start)))
+            {
+                results.add(lf);
+            }
+        }
+        final Iterator<LogFile> resultIterator = results.iterator();
+        return new ResultIterator<LogFile>() {
+            @Override
+            public void close() {
+                // no op
+            }
+
+            @Override
+            public boolean hasNext() {
+                return resultIterator.hasNext();
+            }
+
+            @Override
+            public LogFile next() {
+                return resultIterator.next();
+            }
+
+            @Override
+            public void remove() {
+                throw new UnsupportedOperationException();
+            }
+        };
     }
 
     @Override

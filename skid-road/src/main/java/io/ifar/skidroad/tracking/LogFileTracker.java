@@ -1,8 +1,8 @@
 package io.ifar.skidroad.tracking;
 
-import io.ifar.goodies.AutoCloseableIterator;
 import io.ifar.skidroad.LogFile;
 import org.joda.time.DateTime;
+import org.skife.jdbi.v2.ResultIterator;
 
 import java.util.Set;
 
@@ -101,14 +101,34 @@ public interface LogFileTracker {
      *
      * Iterator must be closed or database connection will be leaked.
      */
-    AutoCloseableIterator<LogFile> findMine(LogFileState state);
+    ResultIterator<LogFile> findMine(LogFileState state);
 
     /**
      * Return all LogFile records owned by current instance in one of the specified states.
      *
      * Iterator must be closed or database connection will be leaked.
      */
-    AutoCloseableIterator<LogFile> findMine(Set<LogFileState> states);
+    ResultIterator<LogFile> findMine(Set<LogFileState> states);
+
+    /**
+     * Query for a time range of {@link LogFile}s by state.
+     *
+     * @param state the state to query for
+     * @param start the start of the interval (inclusive)
+     * @param end the end of the interval (exclusive)
+     * @return the matching {@link LogFile}s.
+     */
+    ResultIterator<LogFile> findMine(LogFileState state, DateTime start, DateTime end);
+
+    /**
+     * Query for a time range of {@link LogFile}s by state.
+     *
+     * @param states the states to query for
+     * @param start the start of the interval (inclusive)
+     * @param end the end of the interval (exclusive)
+     * @return the matching {@link LogFile}s.
+     */
+    ResultIterator<LogFile> findMine(Set<LogFileState> states, DateTime start, DateTime end);
 
     /**
      * Return LogFile record, if any, with teh specified rolling cohort and serial number.

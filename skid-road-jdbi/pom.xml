@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>io.ifar</groupId>
+        <groupId>io.ifar.skid-road</groupId>
         <artifactId>skid-road-parent</artifactId>
         <version>3-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
@@ -16,7 +16,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>io.ifar</groupId>
+            <groupId>io.ifar.skid-road</groupId>
             <artifactId>skid-road</artifactId>
         </dependency>
 
@@ -27,7 +27,7 @@
         <dependency>
             <groupId>org.jdbi</groupId>
             <artifactId>jdbi</artifactId>
-            <version>2.41</version> <!-- Matches Dropwizard 0.6.2 -->
+            <version>2.53</version>
         </dependency>
         <dependency>
             <groupId>joda-time</groupId>
@@ -55,7 +55,7 @@
         </dependency>
 
         <dependency>
-            <groupId>io.ifar</groupId>
+            <groupId>io.ifar.dw-goodies</groupId>
             <artifactId>dw-goodies</artifactId>
         </dependency>
 
