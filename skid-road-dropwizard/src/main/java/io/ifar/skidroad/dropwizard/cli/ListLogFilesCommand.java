@@ -59,7 +59,7 @@ public abstract class ListLogFilesCommand<T extends Configuration> extends Confi
         subparser.addArgument("-i","--start-date")
                 .required(true)
                 .dest(START_DATE)
-                .help("a start date in ISO format (yyyy-MnM-dd or yyyy-MM-ddThh:mm); only files with a start on or after this date will be included.");
+                .help("a start date in ISO format (yyyy-MM-dd or yyyy-MM-ddThh:mm); only files with a start on or after this date will be included.");
 
         subparser.addArgument("-e","--end-date")
                 .required(true)
