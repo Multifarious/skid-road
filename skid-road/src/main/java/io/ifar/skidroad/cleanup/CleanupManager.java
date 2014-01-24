@@ -91,7 +91,7 @@ public class CleanupManager {
             try {
                 mgr.sweep();
             } catch (Exception e) {
-                throw new JobExecutionException("Failure retrying prep jobs.", e);
+                throw new JobExecutionException("Failure running cleanup job.", e);
             }
         }
     }
