@@ -5,7 +5,6 @@
         <groupId>io.ifar.skid-road</groupId>
         <artifactId>skid-road-parent</artifactId>
         <version>4-SNAPSHOT</version>
-        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>skid-road</artifactId>
