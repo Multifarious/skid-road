@@ -18,3 +18,5 @@ target/
 
 .DS_Store
 *.esproj
+
+*.versionsBackup
