@@ -1,17 +1,17 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <name>Skid Road Parent POM</name>
     <groupId>io.ifar.skid-road</groupId>
     <artifactId>skid-road-parent</artifactId>
-    <version>3-SNAPSHOT</version>
+    <version>3</version>
     <packaging>pom</packaging>
     <scm>
         <!--<connection>scm:svn:http://somerepository.com/svn_repo/trunk</connection>-->
         <developerConnection>scm:git:git@github.com:Multifarious/skid-road.git</developerConnection>
         <!--<url>http://somerepository.com/view.cvs</url> -->
-    </scm>
+      <tag>skid-road-parent-3</tag>
+  </scm>
 
     <organization>
         <name>Multifarious, Inc.</name>
@@ -190,7 +190,7 @@
             <dependency>
                 <groupId>io.ifar.dw-goodies</groupId>
                 <artifactId>dw-goodies</artifactId>
-                <version>1-SNAPSHOT</version>
+                <version>1</version>
             </dependency>
 
             <dependency>
