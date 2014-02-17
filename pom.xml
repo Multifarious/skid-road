@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <name>Skid Road Parent POM</name>
-    <description></description>
+    <description>Distributed collection, encryption, and shipping system for line-oriented output.</description>
     <url>https://github.com/Multifarious/skid-road</url>
 
     <groupId>io.ifar.skid-road</groupId>
