@@ -263,6 +263,7 @@
                     <artifactId>maven-release-plugin</artifactId>
                     <version>2.4.2</version>
                     <configuration>
+                        <arguments>-Dgpg.passphrase=${gpg.passphrase}</arguments>
                         <providerImplementations>
                             <git>jgit</git>
                         </providerImplementations>
@@ -370,13 +371,49 @@
         </plugins>
     </build>
 
-    <!-- This is an egregious hack.  It is also unfortunately necessary
-         until we move on to OSSRH. -->
+    <profiles>
+        <profile>
+            <id>release-sign-artifacts</id>
+            <activation>
+                <property>
+                    <name>performRelease</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>1.4</version>
+                        <configuration>
+                            <passphrase>${gpg.passphrase}</passphrase>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
     <distributionManagement>
+        <snapshotRepository>
+            <id>sonatype-nexus-snapshots</id>
+            <name>Sonatype Nexus snapshot repository</name>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
         <repository>
-            <id>multifarious-cloudbees-releases</id>
-            <layout>default</layout>
-            <url>file:///Volumes/release</url>
+            <id>sonatype-nexus-staging</id>
+            <name>Sonatype Nexus release repository</name>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
         </repository>
     </distributionManagement>
 
