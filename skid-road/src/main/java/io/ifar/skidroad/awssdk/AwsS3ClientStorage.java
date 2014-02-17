@@ -45,12 +45,12 @@
      private AtomicInteger uploadsInProgress = new AtomicInteger();
      private AtomicInteger downloadsInProgress = new AtomicInteger();
 
-     public AwsS3ClientStorage(String accessKeyID, String secretAccessKey) {
-         this(accessKeyID, secretAccessKey, null);
+     public AwsS3ClientStorage(AWSCredentials creds) {
+         this(creds,null);
      }
 
-     public AwsS3ClientStorage(String accessKeyID, String secretAccessKey, Map<String, String> propertyOverrides) {
-         this.creds = new BasicAWSCredentials(accessKeyID, secretAccessKey);
+     public AwsS3ClientStorage(AWSCredentials creds, Map<String, String> propertyOverrides) {
+         this.creds = creds;
          this.healthCheck = new HealthCheck(name) {
              @Override
              protected Result check() throws Exception {
@@ -92,7 +92,6 @@
          svc = null;
          LOG.info("Stopped {}.",name);
      }
-
 
      private String[] pieces(String uri) {
          assert uri.startsWith(urlScheme + "://") : String.format("A %s URI must start with \"%s://\".", name, urlScheme);

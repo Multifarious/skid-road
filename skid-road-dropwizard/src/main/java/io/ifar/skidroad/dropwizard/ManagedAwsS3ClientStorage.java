@@ -1,5 +1,8 @@
 package io.ifar.skidroad.dropwizard;
 
+import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.auth.InstanceProfileCredentialsProvider;
 import com.yammer.dropwizard.config.Environment;
 import com.yammer.dropwizard.lifecycle.Managed;
 import io.ifar.skidroad.dropwizard.config.RequestLogUploadConfiguration;
@@ -14,12 +17,12 @@ import java.net.URISyntaxException;
 import java.util.Map;
 
 public class ManagedAwsS3ClientStorage extends AwsS3ClientStorage implements Managed {
-    public ManagedAwsS3ClientStorage(String accessKeyID, String secretAccessKey) {
-        this(accessKeyID, secretAccessKey, null);
+    public ManagedAwsS3ClientStorage(AWSCredentials creds) {
+        this(creds, null);
     }
 
-    public ManagedAwsS3ClientStorage(String accessKeyID, String secretAccessKey, Map<String, String> propertyOverrides) {
-        super(accessKeyID, secretAccessKey, propertyOverrides);
+    public ManagedAwsS3ClientStorage(AWSCredentials creds, Map<String, String> propertyOverrides) {
+        super(creds, propertyOverrides);
     }
 
     public static ManagedAwsS3ClientStorage buildStorage(RequestLogUploadConfiguration uploadConfiguration, Environment environment) {
@@ -27,11 +30,16 @@ public class ManagedAwsS3ClientStorage extends AwsS3ClientStorage implements Man
     }
 
     public static ManagedAwsS3ClientStorage buildStorage(RequestLogUploadConfiguration uploadConfiguration, Environment environment, Map<String,String> propertyOverrides) {
-        ManagedAwsS3ClientStorage storage = new ManagedAwsS3ClientStorage(
-                uploadConfiguration.getAccessKeyID(),
-                uploadConfiguration.getSecretAccessKey(),
-                propertyOverrides
-        );
+        ManagedAwsS3ClientStorage storage;
+        if (uploadConfiguration.isUseInstanceProfileCredentials()) {
+            storage = new ManagedAwsS3ClientStorage(new InstanceProfileCredentialsProvider().getCredentials());
+        } else {
+            storage = new ManagedAwsS3ClientStorage(
+                    new BasicAWSCredentials(uploadConfiguration.getAccessKeyID(),
+                            uploadConfiguration.getSecretAccessKey()),
+                    propertyOverrides
+            );
+        }
         environment.manage(storage);
         environment.addHealthCheck(storage.healthCheck());
         return storage;

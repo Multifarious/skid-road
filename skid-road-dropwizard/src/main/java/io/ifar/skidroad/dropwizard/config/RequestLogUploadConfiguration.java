@@ -10,15 +10,17 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 
 public class RequestLogUploadConfiguration {
-    @NotNull
+
     @Pattern(regexp = "[A-Z0-9]{20}")
     @JsonProperty("access_key_id")
     private String accessKeyID;
 
-    @NotNull
     @Pattern(regexp = "[a-zA-Z0-9/+]{40}")
     @JsonProperty("secret_access_key")
     private String secretAccessKey;
+
+    @JsonProperty("use_instance_profile_credentials")
+    private boolean useInstanceProfileCredentials = false;
 
     @JsonProperty("disable_certificate_checks")
     private boolean disableCertificateChecks = false;
@@ -48,12 +50,23 @@ public class RequestLogUploadConfiguration {
         return true;
     }
 
+    @ValidationMethod(message = "Exactly one of access_key_id/secret_access_key and use_instance_profile_credentials" +
+            " must be specified.")
+    public boolean isExactlyOneAwsCredentialSpecified() {
+        boolean keys = (accessKeyID != null && secretAccessKey != null);
+        return (keys && !useInstanceProfileCredentials) || (useInstanceProfileCredentials && !keys);
+    }
+
     public String getAccessKeyID() {
         return accessKeyID;
     }
 
     public String getSecretAccessKey() {
         return secretAccessKey;
+    }
+
+    public boolean isUseInstanceProfileCredentials() {
+        return useInstanceProfileCredentials;
     }
 
     public String getUploadPath() {

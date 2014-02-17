@@ -1,6 +1,8 @@
 package io.ifar.skidroad.dropwizard.cli;
 
 import com.amazonaws.AmazonServiceException;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.auth.InstanceProfileCredentialsProvider;
 import com.google.common.io.ByteStreams;
 import com.yammer.dropwizard.cli.ConfiguredCommand;
 import com.yammer.dropwizard.config.Bootstrap;
@@ -85,10 +87,12 @@ public abstract class FetchLogFileCommand<T extends Configuration> extends Confi
             }
 
             //System.err.println(String.format("Fetching %s", logFile.getArchiveURI()));
-            storage = new AwsS3ClientStorage(
-                    skidRoadReadOnlyConfiguration.getAccessKeyID(),
-                    skidRoadReadOnlyConfiguration.getSecretAccessKey()
-            );
+            if (skidRoadReadOnlyConfiguration.isUseInstanceProfileCredentials()) {
+                storage = new AwsS3ClientStorage(new InstanceProfileCredentialsProvider().getCredentials());
+            } else {
+                storage = new AwsS3ClientStorage(new BasicAWSCredentials(skidRoadReadOnlyConfiguration.getAccessKeyID(),
+                        skidRoadReadOnlyConfiguration.getSecretAccessKey()));
+            }
             storage.start();
 
 

@@ -1,6 +1,8 @@
 package io.ifar.skidroad.dropwizard.cli;
 
 import com.amazonaws.AmazonServiceException;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.auth.InstanceProfileCredentialsProvider;
 import com.google.common.io.ByteStreams;
 import com.yammer.dropwizard.cli.ConfiguredCommand;
 import com.yammer.dropwizard.config.Bootstrap;
@@ -107,10 +109,12 @@ public abstract class StreamLogsCommand <T extends Configuration> extends Config
             DBI jdbi = factory.build(env, skidRoadConfiguration.getDatabaseConfiguration(), "logfile");
             jdbi.registerArgumentFactory(new JodaArgumentFactory());
 
-            storage = new AwsS3ClientStorage(
-                    skidRoadConfiguration.getAccessKeyID(),
-                    skidRoadConfiguration.getSecretAccessKey()
-            );
+            if (skidRoadConfiguration.isUseInstanceProfileCredentials()) {
+                storage = new AwsS3ClientStorage(new InstanceProfileCredentialsProvider().getCredentials());
+            } else {
+                storage = new AwsS3ClientStorage(new BasicAWSCredentials(skidRoadConfiguration.getAccessKeyID(),
+                        skidRoadConfiguration.getSecretAccessKey()));
+            }
             storage.start();
 
             JDBILogFileDAO dao = jdbi.onDemand(DefaultJDBILogFileDAO.class);
