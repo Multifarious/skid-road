@@ -86,13 +86,7 @@ public abstract class FetchLogFileCommand<T extends Configuration> extends Confi
                 return;
             }
 
-            //System.err.println(String.format("Fetching %s", logFile.getArchiveURI()));
-            if (skidRoadReadOnlyConfiguration.isUseInstanceProfileCredentials()) {
-                storage = new AwsS3ClientStorage(new InstanceProfileCredentialsProvider().getCredentials());
-            } else {
-                storage = new AwsS3ClientStorage(new BasicAWSCredentials(skidRoadReadOnlyConfiguration.getAccessKeyID(),
-                        skidRoadReadOnlyConfiguration.getSecretAccessKey()));
-            }
+            storage = new AwsS3ClientStorage(skidRoadReadOnlyConfiguration.getAWSCredentialsProvider().getCredentials());
             storage.start();
 
 

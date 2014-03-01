@@ -30,16 +30,7 @@ public class ManagedAwsS3ClientStorage extends AwsS3ClientStorage implements Man
     }
 
     public static ManagedAwsS3ClientStorage buildStorage(RequestLogUploadConfiguration uploadConfiguration, Environment environment, Map<String,String> propertyOverrides) {
-        ManagedAwsS3ClientStorage storage;
-        if (uploadConfiguration.isUseInstanceProfileCredentials()) {
-            storage = new ManagedAwsS3ClientStorage(new InstanceProfileCredentialsProvider().getCredentials());
-        } else {
-            storage = new ManagedAwsS3ClientStorage(
-                    new BasicAWSCredentials(uploadConfiguration.getAccessKeyID(),
-                            uploadConfiguration.getSecretAccessKey()),
-                    propertyOverrides
-            );
-        }
+        ManagedAwsS3ClientStorage storage = new ManagedAwsS3ClientStorage(uploadConfiguration.getAWSCredentialsProvider().getCredentials());
         environment.manage(storage);
         environment.addHealthCheck(storage.healthCheck());
         return storage;

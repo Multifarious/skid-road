@@ -1,7 +1,12 @@
 package io.ifar.skidroad.dropwizard.config;
 
+import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.yammer.dropwizard.validation.ValidationMethod;
+import org.apache.commons.lang.StringUtils;
 import org.hibernate.validator.constraints.Range;
 
 import javax.validation.Valid;
@@ -18,9 +23,6 @@ public class RequestLogUploadConfiguration {
     @Pattern(regexp = "[a-zA-Z0-9/+]{40}")
     @JsonProperty("secret_access_key")
     private String secretAccessKey;
-
-    @JsonProperty("use_instance_profile_credentials")
-    private boolean useInstanceProfileCredentials = false;
 
     @JsonProperty("disable_certificate_checks")
     private boolean disableCertificateChecks = false;
@@ -50,23 +52,35 @@ public class RequestLogUploadConfiguration {
         return true;
     }
 
-    @ValidationMethod(message = "Exactly one of access_key_id/secret_access_key and use_instance_profile_credentials" +
-            " must be specified.")
-    public boolean isExactlyOneAwsCredentialSpecified() {
-        boolean keys = (accessKeyID != null && secretAccessKey != null);
-        return (keys && !useInstanceProfileCredentials) || (useInstanceProfileCredentials && !keys);
+    @ValidationMethod(message = "both or neither AWS access parameter must be set.")
+    public boolean isBothOrNeitherAwsAccessParameterSet() {
+        return (StringUtils.isNotBlank(accessKeyID) && StringUtils.isNotBlank(secretAccessKey)) ||
+                (StringUtils.isBlank(accessKeyID) && StringUtils.isBlank(secretAccessKey));
     }
 
-    public String getAccessKeyID() {
+    public AWSCredentialsProvider getAWSCredentialsProvider() {
+        if (StringUtils.isNotBlank(accessKeyID)) {
+            return new AWSCredentialsProvider() {
+                @Override
+                public AWSCredentials getCredentials() {
+                    return new BasicAWSCredentials(accessKeyID,secretAccessKey);
+                }
+
+                @Override
+                public void refresh() {
+                    // no op
+                }
+            };
+        }
+        return new DefaultAWSCredentialsProviderChain();
+    }
+
+    String getAccessKeyID() {
         return accessKeyID;
     }
 
-    public String getSecretAccessKey() {
+    String getSecretAccessKey() {
         return secretAccessKey;
-    }
-
-    public boolean isUseInstanceProfileCredentials() {
-        return useInstanceProfileCredentials;
     }
 
     public String getUploadPath() {
