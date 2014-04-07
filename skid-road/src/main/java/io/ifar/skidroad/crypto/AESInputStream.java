@@ -50,9 +50,9 @@ public class AESInputStream extends InputStream {
     }
 
     /**
-     * Returns the next plaintext byte. May or may not invoke read() on the
-     * underlying InputStream.
-     * @throws IOException
+     * Returns the next plaintext byte. May or may not invoke {@link java.io.InputStream#read()} on the
+     * underlying stream.
+     * @throws IOException if one occurs in the underlying operations.
      */
     @Override
     public int read() throws IOException {

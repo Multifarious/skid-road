@@ -10,8 +10,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Trigger a Quartz job
- * <code>curl -X POST http://localhost:8081/tasks/fire-trigger\?job\=my_job\&job\=my_other_job</code>
+ * Trigger a Quartz job, e.g.:
+ * <code>curl -X POST http://localhost:8081/tasks/fire-trigger\?job\=my_job\&amp;job\=my_other_job</code>
  */
 public class TriggerScheduledJob extends Task {
     SimpleQuartzScheduler scheduler;

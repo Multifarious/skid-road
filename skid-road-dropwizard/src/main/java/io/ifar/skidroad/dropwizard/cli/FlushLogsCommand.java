@@ -47,8 +47,10 @@ public abstract class FlushLogsCommand<T extends Configuration> extends Configur
     /**
      * Subclasses should overwrite and create singleton instances returned by the other abstract methods. Manager objects
      * created should be registered with the Environment for proper lifecycle handling.
-     * @param configuration
-     * @param environment
+     *
+     * @param configuration application-specific DW configuration.
+     * @param environment DW environment.
+     * @throws java.lang.Exception if one occurs
      */
     protected abstract void init(T configuration, Environment environment) throws Exception;
     protected abstract LogFileTracker getLogTracker();

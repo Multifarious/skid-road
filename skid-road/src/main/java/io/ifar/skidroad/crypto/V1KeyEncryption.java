@@ -10,16 +10,12 @@ import java.util.List;
 import static io.ifar.skidroad.crypto.StreamingBouncyCastleAESWithSIC.*;
 
 /**
- * Created with IntelliJ IDEA.
- * User: lhn
- * Date: 5/22/13
- * Time: 12:31 PM
- * To change this template use File | Settings | File Templates.
+ *
  */
 public class V1KeyEncryption {
     /**
-     * Encrypts provided single-use key and iv pair and returns 7-bit ASCII clean representation of them
-     * and and the master iv used for encryption.
+     * Encrypts provided single-use key and IV pair and returns 7-bit ASCII clean representation of them
+     * and the master IV used for encryption.
      *
      * Intended use is to facilitate key rotation of encrypted artifacts.
      * Suppose artifacts are all encrypted with single-use keys. Those
@@ -54,6 +50,7 @@ public class V1KeyEncryption {
      * @param iv Single-use initialization vector
      * @param masterKey Master key used to encrypt the single-use pair. Not included in output.
      * @param masterIV Master initialization vector used to encrypt the single-use pair. Included in output.
+     * @return ASCII representation of the key and IV
      */
     protected static String v1EncryptAndEncodeKey(byte[] key, byte[] iv, byte[] masterKey, byte[] masterIV) {
         ByteArrayOutputStream cryptOut = new ByteArrayOutputStream();

@@ -36,8 +36,8 @@ public class AESOutputStream extends FilterOutputStream {
     /**
      * Encrypts the provided input byte. Ciphertext is written to underlying
      * OutputStream if block boundary has been reached.
-     * @param input
-     * @throws IOException
+     * @param input a byte to write
+     * @throws IOException if one occurs on the underlying stream
      */
     @Override
     public void write(int input) throws IOException {
@@ -55,7 +55,8 @@ public class AESOutputStream extends FilterOutputStream {
      * Finishes writing encrypted data to the output stream without closing
      * the underlying stream. Use this method when applying multiple filters
      * in succession to the same output stream.
-     * @exception IOException if an I/O error has occurred
+     * @throws IOException if an I/O error has occurred
+     * @throws org.bouncycastle.crypto.InvalidCipherTextException if the cipher text is invalid.
      */
     public void finish() throws IOException, InvalidCipherTextException {
         int outputByteCount = cipher.doFinal(outputBuffer, 0);

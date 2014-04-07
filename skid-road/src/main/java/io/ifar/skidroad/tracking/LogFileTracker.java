@@ -22,6 +22,7 @@ public interface LogFileTracker {
     /**
      * Mark the specified LogFile as WRITTEN. Also store byteSize.
      *
+     * @param logFile the log file to mark.
      * @return number of LogFiles updated. 0 indicates LogFile was not found in the tracker or its ownerURI has been changed. More than 1 indicates faulty tracker implementation.
      */
     int written(LogFile logFile);
@@ -29,6 +30,7 @@ public interface LogFileTracker {
     /**
      * Mark the specified LogFile as WRITE_ERROR
      *
+     * @param logFile the logfile to mark
      * @return number of LogFiles updated. 0 indicates LogFile was not found in the tracker or its ownerURI has been changed. More than 1 indicates faulty tracker implementation.
      */
     int writeError(LogFile logFile);
@@ -36,6 +38,7 @@ public interface LogFileTracker {
     /**
      * Record the prepPath for the specified LogFile
      *
+     * @param logFile the log file to mark.
      * @return number of LogFiles updated. 0 indicates LogFile was not found in the tracker or its ownerURI has been changed. More than 1 indicates faulty tracker implementation.
      */
     int updatePrepPath(LogFile logFile);
@@ -43,6 +46,7 @@ public interface LogFileTracker {
     /**
      * Record the archiveKey for the specified LogFile
      *
+     * @param logFile the log file to mark.
      * @return number of LogFiles updated. 0 indicates LogFile was not found in the tracker or its ownerURI has been changed. More than 1 indicates faulty tracker implementation.
      */
     int updateArchiveKey(LogFile logFile);
@@ -50,6 +54,7 @@ public interface LogFileTracker {
     /**
      * Record the archiveGroup and archiveURI for the specified LogFile
      *
+     * @param logFile the log file to mark.
      * @return number of LogFiles updated. 0 indicates LogFile was not found in the tracker or its ownerURI has been changed. More than 1 indicates faulty tracker implementation.
      */
     int updateArchiveLocation(LogFile logFile);
@@ -57,6 +62,7 @@ public interface LogFileTracker {
     /**
      * Mark the specified LogFile as PREPARING
      *
+     * @param logFile the log file to mark.
      * @return number of LogFiles updated. 0 indicates LogFile was not found in the tracker or its ownerURI has been changed. More than 1 indicates faulty tracker implementation.
      */
     int preparing(LogFile logFile);
@@ -64,6 +70,7 @@ public interface LogFileTracker {
     /**
      * Mark the specified LogFile as PREPARED
      *
+     * @param logFile the log file to mark.
      * @return number of LogFiles updated. 0 indicates LogFile was not found in the tracker or its ownerURI has been changed. More than 1 indicates faulty tracker implementation.
      */
     int prepared(LogFile logFile);
@@ -71,6 +78,7 @@ public interface LogFileTracker {
     /**
      * Mark the specified LogFile as PREP_ERROR
      *
+     * @param logFile the log file to mark.
      * @return number of LogFiles updated. 0 indicates LogFile was not found in the tracker or its ownerURI has been changed. More than 1 indicates faulty tracker implementation.
      */
     int prepError(LogFile logFile);
@@ -78,6 +86,7 @@ public interface LogFileTracker {
     /**
      * Mark the specified LogFile as UPLOADING
      *
+     * @param logFile the log file to mark.
      * @return number of LogFiles updated. 0 indicates LogFile was not found in the tracker or its ownerURI has been changed. More than 1 indicates faulty tracker implementation.
      */
     int uploading(LogFile logFile);
@@ -85,6 +94,7 @@ public interface LogFileTracker {
     /**
      * Mark the specified LogFile as UPLOADED
      *
+     * @param logFile the log file to mark.
      * @return number of LogFiles updated. 0 indicates LogFile was not found in the tracker or its ownerURI has been changed. More than 1 indicates faulty tracker implementation.
      */
     int uploaded(LogFile logFile);
@@ -92,6 +102,7 @@ public interface LogFileTracker {
     /**
      * Mark the specified LogFile as UPLOAD_ERROR
      *
+     * @param logFile the log file to mark.
      * @return number of LogFiles updated. 0 indicates LogFile was not found in the tracker or its ownerURI has been changed. More than 1 indicates faulty tracker implementation.
      */
     int uploadError(LogFile logFile);

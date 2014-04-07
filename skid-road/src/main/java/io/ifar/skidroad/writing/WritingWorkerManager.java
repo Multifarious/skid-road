@@ -69,10 +69,15 @@ public class WritingWorkerManager<T> {
                                 int spawnThreshold, int unhealthyThreshold) {
 
         File logDir = rollingScheme.getBaseDirectory();
-        logDir.mkdirs();
-        if (!logDir.exists() || !logDir.canWrite())
-            throw new IllegalStateException("Cannot create or cannot write to output path " + logDir.getPath());
-
+        if (!logDir.exists()) {
+            if (!logDir.mkdirs()) {
+                throw new IllegalStateException("Cannot cannot write to output path " + logDir.getPath());
+            }
+            LOG.info("Created output path {}.", logDir.getPath());
+        }
+        if (!logDir.canWrite()) {
+            throw new IllegalStateException("Cannot cannot write to output path " + logDir.getPath());
+        }
         this.rollingScheme = rollingScheme;
         this.tracker = tracker;
         this.factory = factory;
@@ -135,7 +140,7 @@ public class WritingWorkerManager<T> {
     /**
      * Submit an item to be recorded in a log file.
      * @param timeStamp Time to attribute item to
-     * @param item
+     * @param item the item
      */
     public void record(DateTime timeStamp, T item) {
         record(timeStamp.getMillis(), item);
@@ -143,8 +148,8 @@ public class WritingWorkerManager<T> {
 
     /**
      * Submit an item to be recorded in a log file.
-     * @param timeStamp Time to attribute item to
-     * @param item
+     * @param timeStamp time to attribute item to
+     * @param item the item
      */
     public void record(long timeStamp, T item) {
         getQueueFor(timeStamp).add(item);
@@ -152,7 +157,7 @@ public class WritingWorkerManager<T> {
 
     /**
      * Submit an item to be recorded in a log file.
-     * @param item
+     * @param item the item
      */
     public void record(T item) {
         getQueueFor(System.currentTimeMillis()).add(item);
@@ -211,17 +216,17 @@ public class WritingWorkerManager<T> {
             for(Thread worker : entry.getValue())
                 if (!worker.isAlive())
                     zombies.add(worker);
-            if (zombies.isEmpty()) {
-                //do nothing
-            } else if (zombies.size() == entry.getValue().size()) {
-                LOG.debug("The {} worker(s) for {} have all exited.", zombies.size(), rollingScheme.getRepresentation(entry.getKey()));
-                synchronized (workers) {
-                    workers.remove(entry.getKey());
-                }
-            } else {
-                LOG.debug("{} of the {} worker(s) for {} have exited.", zombies.size(), entry.getValue().size(), rollingScheme.getRepresentation(entry.getKey()));
-                synchronized (workers) {
-                    entry.getValue().removeAll(zombies);
+            if (!zombies.isEmpty()) {
+                if (zombies.size() == entry.getValue().size()) {
+                    LOG.debug("The {} worker(s) for {} have all exited.", zombies.size(), rollingScheme.getRepresentation(entry.getKey()));
+                    synchronized (workers) {
+                        workers.remove(entry.getKey());
+                    }
+                } else {
+                    LOG.debug("{} of the {} worker(s) for {} have exited.", zombies.size(), entry.getValue().size(), rollingScheme.getRepresentation(entry.getKey()));
+                    synchronized (workers) {
+                        entry.getValue().removeAll(zombies);
+                    }
                 }
             }
         }

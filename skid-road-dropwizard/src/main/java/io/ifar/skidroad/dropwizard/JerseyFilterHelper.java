@@ -18,6 +18,9 @@ public class JerseyFilterHelper {
      * Adds provided filter instance to the Dropwizard Jersey configuration.
      *
      * Note: do not use in combination with mechanisms that set the filter list via other formats (e.g. Strings, Class objects)
+     *
+     * @param env DW environment
+     * @param filter the filter to add
      */
     public static void addFilter(Environment env, ContainerRequestFilter filter) {
         List<ContainerRequestFilter> l = env.getJerseyProperty(ResourceConfig.PROPERTY_CONTAINER_REQUEST_FILTERS);
@@ -33,6 +36,9 @@ public class JerseyFilterHelper {
      * Adds provided filter instance to the Dropwizard Jersey configuration.
      *
      * Note: do not use in combination with mechanisms that set the filter list via other formats (e.g. Strings, Class objects)
+     *
+     * @param env DW environment
+     * @param filter the filter to add
      */
     public static void addFilter(Environment env, ContainerResponseFilter filter) {
         List<ContainerResponseFilter> l = env.getJerseyProperty(ResourceConfig.PROPERTY_CONTAINER_RESPONSE_FILTERS);

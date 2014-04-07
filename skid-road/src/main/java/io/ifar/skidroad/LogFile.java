@@ -29,18 +29,21 @@ public class LogFile {
      *
      * @param rollingCohort e.g. hour the log lines belong to
      * @param serial unique serial number within rollingCohort
-     * @param startTime
+     * @param startTime the starting time for items in the log file.
      * @param originPath local path on machine creating log file
      * @param archiveKey one-time file key used to encrypt contents. archive key itself usually also encrypted with master key.
      * @param archiveURI e.g. S3 path compressed log file uploaded to
      * @param archiveGroup e.g. week number log file belongs to
-     * @param state
+     * @param state the state of the log file, e.g., {@link LogFileState#WRITING}.
      * @param ownerURI identifies entity responsible for maintaining state
-     * @param byteSize
-     * @param createdAt
-     * @param updatedAt
+     * @param byteSize the number of bytes in the file (if known)
+     * @param createdAt when the record was updated.
+     * @param updatedAt when the record was last updated.
      */
-    public LogFile(String rollingCohort, Integer serial, DateTime startTime, Path originPath, Path prepPath, String archiveKey, URI archiveURI, String archiveGroup, LogFileState state, URI ownerURI, Long byteSize, DateTime createdAt,  DateTime updatedAt) {
+    public LogFile(String rollingCohort, Integer serial, DateTime startTime, Path originPath, Path prepPath,
+                   String archiveKey, URI archiveURI, String archiveGroup, LogFileState state, URI ownerURI,
+                   Long byteSize, DateTime createdAt,  DateTime updatedAt)
+    {
         this.archiveGroup = archiveGroup;
         this.archiveKey = archiveKey;
         this.archiveURI = archiveURI;
@@ -213,7 +216,7 @@ public class LogFile {
     }
 
     /**
-     * Returns unique key for this LogFile
+     * @return unique key for this LogFile
      */
     public String getID() {
         return JOINER.join(rollingCohort, serial);

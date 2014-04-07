@@ -40,7 +40,8 @@ import java.util.List;
  * Helper methods to generate keys and initialization vectors using Java's
  * SecureRandom are provided.
  *
- * @link https://en.wikipedia.org/wiki/Cipher_modes
+ * See <a href="https://en.wikipedia.org/wiki/Cipher_modes">Wikipedia</a> for more
+ * on cipher modes.
  */
 public class StreamingBouncyCastleAESWithSIC {
     /**
@@ -76,6 +77,10 @@ public class StreamingBouncyCastleAESWithSIC {
      *
      * Generally it is advisable to use AESInputStream, AESOutputStream, or
      * the static encrypt / decrypt methods rather than calling this directly.
+     * @param encrypt {@code true} for encrypt, {@code false} for decrypt.
+     * @param key AES encryption key
+     * @param iv AES SIC initialization vector. Should be unique for each invocation.
+     * @return a cipher instance
      */
     public static PaddedBufferedBlockCipher makeCipher(boolean encrypt, byte[] key, byte[] iv) {
         //AESFastEngine uses a few KB extra RAM to contain static lookup tables
@@ -92,7 +97,12 @@ public class StreamingBouncyCastleAESWithSIC {
      *
      * Generally it is advisable to use AESInputStream, AESOutputStream, or
      * the static encrypt / decrypt methods rather than calling this directly.
-     */    public static PaddedBufferedBlockCipher makeEncryptionCipher(byte[] key, byte[] iv) {
+     *
+     * @param key AES encryption key
+     * @param iv AES SIC initialization vector. Should be unique for each invocation.
+     * @return a cipher instance set for encryption
+     */
+    public static PaddedBufferedBlockCipher makeEncryptionCipher(byte[] key, byte[] iv) {
         return makeCipher(ENCRYPT, key, iv);
     }
 
@@ -101,6 +111,9 @@ public class StreamingBouncyCastleAESWithSIC {
      *
      * Generally it is advisable to use AESInputStream, AESOutputStream, or
      * the static encrypt / decrypt methods rather than calling this directly.
+     * @param key AES encryption key
+     * @param iv AES SIC initialization vector. Should be unique for each invocation.
+     * @return a cipher instance set for decryption.
      */
     public static PaddedBufferedBlockCipher makeDecryptionCipher(byte[] key, byte[] iv) {
         return makeCipher(DECRYPT, key, iv);
@@ -115,11 +128,11 @@ public class StreamingBouncyCastleAESWithSIC {
      * @param from Input data; it is not closed by this method.
      * @param to Output data; it is not flushed or closed by this method.
      * @param key AES encryption key
-     * @param key AES SIC initialization vector. Should be unique for each invocation.
+     * @param iv AES SIC initialization vector. Should be unique for each invocation.
      *
      * @see AESOutputStream
-     * @throws IOException
-     * @throws InvalidCipherTextException
+     * @throws IOException if one occurs on the underlying stream
+     * @throws InvalidCipherTextException if one occurs during ecryption
      */
     public static void encrypt(InputStream from, OutputStream to, byte[] key, byte[] iv) throws IOException, InvalidCipherTextException {
         AESOutputStream encryptedOutputStream = new AESOutputStream(to, key, iv);
@@ -140,8 +153,8 @@ public class StreamingBouncyCastleAESWithSIC {
      * @return randomly generated AES SIC initialization vector
      *
      * @see AESOutputStream
-     * @throws IOException
-     * @throws InvalidCipherTextException
+     * @throws IOException it one occurs during underlying operations.
+     * @throws InvalidCipherTextException if one occurs during encryption.
      */
     public static byte[] encrypt(InputStream from, OutputStream to, byte[] key) throws IOException, InvalidCipherTextException {
         byte[] iv = generateRandomIV();
@@ -156,10 +169,10 @@ public class StreamingBouncyCastleAESWithSIC {
      * @param from Input data; it is not closed by this method.
      * @param to Output data; it is not flushed or closed by this method.
      * @param key AES decryption key
-     * @param key AES SIC initialization vector
+     * @param iv AES SIC initialization vector
      *
      * @see AESInputStream
-     * @throws IOException
+     * @throws IOException if one occurs during underlying operations.
      */
     public static void decrypt(InputStream from, OutputStream to, byte[] key, byte[] iv) throws IOException {
         AESInputStream decryptedInputStream = new AESInputStream(from, key, iv);
@@ -167,7 +180,7 @@ public class StreamingBouncyCastleAESWithSIC {
     }
 
     /**
-     * Generate a secure random 256-bit key for use with AES. (AES accepts 128, 192, or 256 bit keys)
+     * @return a secure random 256-bit key for use with AES. (AES accepts 128, 192, or 256 bit keys)
      */
     public static byte[] generateRandomKey() {
         return keyGenerator.generateKey();
@@ -178,9 +191,11 @@ public class StreamingBouncyCastleAESWithSIC {
      * SIC IVs should never be reused, and this is most easily achieved with a
      * cryptographically secure random number generator.
      *
-     * AES IVs are always 128 bits long.
+     * AES IVs are always 128 bits long.  See <a href="http://stackoverflow.com/questions/4608489/how-to-pick-an-appropriate-iv-initialization-vector-for-aes-ctr-nopadding?rq=1">this SO discussion</a>
+     * about picking IVs.
      *
-     * @link http://stackoverflow.com/questions/4608489/how-to-pick-an-appropriate-iv-initialization-vector-for-aes-ctr-nopadding?rq=1
+     * @return randomly generated initialization vector
+     *
      */
     public static byte[] generateRandomIV() {
         return ivGenerator.generateKey();
@@ -205,6 +220,8 @@ public class StreamingBouncyCastleAESWithSIC {
      * @param key to be encrypted and encoded
      * @param iv to be encrypted and encoded
      * @param masterKey to be used during encryption
+     *
+     * @return ASCII-encoded key
      */
     public static String encryptAndEncodeKey(byte[] key, byte[] iv, byte[] masterKey) {
         return V1KeyEncryption.v1EncryptAndEncodeKey(key, iv, masterKey, generateRandomIV());
