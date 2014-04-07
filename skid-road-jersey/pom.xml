@@ -4,7 +4,7 @@
     <parent>
         <groupId>io.ifar.skid-road</groupId>
         <artifactId>skid-road-parent</artifactId>
-        <version>5</version>
+        <version>6-SNAPSHOT</version>
     </parent>
 
     <artifactId>skid-road-jersey</artifactId>
