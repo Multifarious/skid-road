@@ -1,7 +1,7 @@
 package io.ifar.skidroad.dropwizard.cli;
 
-import com.yammer.dropwizard.cli.Command;
-import com.yammer.dropwizard.config.Bootstrap;
+import io.dropwizard.cli.Command;
+import io.dropwizard.setup.Bootstrap;
 import io.ifar.skidroad.crypto.StreamingBouncyCastleAESWithSIC;
 import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;

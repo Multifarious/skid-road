@@ -1,6 +1,6 @@
 package io.ifar.skidroad.dropwizard;
 
-import com.yammer.dropwizard.lifecycle.Managed;
+import io.dropwizard.lifecycle.Managed;
 import io.ifar.skidroad.jdbi.JDBILogFileDAO;
 import io.ifar.skidroad.jdbi.JDBILogFileTracker;
 

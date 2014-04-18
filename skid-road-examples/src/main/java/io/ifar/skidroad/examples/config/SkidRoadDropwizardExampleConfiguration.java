@@ -1,6 +1,6 @@
 package io.ifar.skidroad.examples.config;
 
-import com.yammer.dropwizard.config.Configuration;
+import io.dropwizard.Configuration;
 import io.ifar.skidroad.dropwizard.config.SkidRoadConfiguration;
 
 public class SkidRoadDropwizardExampleConfiguration extends Configuration {

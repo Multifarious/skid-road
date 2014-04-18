@@ -1,11 +1,11 @@
 package io.ifar.skidroad.dropwizard.cli;
 
 import com.google.common.base.Joiner;
-import com.yammer.dropwizard.cli.ConfiguredCommand;
-import com.yammer.dropwizard.config.Bootstrap;
-import com.yammer.dropwizard.config.Configuration;
-import com.yammer.dropwizard.config.Environment;
-import com.yammer.dropwizard.jdbi.DBIFactory;
+import io.dropwizard.Application;
+import io.dropwizard.Configuration;
+import io.dropwizard.cli.EnvironmentCommand;
+import io.dropwizard.jdbi.DBIFactory;
+import io.dropwizard.setup.Environment;
 import io.ifar.goodies.CliConveniences;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.dropwizard.config.SkidRoadReadOnlyConfiguration;
@@ -31,7 +31,7 @@ import java.util.Set;
  *
  */
 @SuppressWarnings("unused")
-public abstract class ListLogFilesCommand<T extends Configuration> extends ConfiguredCommand<T>
+public abstract class ListLogFilesCommand<T extends Configuration> extends EnvironmentCommand<T>
         implements SkidRoadReadOnlyConfigurationStrategy<T>
 {
 
@@ -42,8 +42,8 @@ public abstract class ListLogFilesCommand<T extends Configuration> extends Confi
     private final static DateTimeFormatter ISO_FMT = ISODateTimeFormat.dateOptionalTimeParser().withZoneUTC();
 
     @SuppressWarnings("unused")
-    public ListLogFilesCommand() {
-        super("list-logs","List the log files stored in the system.");
+    public ListLogFilesCommand(Application<T> application) {
+        super(application,"list-logs","List the log files stored in the system.");
     }
 
     @Override
@@ -70,7 +70,7 @@ public abstract class ListLogFilesCommand<T extends Configuration> extends Confi
 
 
     @Override
-    protected void run(Bootstrap<T> bootstrap, Namespace namespace, T configuration) throws Exception {
+    protected void run(Environment env, Namespace namespace, T configuration) throws Exception {
         CliConveniences.quietLogging("ifar", "hsqldb.db");
         Set<String> states = new HashSet<>();
         if (namespace.getString(STATE) != null) {
@@ -88,50 +88,45 @@ public abstract class ListLogFilesCommand<T extends Configuration> extends Confi
         DateTime startDate = ISO_FMT.parseDateTime(namespace.getString(START_DATE));
         DateTime endDate = ISO_FMT.parseDateTime(namespace.getString(END_DATE));
 
-        Environment env = CliConveniences.fabricateEnvironment(getName(), configuration);
         SkidRoadReadOnlyConfiguration skidRoadConfiguration = getSkidRoadReadOnlyConfiguration(configuration);
-        env.start();
-        try {
-            DBIFactory factory = new DBIFactory();
-            DBI jdbi = factory.build(env, skidRoadConfiguration.getDatabaseConfiguration(), "logfile");
-            jdbi.registerArgumentFactory(new JodaArgumentFactory());
 
-            JDBILogFileDAO dao = jdbi.onDemand(DefaultJDBILogFileDAO.class);
-            try (ResultIterator<LogFile> iter = (states.isEmpty())
-                    ? JDBILogFileDAOHelper.listLogFilesByDate(dao,startDate,endDate)
-                    : JDBILogFileDAOHelper.listLogFilesByDateAndState(dao,states, startDate, endDate)) {
-                if (iter.hasNext()) {
-                    System.out.println(String.format("%-14s | %-20s | %10s | %15s | %-25s","COHORT","STATE","SERIAL","SIZE","OWNER"));
-                    System.out.println(StringUtils.repeat("_",14)
-                            + "_|_" + StringUtils.repeat("_",20)
-                            + "_|_" + StringUtils.repeat("_",10)
-                            + "_|_" + StringUtils.repeat("_",15)
-                            + "_|_" + StringUtils.repeat("_",25));
-                }
-                while (iter.hasNext()) {
-                    LogFile lf = iter.next();
-                    System.out.println(String.format("%-14s | %20s | %10d | %15d | %-25s",
-                            lf.getRollingCohort(),
-                            lf.getState(),
-                            lf.getSerial(),
-                            lf.getByteSize(),
-                            lf.getOwnerURI()));
-                }
+        DBIFactory factory = new DBIFactory();
+        DBI jdbi = factory.build(env, skidRoadConfiguration.getDatabaseConfiguration(), "logfile");
+        jdbi.registerArgumentFactory(new JodaArgumentFactory());
+
+        JDBILogFileDAO dao = jdbi.onDemand(DefaultJDBILogFileDAO.class);
+        try (ResultIterator<LogFile> iter = (states.isEmpty())
+                ? JDBILogFileDAOHelper.listLogFilesByDate(dao, startDate, endDate)
+                : JDBILogFileDAOHelper.listLogFilesByDateAndState(dao, states, startDate, endDate)) {
+            if (iter.hasNext()) {
+                System.out.println(String.format("%-14s | %-20s | %10s | %15s | %-25s", "COHORT", "STATE", "SERIAL", "SIZE", "OWNER"));
+                System.out.println(StringUtils.repeat("_", 14)
+                        + "_|_" + StringUtils.repeat("_", 20)
+                        + "_|_" + StringUtils.repeat("_", 10)
+                        + "_|_" + StringUtils.repeat("_", 15)
+                        + "_|_" + StringUtils.repeat("_", 25));
             }
-            long totalSize = (states.isEmpty())
-                    ? dao.count(startDate, endDate)
-                    : JDBILogFileDAOHelper.totalSize(dao,states, startDate, endDate);
-            if (totalSize != 0) {
-                System.out.println(StringUtils.repeat("_",14)
-                        + "_|_" + StringUtils.repeat("_",20)
-                        + "_|_" + StringUtils.repeat("_",10)
-                        + "_|_" + StringUtils.repeat("_",15)
-                        + "_|_" + StringUtils.repeat("_",25));
-                System.out.println(String.format("%39s  %,15d","TOTAL SIZE",totalSize));
+            while (iter.hasNext()) {
+                LogFile lf = iter.next();
+                System.out.println(String.format("%-14s | %20s | %10d | %15d | %-25s",
+                        lf.getRollingCohort(),
+                        lf.getState(),
+                        lf.getSerial(),
+                        lf.getByteSize(),
+                        lf.getOwnerURI()));
             }
-            dao.close();
-        } finally {
-            env.stop();
         }
+        long totalSize = (states.isEmpty())
+                ? dao.count(startDate, endDate)
+                : JDBILogFileDAOHelper.totalSize(dao, states, startDate, endDate);
+        if (totalSize != 0) {
+            System.out.println(StringUtils.repeat("_", 14)
+                    + "_|_" + StringUtils.repeat("_", 20)
+                    + "_|_" + StringUtils.repeat("_", 10)
+                    + "_|_" + StringUtils.repeat("_", 15)
+                    + "_|_" + StringUtils.repeat("_", 25));
+            System.out.println(String.format("%39s  %,15d", "TOTAL SIZE", totalSize));
+        }
+        dao.close();
     }
 }

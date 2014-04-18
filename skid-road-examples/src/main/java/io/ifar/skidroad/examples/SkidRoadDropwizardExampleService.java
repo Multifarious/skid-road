@@ -1,17 +1,18 @@
 package io.ifar.skidroad.examples;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.joda.JodaModule;
-import com.yammer.dropwizard.Service;
-import com.yammer.dropwizard.config.Bootstrap;
-import com.yammer.dropwizard.config.Environment;
-import com.yammer.dropwizard.db.DatabaseConfiguration;
-import com.yammer.dropwizard.jdbi.DBIFactory;
-import com.yammer.dropwizard.jdbi.bundles.DBIExceptionsBundle;
-import com.yammer.dropwizard.jdbi.logging.LogbackLog;
-import com.yammer.dropwizard.json.ObjectMapperFactory;
-import com.yammer.dropwizard.migrations.MigrationsBundle;
+import io.dropwizard.Application;
+import io.dropwizard.db.DataSourceFactory;
+import io.dropwizard.jackson.Jackson;
+import io.dropwizard.jdbi.DBIFactory;
+import io.dropwizard.jdbi.bundles.DBIExceptionsBundle;
+import io.dropwizard.jdbi.logging.LogbackLog;
+import io.dropwizard.migrations.MigrationsBundle;
+import io.dropwizard.setup.Bootstrap;
+import io.dropwizard.setup.Environment;
 import io.ifar.goodies.Triple;
 import io.ifar.skidroad.dropwizard.*;
 import io.ifar.skidroad.dropwizard.cli.GenerateRandomKey;
@@ -44,7 +45,7 @@ import java.sql.SQLException;
 /**
 
  */
-public class SkidRoadDropwizardExampleService extends Service<SkidRoadDropwizardExampleConfiguration> {
+public class SkidRoadDropwizardExampleService extends Application<SkidRoadDropwizardExampleConfiguration> {
     public static void main(String... args) throws Exception {
         new SkidRoadDropwizardExampleService().run(args);
     }
@@ -53,15 +54,15 @@ public class SkidRoadDropwizardExampleService extends Service<SkidRoadDropwizard
     @Override
     public void initialize(Bootstrap<SkidRoadDropwizardExampleConfiguration> bootstrap) {
 
-        ObjectMapperFactory omf = bootstrap.getObjectMapperFactory();
-        omf.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        omf.registerModule(new JodaModule());
-        omf.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES);
+        ObjectMapper om = bootstrap.getObjectMapper();
+        om.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        om.registerModule(new JodaModule());
+        om.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES);
 
         bootstrap.addBundle(new DBIExceptionsBundle());
         bootstrap.addBundle(new MigrationsBundle<SkidRoadDropwizardExampleConfiguration>() {
             @Override
-            public DatabaseConfiguration getDatabaseConfiguration(SkidRoadDropwizardExampleConfiguration configuration) {
+            public DataSourceFactory getDataSourceFactory(SkidRoadDropwizardExampleConfiguration configuration) {
                 return configuration.getSkidRoad().getDatabaseConfiguration();
             }
         });
@@ -86,7 +87,7 @@ public class SkidRoadDropwizardExampleService extends Service<SkidRoadDropwizard
         JDBILogFileDAO dao = jdbi.onDemand(JDBILogFileDAOHelper.bestDefaultDAOForDriver(configuration.getSkidRoad().getDatabaseConfiguration().getDriverClass()));
 
         ManagedJDBILogFileTracker tracker = new ManagedJDBILogFileTracker(new URI("http://" + configuration.getSkidRoad().getNodeId()), dao);
-        environment.manage(tracker);
+        environment.lifecycle().manage(tracker);
 
         ManagedUploadWorkerManager.build(
                 configuration.getSkidRoad(),
@@ -99,7 +100,7 @@ public class SkidRoadDropwizardExampleService extends Service<SkidRoadDropwizard
 
         WritingWorkerManager<ContainerRequestAndResponse> writerManager = ManagedWritingWorkerManager.build(
                 tracker,
-                new JSONContainerRequestAndResponseSerializer(environment.getObjectMapperFactory().build())
+                new JSONContainerRequestAndResponseSerializer(Jackson.newObjectMapper())
                         .with((RequestHeaderExtractor) SimpleHeaderExtractor.only("User-Agent")) //only include the User-Agent request header
                         .with(CommonHeaderExtractors.NO_RESPONSE_HEADERS) //don't headers response headers
                 ,
@@ -139,6 +140,6 @@ public class SkidRoadDropwizardExampleService extends Service<SkidRoadDropwizard
                 csvWriterManager
         ));
 
-        environment.addResource(new ExampleResource(csvWriterManager));
+        environment.jersey().register(new ExampleResource(csvWriterManager));
     }
 }

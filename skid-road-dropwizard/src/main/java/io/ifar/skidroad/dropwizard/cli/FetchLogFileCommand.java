@@ -1,14 +1,12 @@
 package io.ifar.skidroad.dropwizard.cli;
 
 import com.amazonaws.AmazonServiceException;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.auth.InstanceProfileCredentialsProvider;
 import com.google.common.io.ByteStreams;
-import com.yammer.dropwizard.cli.ConfiguredCommand;
-import com.yammer.dropwizard.config.Bootstrap;
-import com.yammer.dropwizard.config.Configuration;
-import com.yammer.dropwizard.config.Environment;
-import com.yammer.dropwizard.jdbi.DBIFactory;
+import io.dropwizard.Application;
+import io.dropwizard.Configuration;
+import io.dropwizard.cli.EnvironmentCommand;
+import io.dropwizard.jdbi.DBIFactory;
+import io.dropwizard.setup.Environment;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.dropwizard.config.SkidRoadReadOnlyConfiguration;
 import io.ifar.skidroad.dropwizard.config.SkidRoadReadOnlyConfigurationStrategy;
@@ -33,14 +31,14 @@ import static java.nio.file.StandardOpenOption.WRITE;
 /**
  * Download, decrypt, and decompress a LogFile.
  */
-public abstract class FetchLogFileCommand<T extends Configuration> extends ConfiguredCommand<T>
+public abstract class FetchLogFileCommand<T extends Configuration> extends EnvironmentCommand<T>
         implements SkidRoadReadOnlyConfigurationStrategy<T> {
     private final static String COHORT = "cohort";
     private final static String SERIAL = "serial";
     private final static String OUT = "out";
 
-    public FetchLogFileCommand() {
-        super("fetch", "Download, decrypt, and decompress a log file.");
+    public FetchLogFileCommand(Application<T> application) {
+        super(application,"fetch", "Download, decrypt, and decompress a log file.");
     }
 
     @Override
@@ -60,14 +58,13 @@ public abstract class FetchLogFileCommand<T extends Configuration> extends Confi
     }
 
     @Override
-    protected void run(Bootstrap<T> bootstrap, Namespace namespace, T configuration) throws Exception {
+    protected void run(Environment env, Namespace namespace, T configuration) throws Exception {
         CliConveniences.quietLogging("io.ifar","hsqldb.db");
 
         S3Storage storage = null;
         String cohort = namespace.getString(COHORT);
         int serial = namespace.getInt(SERIAL);
-        Environment env = CliConveniences.fabricateEnvironment(getName(), configuration);
-        env.start();
+
         SkidRoadReadOnlyConfiguration skidRoadReadOnlyConfiguration = getSkidRoadReadOnlyConfiguration(configuration);
         try {
 
@@ -122,7 +119,6 @@ public abstract class FetchLogFileCommand<T extends Configuration> extends Confi
             if (storage != null) {
                 storage.stop();
             }
-            env.stop();
         }
     }
 }

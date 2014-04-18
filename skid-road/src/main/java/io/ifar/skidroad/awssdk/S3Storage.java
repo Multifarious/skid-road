@@ -2,8 +2,7 @@ package io.ifar.skidroad.awssdk;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
-import com.amazonaws.services.s3.model.S3Object;
-import com.yammer.metrics.core.HealthCheck;
+import com.codahale.metrics.health.HealthCheck;
 
 import java.io.File;
 import java.nio.file.Path;

@@ -1,14 +1,12 @@
 package io.ifar.skidroad.dropwizard.cli;
 
 import com.amazonaws.AmazonServiceException;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.auth.InstanceProfileCredentialsProvider;
 import com.google.common.io.ByteStreams;
-import com.yammer.dropwizard.cli.ConfiguredCommand;
-import com.yammer.dropwizard.config.Bootstrap;
-import com.yammer.dropwizard.config.Configuration;
-import com.yammer.dropwizard.config.Environment;
-import com.yammer.dropwizard.jdbi.DBIFactory;
+import io.dropwizard.Application;
+import io.dropwizard.Configuration;
+import io.dropwizard.cli.EnvironmentCommand;
+import io.dropwizard.jdbi.DBIFactory;
+import io.dropwizard.setup.Environment;
 import io.ifar.goodies.CliConveniences;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.dropwizard.config.SkidRoadReadOnlyConfiguration;
@@ -43,7 +41,7 @@ import java.util.Set;
  *
  */
 @SuppressWarnings("UnusedDeclaration")
-public abstract class StreamLogsCommand <T extends Configuration> extends ConfiguredCommand<T>
+public abstract class StreamLogsCommand <T extends Configuration> extends EnvironmentCommand<T>
         implements SkidRoadReadOnlyConfigurationStrategy<T>
 {
 
@@ -54,8 +52,8 @@ public abstract class StreamLogsCommand <T extends Configuration> extends Config
 
     private final static DateTimeFormatter ISO_FMT = ISODateTimeFormat.dateOptionalTimeParser().withZoneUTC();
 
-    public StreamLogsCommand() {
-        super("stream-logs","List the log files stored in the system.");
+    public StreamLogsCommand(Application<T> application) {
+        super(application,"stream-logs","List the log files stored in the system.");
     }
 
     @Override
@@ -91,7 +89,7 @@ public abstract class StreamLogsCommand <T extends Configuration> extends Config
 
 
     @Override
-    protected void run(Bootstrap<T> bootstrap, Namespace namespace, T configuration) throws Exception {
+    protected void run(Environment env, Namespace namespace, T configuration) throws Exception {
         CliConveniences.quietLogging("ifar", "hsqldb.db");
         S3Storage storage = null;
         Set<String> states = new HashSet<>(namespace.<String>getList(STATE));
@@ -99,9 +97,6 @@ public abstract class StreamLogsCommand <T extends Configuration> extends Config
         DateTime endDate = ISO_FMT.parseDateTime(namespace.getString(END_DATE));
 
         String outFile = namespace.getString(OUT_FILE);
-
-        Environment env = CliConveniences.fabricateEnvironment(getName(), configuration);
-        env.start();
 
         SkidRoadReadOnlyConfiguration skidRoadConfiguration = getSkidRoadReadOnlyConfiguration(configuration);
         try (OutputStream out = Files.newOutputStream(Paths.get(outFile))) {
@@ -157,7 +152,6 @@ public abstract class StreamLogsCommand <T extends Configuration> extends Config
                     // ignore
                 }
             }
-            env.stop();
         }
     }
 }
