@@ -48,7 +48,7 @@ public interface DefaultPostgresJDBILogFileDAO extends DefaultJDBILogFileDAO, JD
     @Override
     @SqlQuery("select rolling_cohort, serial, start_time, origin_uri, prep_uri, archive_key, archive_uri, archive_group," +
             " state, owner_uri, bytes, created_at, updated_at from log_files" +
-            " where owner_uri = :owner, state = ANY(:states) and start_time >= :first_ts and start_time <= :last_ts" +
+            " where owner_uri = :owner and state = ANY(:states) and start_time >= :first_ts and start_time <= :last_ts" +
             " order by start_time asc")
     @FetchSize(50)
     ResultIterator<LogFile> listLogFilesByOwnerAndDateAndState(
