@@ -1,10 +1,10 @@
 package io.ifar.skidroad.dropwizard.cli;
 
-import com.yammer.dropwizard.cli.ConfiguredCommand;
-import com.yammer.dropwizard.config.Bootstrap;
-import com.yammer.dropwizard.config.Configuration;
-import com.yammer.dropwizard.config.Environment;
-import com.yammer.dropwizard.jdbi.DBIFactory;
+import io.dropwizard.Application;
+import io.dropwizard.Configuration;
+import io.dropwizard.cli.EnvironmentCommand;
+import io.dropwizard.jdbi.DBIFactory;
+import io.dropwizard.setup.Environment;
 import io.ifar.goodies.AutoCloseableIterator;
 import io.ifar.goodies.CliConveniences;
 import io.ifar.goodies.JdbiAutoCloseableIterator;
@@ -17,28 +17,24 @@ import org.skife.jdbi.v2.DBI;
 /**
  *
  */
-public abstract class ListOwnersCommand <T extends Configuration> extends ConfiguredCommand<T>
+public abstract class ListOwnersCommand <T extends Configuration> extends EnvironmentCommand<T>
         implements SkidRoadReadOnlyConfigurationStrategy<T> {
 
-    public ListOwnersCommand() {
-        super("list-owners","List the owning URIs for log files in the database.");
+    public ListOwnersCommand(Application<T> application) {
+        super(application,"list-owners","List the owning URIs for log files in the database.");
     }
 
     @Override
-    protected void run(Bootstrap<T> bootstrap, Namespace namespace, T configuration) throws Exception {
+    protected void run(Environment env, Namespace namespace, T configuration) throws Exception {
         CliConveniences.quietLogging("ifar");
-        Environment env = CliConveniences.fabricateEnvironment(getName(), configuration);
-        env.start();
-        try {
-            final DBIFactory factory = new DBIFactory();
-            final DBI jdbi = factory.build(env, getSkidRoadReadOnlyConfiguration(configuration).getDatabaseConfiguration(), "logfile");
-            JDBILogFileDAO dao = jdbi.onDemand(DefaultJDBILogFileDAO.class);
-            try (AutoCloseableIterator<String> ownerUris = JdbiAutoCloseableIterator.wrap(dao.listOwnerUris())){
-                for (String ownerUri : ownerUris)
-                    System.out.println(ownerUri);
-            }
-        } finally {
-            env.stop();
+
+        final DBIFactory factory = new DBIFactory();
+        final DBI jdbi = factory.build(env, getSkidRoadReadOnlyConfiguration(configuration).getDatabaseConfiguration(), "logfile");
+        JDBILogFileDAO dao = jdbi.onDemand(DefaultJDBILogFileDAO.class);
+        try (AutoCloseableIterator<String> ownerUris = JdbiAutoCloseableIterator.wrap(dao.listOwnerUris())) {
+            for (String ownerUri : ownerUris)
+                System.out.println(ownerUri);
         }
+
     }
 }

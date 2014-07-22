@@ -5,7 +5,7 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.yammer.dropwizard.validation.ValidationMethod;
+import io.dropwizard.validation.ValidationMethod;
 import org.apache.commons.lang.StringUtils;
 import org.hibernate.validator.constraints.Range;
 

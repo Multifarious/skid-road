@@ -1,8 +1,7 @@
 package io.ifar.skidroad.writing;
 
-import com.yammer.metrics.Metrics;
-import com.yammer.metrics.core.Gauge;
-import com.yammer.metrics.core.HealthCheck;
+import com.codahale.metrics.Gauge;
+import com.codahale.metrics.health.HealthCheck;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.rolling.FileRollingScheme;
 import io.ifar.skidroad.scheduling.SimpleQuartzScheduler;
@@ -89,12 +88,12 @@ public class WritingWorkerManager<T> {
         this.workers = new HashMap<>();
         this.asyncWorkerCreator = Executors.newSingleThreadExecutor();
 
-        this.healthcheck = new HealthCheck("writing_worker_manager") {
+        this.healthcheck = new HealthCheck() {
             protected Result check() throws Exception {
                 //Would be better to measure latency than depth, but that's more expensive.
-                int queueDepth = queueDepthGauge.value();
-                int queueCount = queueCountGauge.value();
-                int workerCount = workerCountGauge.value();
+                int queueDepth = queueDepthGauge.getValue();
+                int queueCount = queueCountGauge.getValue();
+                int workerCount = workerCountGauge.getValue();
                 if (queueDepth < unhealthyQueueDepthThreshold)
                     return Result.healthy(String.format("%d items across %d queues with %d workers.", queueDepth, queueCount, workerCount));
                 else
@@ -103,39 +102,33 @@ public class WritingWorkerManager<T> {
         };
     }
 
-    private final Gauge<Integer> queueCountGauge = Metrics.newGauge(this.getClass(),
-            "queue_count",
-            new Gauge<Integer>() {
-                @Override
-                public Integer value() {
-                    //skip synchronization, allow stale data.
-                    return queues.size();
-                }
-            });
+    protected final Gauge<Integer> queueCountGauge = new Gauge<Integer>() {
+        @Override
+        public Integer getValue() {
+            //skip synchronization, allow stale data.
+            return queues.size();
+        }
+    };
 
-    private final Gauge<Integer> queueDepthGauge = Metrics.newGauge(this.getClass(),
-            "queue_depth",
-            new Gauge<Integer>() {
-                @Override
-                public Integer value() {
-                    int sum = 0;
-                    synchronized (queues) {
-                        for(BlockingQueue<T> q : queues.values())
-                            sum += q.size();
-                    }
-                    return sum;
-                }
-            });
+    protected final Gauge<Integer> queueDepthGauge = new Gauge<Integer>() {
+        @Override
+        public Integer getValue() {
+            int sum = 0;
+            synchronized (queues) {
+                for (BlockingQueue<T> q : queues.values())
+                    sum += q.size();
+            }
+            return sum;
+        }
+    };
 
-    private final Gauge<Integer> workerCountGauge = Metrics.newGauge(this.getClass(),
-            "worker_count",
-                new Gauge<Integer>() {
-                @Override
-                public Integer value() {
-                    //skip synchronization, allow stale data
-                    return workers.size();
-                }
-            });
+    protected final Gauge<Integer> workerCountGauge = new Gauge<Integer>() {
+        @Override
+        public Integer getValue() {
+            //skip synchronization, allow stale data
+            return workers.size();
+        }
+    };
 
     /**
      * Submit an item to be recorded in a log file.

@@ -1,10 +1,8 @@
 package io.ifar.skidroad.dropwizard;
 
 import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.auth.InstanceProfileCredentialsProvider;
-import com.yammer.dropwizard.config.Environment;
-import com.yammer.dropwizard.lifecycle.Managed;
+import io.dropwizard.lifecycle.Managed;
+import io.dropwizard.setup.Environment;
 import io.ifar.skidroad.dropwizard.config.RequestLogUploadConfiguration;
 import io.ifar.skidroad.dropwizard.config.SkidRoadConfiguration;
 import io.ifar.skidroad.awssdk.AwsS3ClientStorage;
@@ -31,8 +29,8 @@ public class ManagedAwsS3ClientStorage extends AwsS3ClientStorage implements Man
 
     public static ManagedAwsS3ClientStorage buildStorage(RequestLogUploadConfiguration uploadConfiguration, Environment environment, Map<String,String> propertyOverrides) {
         ManagedAwsS3ClientStorage storage = new ManagedAwsS3ClientStorage(uploadConfiguration.getAWSCredentialsProvider().getCredentials());
-        environment.manage(storage);
-        environment.addHealthCheck(storage.healthCheck());
+        environment.lifecycle().manage(storage);
+        environment.healthChecks().register("Amazon S3",storage.healthCheck());
         return storage;
     }
 

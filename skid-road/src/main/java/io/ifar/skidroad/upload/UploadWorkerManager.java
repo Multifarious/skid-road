@@ -1,10 +1,9 @@
 package io.ifar.skidroad.upload;
 
+import com.codahale.metrics.Gauge;
+import com.codahale.metrics.Meter;
+import com.codahale.metrics.health.HealthCheck;
 import com.google.common.collect.ImmutableSet;
-import com.yammer.metrics.Metrics;
-import com.yammer.metrics.core.Gauge;
-import com.yammer.metrics.core.HealthCheck;
-import com.yammer.metrics.core.Meter;
 import io.ifar.goodies.IterableIterator;
 import io.ifar.goodies.Iterators;
 import io.ifar.goodies.Pair;
@@ -49,35 +48,29 @@ public class UploadWorkerManager implements LogFileStateListener {
     public final HealthCheck healthcheck;
     private final AtomicInteger queueDepth = new AtomicInteger(0);
 
-    private final Gauge<Integer> queueDepthGauge = Metrics.newGauge(this.getClass(),
-            "queue_depth",
-            new Gauge<Integer>() {
-                @Override
-                public Integer value() {
-                    return queueDepth.get();
-                }
-            });
+    protected final Gauge<Integer> queueDepthGauge = new Gauge<Integer>() {
+        @Override
+        public Integer getValue() {
+            return queueDepth.get();
+        }
+    };
 
-    private final Gauge<Integer> uploadingGauge = Metrics.newGauge(this.getClass(),
-            "files_uploading",
-            new Gauge<Integer>() {
-                @Override
-                public Integer value() {
-                    return tracker.getCount(UPLOADING);
-                }
-            });
+    protected final Gauge<Integer> uploadingGauge = new Gauge<Integer>() {
+        @Override
+        public Integer getValue() {
+            return tracker.getCount(UPLOADING);
+        }
+    };
 
-    private final Gauge<Integer> errorGauge = Metrics.newGauge(this.getClass(),
-            "files_in_error",
-            new Gauge<Integer>() {
-                @Override
-                public Integer value() {
-                    return tracker.getCount(UPLOAD_ERROR);
-                }
-            });
+    protected final Gauge<Integer> errorGauge = new Gauge<Integer>() {
+        @Override
+        public Integer getValue() {
+            return tracker.getCount(UPLOAD_ERROR);
+        }
+    };
 
-    private final Meter errorMeter = Metrics.newMeter(this.getClass(), "upload_errors", "errors", TimeUnit.SECONDS);
-    private final Meter successMeter = Metrics.newMeter(this.getClass(), "upload_successes", "successes", TimeUnit.SECONDS);
+    protected final Meter errorMeter = new Meter();
+    protected final Meter successMeter = new Meter();
     private Trigger trigger;
 
     /**
@@ -96,7 +89,9 @@ public class UploadWorkerManager implements LogFileStateListener {
         this.maxConcurrentUploads = maxConcurrentWork;
         this.activeFiles = new HashSet<String>();
 
-        this.healthcheck = new HealthCheck("upload_worker_manager") {
+
+
+        this.healthcheck = new HealthCheck() {
             protected Result check() throws Exception {
                 //Would be better to measure latency than depth, but that's more expensive.
                 if (queueDepth.get() < unhealthyQueueDepthThreshold)

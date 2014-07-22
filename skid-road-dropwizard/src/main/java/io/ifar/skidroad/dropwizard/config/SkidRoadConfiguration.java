@@ -1,8 +1,7 @@
 package io.ifar.skidroad.dropwizard.config;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.yammer.dropwizard.config.Configuration;
-import com.yammer.dropwizard.db.DatabaseConfiguration;
+import io.dropwizard.db.DataSourceFactory;
 
 import javax.validation.Valid;
 import javax.validation.constraints.DecimalMin;
@@ -20,7 +19,7 @@ public class SkidRoadConfiguration {
     @Valid
     @NotNull
     @JsonProperty("database")
-    private DatabaseConfiguration databaseConfiguration;
+    private DataSourceFactory databaseConfiguration;
 
     @Valid
     @NotNull
@@ -41,7 +40,7 @@ public class SkidRoadConfiguration {
     @DecimalMin(value = "1")
     private int maxQuartzThreads = Runtime.getRuntime().availableProcessors();
 
-    public DatabaseConfiguration getDatabaseConfiguration() {
+    public DataSourceFactory getDatabaseConfiguration() {
         return databaseConfiguration;
     }
 

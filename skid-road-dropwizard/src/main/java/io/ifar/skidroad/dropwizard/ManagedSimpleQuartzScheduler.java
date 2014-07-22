@@ -1,8 +1,8 @@
 package io.ifar.skidroad.dropwizard;
 
-import com.yammer.dropwizard.config.Environment;
-import com.yammer.dropwizard.lifecycle.Managed;
-import com.yammer.metrics.core.HealthCheck;
+import com.codahale.metrics.health.HealthCheck;
+import io.dropwizard.lifecycle.Managed;
+import io.dropwizard.setup.Environment;
 import io.ifar.skidroad.dropwizard.config.SkidRoadConfiguration;
 import io.ifar.skidroad.scheduling.SimpleQuartzScheduler;
 import org.joda.time.format.ISODateTimeFormat;
@@ -33,7 +33,7 @@ public class ManagedSimpleQuartzScheduler extends SimpleQuartzScheduler implemen
 
     public static ManagedSimpleQuartzScheduler build(SkidRoadConfiguration skidRoadConfiguration, Environment environment) throws SchedulerException {
         ManagedSimpleQuartzScheduler scheduler = new ManagedSimpleQuartzScheduler(skidRoadConfiguration.getMaxQuartzThreads(),environment);
-        environment.manage(scheduler);
+        environment.lifecycle().manage(scheduler);
         return scheduler;
     }
 
@@ -46,15 +46,16 @@ public class ManagedSimpleQuartzScheduler extends SimpleQuartzScheduler implemen
     }
 
     private static void registerHealthCheck(Environment environment, final Trigger trigger) {
-        environment.addHealthCheck(new HealthCheck(trigger.getJobKey() + "_next_run") {
+        environment.healthChecks().register(trigger.getJobKey() + "_next_run", new HealthCheck() {
             protected Result check() throws Exception {
                 Date nextFire = trigger.getNextFireTime();
                 return Result.healthy(
                         nextFire == null ? "<never>" :
-                                ISODateTimeFormat.basicDateTimeNoMillis().print(nextFire.getTime()));
+                                ISODateTimeFormat.basicDateTimeNoMillis().print(nextFire.getTime())
+                );
             }
         });
-        environment.addHealthCheck(new HealthCheck(trigger.getJobKey() + "_last_ran") {
+        environment.healthChecks().register(trigger.getJobKey() + "_last_ran", new HealthCheck() {
             protected Result check() throws Exception {
                 Date nextFire = trigger.getPreviousFireTime();
                 return Result.healthy(

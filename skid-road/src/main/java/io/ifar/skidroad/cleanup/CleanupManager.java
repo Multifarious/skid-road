@@ -1,7 +1,6 @@
 package io.ifar.skidroad.cleanup;
 
-import com.yammer.metrics.Metrics;
-import com.yammer.metrics.core.Counter;
+import com.codahale.metrics.Counter;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.scheduling.SimpleQuartzScheduler;
 import io.ifar.skidroad.tracking.LogFileState;
@@ -30,7 +29,7 @@ public class CleanupManager {
     private final int maxAgeHours;
     private final SimpleQuartzScheduler scheduler;
 
-    private Counter deletedFilesCounter = Metrics.newCounter(CleanupManager.class,"deletedUploadedFiles");
+    protected Counter deletedFilesCounter = new Counter();
     private Trigger trigger;
 
     public CleanupManager(LogFileTracker tracker, SimpleQuartzScheduler scheduler, int minAgeHours, int maxAgeHours) {

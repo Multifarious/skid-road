@@ -1,7 +1,8 @@
 package io.ifar.skidroad.dropwizard;
 
-import com.yammer.dropwizard.config.Environment;
-import com.yammer.dropwizard.lifecycle.Managed;
+import com.codahale.metrics.MetricRegistry;
+import io.dropwizard.lifecycle.Managed;
+import io.dropwizard.setup.Environment;
 import io.ifar.goodies.Tuple;
 import io.ifar.skidroad.dropwizard.config.RequestLogWriterConfiguration;
 import io.ifar.skidroad.dropwizard.config.SkidRoadConfiguration;
@@ -17,9 +18,14 @@ import io.ifar.skidroad.writing.file.Serializer;
 public class ManagedWritingWorkerManager<T> extends WritingWorkerManager<T> implements Managed {
 
     public ManagedWritingWorkerManager(FileRollingScheme rollingScheme, LogFileTracker tracker,
-                                       WritingWorkerFactory<T> factory, SimpleQuartzScheduler scheduler, int pruneIntervalSeconds,
+                                       WritingWorkerFactory<T> factory, SimpleQuartzScheduler scheduler, Environment environment, int pruneIntervalSeconds,
                                        int spawnThreshold, int unhealthyThreshold) {
         super(rollingScheme,tracker,factory,scheduler,pruneIntervalSeconds,spawnThreshold,unhealthyThreshold);
+
+        environment.metrics().register(MetricRegistry.name(WritingWorkerManager.class, "queue_count"), this.queueCountGauge);
+        environment.metrics().register(MetricRegistry.name(WritingWorkerManager.class, "queue_depth"), this.queueDepthGauge);
+        environment.metrics().register(MetricRegistry.name(WritingWorkerManager.class, "worker_count"), this.workerCountGauge);
+
     }
 
     public static <T> ManagedWritingWorkerManager<T> build(LogFileTracker tracker, Serializer<T> serializer, SimpleQuartzScheduler scheduler, RequestLogWriterConfiguration logConf, Environment environment) {
@@ -31,12 +37,13 @@ public class ManagedWritingWorkerManager<T> extends WritingWorkerManager<T> impl
                 tracker,
                 workerFactory,
                 scheduler,
+                environment,
                 pruneIntervalSeconds,
                 logConf.getSpawnNewWorkerAtQueueDepth(),
                 logConf.getReportUnhealthyAtQueueDepth()
         );
-        environment.manage(writerManager);
-        environment.addHealthCheck(writerManager.healthcheck);
+        environment.lifecycle().manage(writerManager);
+        environment.healthChecks().register("writing_worker_manager", writerManager.healthcheck);
         return writerManager;
     }
 
@@ -54,12 +61,13 @@ public class ManagedWritingWorkerManager<T> extends WritingWorkerManager<T> impl
                 tracker,
                 workerFactory,
                 scheduler,
+                environment,
                 pruneIntervalSeconds,
                 logConf.getSpawnNewWorkerAtQueueDepth(),
                 logConf.getReportUnhealthyAtQueueDepth()
         );
-        environment.manage(writerManager);
-        environment.addHealthCheck(writerManager.healthcheck);
+        environment.lifecycle().manage(writerManager);
+        environment.healthChecks().register("writing_worker_manager",writerManager.healthcheck);
         return writerManager;
     }
 

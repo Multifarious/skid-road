@@ -3,7 +3,6 @@
  import com.amazonaws.AmazonClientException;
  import com.amazonaws.ClientConfiguration;
  import com.amazonaws.auth.AWSCredentials;
- import com.amazonaws.auth.BasicAWSCredentials;
  import com.amazonaws.services.s3.AmazonS3Client;
  import com.amazonaws.services.s3.model.GetObjectRequest;
  import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -11,13 +10,12 @@
  import com.amazonaws.services.s3.model.S3Object;
  import com.amazonaws.services.s3.transfer.TransferManager;
  import com.amazonaws.services.s3.transfer.model.UploadResult;
+ import com.codahale.metrics.health.HealthCheck;
  import com.google.common.base.Throwables;
- import com.yammer.metrics.core.HealthCheck;
  import org.slf4j.Logger;
  import org.slf4j.LoggerFactory;
 
  import java.io.File;
- import java.io.FileInputStream;
  import java.io.IOException;
  import java.nio.file.Files;
  import java.nio.file.Path;
@@ -51,7 +49,7 @@
 
      public AwsS3ClientStorage(AWSCredentials creds, Map<String, String> propertyOverrides) {
          this.creds = creds;
-         this.healthCheck = new HealthCheck(name) {
+         this.healthCheck = new HealthCheck() {
              @Override
              protected Result check() throws Exception {
                  if (!started) {

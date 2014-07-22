@@ -2,8 +2,8 @@ package io.ifar.skidroad.dropwizard.config;
 
 import com.amazonaws.auth.*;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.yammer.dropwizard.db.DatabaseConfiguration;
-import com.yammer.dropwizard.validation.ValidationMethod;
+import io.dropwizard.db.DataSourceFactory;
+import io.dropwizard.validation.ValidationMethod;
 import org.apache.commons.lang.StringUtils;
 import org.hibernate.validator.constraints.NotEmpty;
 
@@ -41,13 +41,13 @@ public class SkidRoadReadOnlyConfiguration {
     @JsonProperty("database")
     @Valid
     @NotNull
-    private DatabaseConfiguration databaseConfiguration;
+    private DataSourceFactory databaseConfiguration;
 
     public SkidRoadReadOnlyConfiguration() {
         // for Jackson and friends
     }
 
-    protected SkidRoadReadOnlyConfiguration(String masterKey, String masterIV, String accessKeyID, String secretAccessKey, DatabaseConfiguration databaseConfiguration) {
+    protected SkidRoadReadOnlyConfiguration(String masterKey, String masterIV, String accessKeyID, String secretAccessKey, DataSourceFactory databaseConfiguration) {
         this.masterKey = masterKey;
         this.masterIV = masterIV;
         this.accessKeyID = accessKeyID;
@@ -94,7 +94,7 @@ public class SkidRoadReadOnlyConfiguration {
         return masterIV;
     }
 
-    public DatabaseConfiguration getDatabaseConfiguration() {
+    public DataSourceFactory getDatabaseConfiguration() {
         return databaseConfiguration;
     }
 }

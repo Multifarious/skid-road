@@ -1,6 +1,7 @@
 package io.ifar.skidroad.dropwizard.config;
 
-import com.yammer.dropwizard.config.Configuration;
+
+import io.dropwizard.Configuration;
 
 /**
  *

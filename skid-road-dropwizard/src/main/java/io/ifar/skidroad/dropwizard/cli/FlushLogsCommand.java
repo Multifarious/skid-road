@@ -1,10 +1,10 @@
 package io.ifar.skidroad.dropwizard.cli;
 
 import com.google.common.collect.ImmutableSet;
-import com.yammer.dropwizard.cli.ConfiguredCommand;
-import com.yammer.dropwizard.config.Bootstrap;
-import com.yammer.dropwizard.config.Configuration;
-import com.yammer.dropwizard.config.Environment;
+import io.dropwizard.Application;
+import io.dropwizard.Configuration;
+import io.dropwizard.cli.EnvironmentCommand;
+import io.dropwizard.setup.Environment;
 import io.ifar.goodies.CliConveniences;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.dropwizard.ManagedPrepWorkerManager;
@@ -31,12 +31,12 @@ import static io.ifar.skidroad.tracking.LogFileState.*;
  * facilitate decommissioning a host without leaving behind any data.
  */
 @SuppressWarnings("UnusedDeclaration")
-public abstract class FlushLogsCommand<T extends Configuration> extends ConfiguredCommand<T>
+public abstract class FlushLogsCommand<T extends Configuration> extends EnvironmentCommand<T>
 {
     private final static Logger LOG = LoggerFactory.getLogger(FlushLogsCommand.class);
 
-    public FlushLogsCommand() {
-        super("flush-logs","Prepare and upload any in-progress log files on this host. SERVICE MUST NOT BE RUNNING.");
+    public FlushLogsCommand(Application<T> application) {
+        super(application,"flush-logs","Prepare and upload any in-progress log files on this host. SERVICE MUST NOT BE RUNNING.");
     }
 
     @Override
@@ -60,10 +60,9 @@ public abstract class FlushLogsCommand<T extends Configuration> extends Configur
 
 
     @Override
-    protected void run(Bootstrap<T> bootstrap, Namespace namespace, T configuration) throws Exception {
+    protected void run(Environment env, Namespace namespace, T configuration) throws Exception {
 
-        Environment env = CliConveniences.fabricateEnvironment(getName(), configuration);
-        init(configuration,env);
+        init(configuration, env);
 
         LogFileTracker logFileTracker = getLogTracker();
         //Get a WritingWorkerManager because, on start-up, it progresses any stale WRITING files to WRITTEN or WRITE_ERROR status
@@ -72,23 +71,16 @@ public abstract class FlushLogsCommand<T extends Configuration> extends Configur
         ManagedPrepWorkerManager managedPrepWorkerManager = getPrepWorkerManager();
         ManagedUploadWorkerManager managedUploadWorkerManager = getUploadWorkerManager();
 
-        try {
+        //immediately kick off an initial retry, then continue with regular configured interval
+        managedPrepWorkerManager.retryOneThenRetryAll();
+        managedUploadWorkerManager.retryOneThenRetryAll();
 
-            env.start();
-            //immediately kick off an initial retry, then continue with regular configured interval
-            managedPrepWorkerManager.retryOneThenRetryAll();
-            managedUploadWorkerManager.retryOneThenRetryAll();
+        ExecutorService executor = Executors.newFixedThreadPool(1);
 
-            ExecutorService executor = Executors.newFixedThreadPool(1);
+        //TODO: Configurable timeout. DropWizard will System.exit(1) if we throw an exception from our run method.
+        executor.submit(new StateWaiter(logFileTracker)).get();
 
-            //TODO: Configurable timeout. DropWizard will System.exit(1) if we throw an exception from our run method.
-            executor.submit(new StateWaiter(logFileTracker)).get();
-
-            System.out.println("[DONE]");
-
-        } finally {
-            env.stop();
-        }
+        System.out.println("[DONE]");
     }
 
     private static class StateWaiter implements Runnable, LogFileStateListener {

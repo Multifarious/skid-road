@@ -37,7 +37,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <dropwizard.version>0.6.2</dropwizard.version>
+        <dropwizard.version>0.7.0</dropwizard.version>
         <slf4j.version>1.7.4</slf4j.version> <!-- Same as Dropwizard 0.6.2 -->
         <logback.version>1.0.10</logback.version> <!-- Same as Dropwizard 0.6.2 -->
     </properties>
@@ -91,17 +91,17 @@
                 <version>2.6</version>
             </dependency>
             <dependency>
-                <groupId>com.yammer.dropwizard</groupId>
+                <groupId>io.dropwizard</groupId>
                 <artifactId>dropwizard-core</artifactId>
                 <version>${dropwizard.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.yammer.dropwizard</groupId>
+                <groupId>io.dropwizard</groupId>
                 <artifactId>dropwizard-jdbi</artifactId>
                 <version>${dropwizard.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.yammer.dropwizard</groupId>
+                <groupId>io.dropwizard</groupId>
                 <artifactId>dropwizard-migrations</artifactId>
                 <version>${dropwizard.version}</version>
             </dependency>
@@ -113,17 +113,22 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>14.0.1</version> <!-- same as Dropwizard 0.6.2 -->
+                <version>16.0.1</version> <!-- same as Dropwizard 0.7.0 -->
             </dependency>
             <dependency>
                 <groupId>joda-time</groupId>
                 <artifactId>joda-time</artifactId>
-                <version>2.2</version> <!-- same as Dropwizard 0.6.2 -->
+                <version>2.3</version> <!-- same as Dropwizard 0.7.0 -->
             </dependency>
             <dependency>
-                <groupId>com.yammer.metrics</groupId>
+                <groupId>com.codahale.metrics</groupId>
                 <artifactId>metrics-core</artifactId>
-                <version>2.2.0</version> <!-- same as Dropwizard 0.6.2 -->
+                <version>3.0.1</version> <!-- same as Dropwizard 0.7.0 -->
+            </dependency>
+            <dependency>
+                <groupId>com.codahale.metrics</groupId>
+                <artifactId>metrics-healthchecks</artifactId>
+                <version>3.0.1</version> <!-- same as Dropwizard 0.7.0 -->
             </dependency>
             <dependency>
                 <groupId>commons-io</groupId>
@@ -185,7 +190,7 @@
             <dependency>
                 <groupId>io.ifar.dw-goodies</groupId>
                 <artifactId>dw-goodies</artifactId>
-                <version>2</version>
+                <version>3-SNAPSHOT</version>
             </dependency>
 
             <dependency>
