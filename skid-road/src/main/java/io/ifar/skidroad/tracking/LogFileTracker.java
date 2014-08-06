@@ -142,11 +142,6 @@ public interface LogFileTracker {
     ResultIterator<LogFile> findMine(Set<LogFileState> states, DateTime start, DateTime end);
 
     /**
-     * Return LogFile record, if any, with teh specified rolling cohort and serial number.
-     */
-    LogFile findByRollingCohortAndSerial(String rollingCohort, int serial);
-
-    /**
      * Return count of LogFile records in the specified state.
      */
     int getCount(LogFileState state);

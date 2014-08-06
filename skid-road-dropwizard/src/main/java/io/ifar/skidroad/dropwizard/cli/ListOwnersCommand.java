@@ -5,14 +5,14 @@ import io.dropwizard.Configuration;
 import io.dropwizard.cli.EnvironmentCommand;
 import io.dropwizard.jdbi.DBIFactory;
 import io.dropwizard.setup.Environment;
-import io.ifar.goodies.AutoCloseableIterator;
 import io.ifar.goodies.CliConveniences;
-import io.ifar.goodies.JdbiAutoCloseableIterator;
+import io.ifar.goodies.Iterators;
 import io.ifar.skidroad.dropwizard.config.SkidRoadReadOnlyConfigurationStrategy;
 import io.ifar.skidroad.jdbi.DefaultJDBILogFileDAO;
 import io.ifar.skidroad.jdbi.JDBILogFileDAO;
 import net.sourceforge.argparse4j.inf.Namespace;
 import org.skife.jdbi.v2.DBI;
+import org.skife.jdbi.v2.ResultIterator;
 
 /**
  *
@@ -31,9 +31,10 @@ public abstract class ListOwnersCommand <T extends Configuration> extends Enviro
         final DBIFactory factory = new DBIFactory();
         final DBI jdbi = factory.build(env, getSkidRoadReadOnlyConfiguration(configuration).getDatabaseConfiguration(), "logfile");
         JDBILogFileDAO dao = jdbi.onDemand(DefaultJDBILogFileDAO.class);
-        try (AutoCloseableIterator<String> ownerUris = JdbiAutoCloseableIterator.wrap(dao.listOwnerUris())) {
-            for (String ownerUri : ownerUris)
+        try (ResultIterator<String> ownerUris = dao.listOwnerUris()) {
+            for (String ownerUri : Iterators.iterable(ownerUris)) {
                 System.out.println(ownerUri);
+            }
         }
 
     }

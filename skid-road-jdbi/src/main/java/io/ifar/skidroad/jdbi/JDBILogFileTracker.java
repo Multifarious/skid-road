@@ -42,7 +42,8 @@ public class JDBILogFileTracker extends AbstractLogFileTracker {
             Path originPath = Paths.get(String.format(pathPattern, serial));
             try {
                 dao.claimIndex(rollingCohort, serial, new Timestamp(startTime.getMillis()), originPath.toUri().toString(), localUri.toString(), stamp);
-                return new LogFile(rollingCohort, serial, startTime, originPath, null, null, null, null, WRITING, localUri, null, new DateTime(stamp.getTime()), null);
+                return new LogFile(rollingCohort, serial, startTime, originPath, null, null,
+                        null, null, WRITING, localUri, null, new DateTime(stamp.getTime()), null);
             } catch (UnableToExecuteStatementException e) {
                 if (attempt < 100) {
                     LOG.debug("Another instance claimed {} serial {}. Will retry.", rollingCohort, serial);
@@ -133,11 +134,6 @@ public class JDBILogFileTracker extends AbstractLogFileTracker {
             stateStrings.add(state.toString());
         }
         return JDBILogFileDAOHelper.count(dao, stateStrings);
-    }
-
-    @Override
-    public LogFile findByRollingCohortAndSerial(String rollingCohort, int serial) {
-        return dao.findByRollingCohortAndSerial(rollingCohort, serial);
     }
 
     protected Timestamp now() {

@@ -132,11 +132,6 @@ public class TransientLogFileTracker extends AbstractLogFileTracker {
     }
 
     @Override
-    public LogFile findByRollingCohortAndSerial(String rollingCohort, int serial) {
-        return null;
-    }
-
-    @Override
     protected int recordStateChange(LogFile logFile) {
         return 1;
     }
