@@ -37,7 +37,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <dropwizard.version>0.7.0</dropwizard.version>
+        <dropwizard.version>0.7.1</dropwizard.version>
         <slf4j.version>1.7.4</slf4j.version> <!-- Same as Dropwizard 0.6.2 -->
         <logback.version>1.0.10</logback.version> <!-- Same as Dropwizard 0.6.2 -->
     </properties>
