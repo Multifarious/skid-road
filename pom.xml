@@ -38,8 +38,12 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <dropwizard.version>0.7.1</dropwizard.version>
-        <slf4j.version>1.7.4</slf4j.version> <!-- Same as Dropwizard 0.6.2 -->
-        <logback.version>1.0.10</logback.version> <!-- Same as Dropwizard 0.6.2 -->
+        <metrics.version>3.0.2</metrics.version> <!-- Same as Dropwizard 0.7.1 -->
+        <slf4j.version>1.7.6</slf4j.version> <!-- Same as Dropwizard 0.7.1 -->
+        <logback.version>1.1.2</logback.version> <!-- Same as Dropwizard 0.7.1 -->
+        <guava.version>17.0</guava.version> <!-- Same as Dropwizard 0.7.1 -->
+        <joda-time.version>2.3</joda-time.version> <!-- Same as Dropwizard 0.7.1 -->
+        <jdbi.version>2.55</jdbi.version> <!-- Same as Dropwizard 0.7.1 -->
     </properties>
 
     <modules>
@@ -76,13 +80,13 @@
             <dependency>
                 <groupId>com.amazonaws</groupId>
                 <artifactId>aws-java-sdk</artifactId>
-                <version>1.7.1</version>
+                <version>1.8.11</version>
             </dependency>
 
             <dependency>
                 <groupId>com.sun.jersey</groupId>
                 <artifactId>jersey-server</artifactId>
-                <version>1.17.1</version> <!-- matches DW. -->
+                <version>1.18.1</version> <!-- matches DW. -->
             </dependency>
 
             <dependency>
@@ -113,22 +117,22 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>16.0.1</version> <!-- same as Dropwizard 0.7.0 -->
+                <version>${guava.version}</version>
             </dependency>
             <dependency>
                 <groupId>joda-time</groupId>
                 <artifactId>joda-time</artifactId>
-                <version>2.3</version> <!-- same as Dropwizard 0.7.0 -->
+                <version>${joda-time.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.codahale.metrics</groupId>
                 <artifactId>metrics-core</artifactId>
-                <version>3.0.1</version> <!-- same as Dropwizard 0.7.0 -->
+                <version>${metrics.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.codahale.metrics</groupId>
                 <artifactId>metrics-healthchecks</artifactId>
-                <version>3.0.1</version> <!-- same as Dropwizard 0.7.0 -->
+                <version>${metrics.version}</version>
             </dependency>
             <dependency>
                 <groupId>commons-io</groupId>
@@ -173,7 +177,7 @@
             <dependency>
                 <groupId>org.jdbi</groupId>
                 <artifactId>jdbi</artifactId>
-                <version>2.53</version>
+                <version>${jdbi.version}</version>
             </dependency>
 
             <dependency>
@@ -184,13 +188,13 @@
             <dependency>
                 <groupId>org.bouncycastle</groupId>
                 <artifactId>bcprov-jdk15on</artifactId>
-                <version>1.48</version>
+                <version>1.51</version>
             </dependency>
 
             <dependency>
                 <groupId>io.ifar.dw-goodies</groupId>
                 <artifactId>dw-goodies</artifactId>
-                <version>3-SNAPSHOT</version>
+                <version>3</version>
             </dependency>
 
             <dependency>
