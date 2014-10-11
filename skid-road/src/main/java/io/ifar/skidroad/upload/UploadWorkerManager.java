@@ -4,21 +4,18 @@ import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.health.HealthCheck;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.AbstractScheduledService;
 import io.ifar.goodies.IterableIterator;
 import io.ifar.goodies.Iterators;
 import io.ifar.goodies.Pair;
 import io.ifar.skidroad.LogFile;
-import io.ifar.skidroad.scheduling.SimpleQuartzScheduler;
 import io.ifar.skidroad.tracking.LogFileStateListener;
 import io.ifar.skidroad.tracking.LogFileTracker;
-import org.quartz.*;
 import org.skife.jdbi.v2.ResultIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -39,7 +36,6 @@ public class UploadWorkerManager implements LogFileStateListener {
 
     private final UploadWorkerFactory workerFactory;
     private final LogFileTracker tracker;
-    private final SimpleQuartzScheduler scheduler;
     public final int retryIntervalSeconds;
     private final int maxConcurrentUploads;
     private ExecutorService executor;
@@ -71,20 +67,20 @@ public class UploadWorkerManager implements LogFileStateListener {
 
     protected final Meter errorMeter = new Meter();
     protected final Meter successMeter = new Meter();
-    private Trigger trigger;
+    private RetryJob retryJob;
 
     /**
      * @param workerFactory Provides workers to perform the LogFile uploads.
      * @param tracker Provides access to LogFile metadata.
-     * @param scheduler Quartz
      * @param retryIntervalSeconds How often to look for files that can be retried.
      * @param maxConcurrentWork Size of thread pool executing the workers.
      * @param unhealthyQueueDepthThreshold HealthCheck returns unhealthy when work queue reaches this size.
      */
-    public UploadWorkerManager(UploadWorkerFactory workerFactory, LogFileTracker tracker, SimpleQuartzScheduler scheduler, int retryIntervalSeconds, int maxConcurrentWork,  final int unhealthyQueueDepthThreshold) {
+    public UploadWorkerManager(UploadWorkerFactory workerFactory, LogFileTracker tracker, int retryIntervalSeconds,
+                               int maxConcurrentWork,  final int unhealthyQueueDepthThreshold)
+    {
         this.workerFactory = workerFactory;
         this.tracker = tracker;
-        this.scheduler = scheduler;
         this.retryIntervalSeconds = retryIntervalSeconds;
         this.maxConcurrentUploads = maxConcurrentWork;
         this.activeFiles = new HashSet<String>();
@@ -176,18 +172,20 @@ public class UploadWorkerManager implements LogFileStateListener {
                                       new LinkedBlockingQueue<Runnable>());
         tracker.addListener(this);
 
-        Map<String,Object> retryConfiguration = new HashMap<>(1);
-        retryConfiguration.put(RetryJob.UPLOAD_WORKER_MANAGER, this);
-        trigger = scheduler.schedule(this.getClass().getSimpleName() + "_retry", RetryJob.class, retryIntervalSeconds * 1000, retryConfiguration);
+        retryJob = new RetryJob();
+        retryJob.startAsync();
+        LOG.info("Started {}.", UploadWorkerManager.class.getSimpleName());
     }
 
     public void stop() {
         LOG.info("Stopping {}.",UploadWorkerManager.class.getSimpleName());
         tracker.removeListener(this);
-        if (trigger != null) {
-            scheduler.unschedule(trigger);
+        if (retryJob != null) {
+            // TODO: Await termination.
+            retryJob.stopAsync();
         }
         this.executor.shutdown();
+        LOG.info("Stopped {}.",UploadWorkerManager.class.getSimpleName());
     }
 
     /**
@@ -283,24 +281,22 @@ public class UploadWorkerManager implements LogFileStateListener {
         }
     }
 
-    @DisallowConcurrentExecution
-    public static class RetryJob implements Job
-    {
-        public static final String UPLOAD_WORKER_MANAGER = "upload_worker_manager";
-        private static final Logger LOG = LoggerFactory.getLogger(RetryJob.class);
+    private class RetryJob extends AbstractScheduledService {
 
-        public void execute(JobExecutionContext context) throws JobExecutionException {
-            JobDataMap m = context.getMergedJobDataMap();
-            UploadWorkerManager mgr = (UploadWorkerManager) m.get(UPLOAD_WORKER_MANAGER);
-
+        @Override
+        protected void runOneIteration() throws Exception {
             try {
-                mgr.retryOneThenRetryAll();
+                retryOneThenRetryAll();
             } catch (Exception e) {
-                //Observed causes:
-                // findMine throws org.skife.jdbi.v2.exceptions.UnableToCreateStatementException: org.postgresql.util.PSQLException: This connection has been closed.
-                // findMine throws org.skife.jdbi.v2.exceptions.UnableToExecuteStatementException: org.postgresql.util.PSQLException: An I/O error occured while sending to the backend.
-                throw new JobExecutionException("Failure retrying upload jobs.", e);
+                LOG.error("Unexpected exception during retry processing: ({}) {}",
+                        e.getClass().getSimpleName(), e.getMessage(), e);
             }
         }
+
+        @Override
+        protected Scheduler scheduler() {
+            return Scheduler.newFixedDelaySchedule(0L, retryIntervalSeconds, TimeUnit.SECONDS);
+        }
+
     }
 }

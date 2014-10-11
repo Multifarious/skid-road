@@ -33,7 +33,6 @@ import io.ifar.skidroad.jersey.single.IDTagTripleTransformFactory;
 import io.ifar.skidroad.jersey.single.RecorderFilterFactory;
 import io.ifar.skidroad.jersey.single.RequestTimestampFilter;
 import io.ifar.skidroad.jersey.single.UUIDGeneratorFilter;
-import io.ifar.skidroad.scheduling.SimpleQuartzScheduler;
 import io.ifar.skidroad.writing.WritingWorkerManager;
 import org.skife.jdbi.v2.DBI;
 import org.slf4j.Logger;
@@ -71,7 +70,6 @@ public class SkidRoadDropwizardExampleService extends Application<SkidRoadDropwi
 
     @Override
     public void run(final SkidRoadDropwizardExampleConfiguration configuration, Environment environment) throws Exception {
-        SimpleQuartzScheduler scheduler = ManagedSimpleQuartzScheduler.build(configuration.getSkidRoad(), environment);
 
         final DBIFactory factory = new DBIFactory();
         final DBI jdbi = factory.build(environment, configuration.getSkidRoad().getDatabaseConfiguration(), "skid-road-example");
@@ -93,10 +91,9 @@ public class SkidRoadDropwizardExampleService extends Application<SkidRoadDropwi
                 configuration.getSkidRoad(),
                 environment,
                 tracker,
-                ManagedAwsS3ClientStorage.buildWorkerFactory(configuration.getSkidRoad(), environment),
-                scheduler);
+                ManagedAwsS3ClientStorage.buildWorkerFactory(configuration.getSkidRoad(), environment));
 
-        ManagedPrepWorkerManager.buildWithEncryptAndCompress(configuration.getSkidRoad(), environment, tracker, scheduler);
+        ManagedPrepWorkerManager.buildWithEncryptAndCompress(configuration.getSkidRoad(), environment, tracker);
 
         WritingWorkerManager<ContainerRequestAndResponse> writerManager = ManagedWritingWorkerManager.build(
                 tracker,
@@ -104,7 +101,6 @@ public class SkidRoadDropwizardExampleService extends Application<SkidRoadDropwi
                         .with((RequestHeaderExtractor) SimpleHeaderExtractor.only("User-Agent")) //only include the User-Agent request header
                         .with(CommonHeaderExtractors.NO_RESPONSE_HEADERS) //don't headers response headers
                 ,
-                scheduler,
                 configuration.getSkidRoad(),
                 environment);
 
@@ -118,7 +114,6 @@ public class SkidRoadDropwizardExampleService extends Application<SkidRoadDropwi
         WritingWorkerManager<Triple<String,String,String>> csvWriterManager = ManagedWritingWorkerManager.buildCSV(
                 tracker,
                 "",
-                scheduler,
                 configuration.getSkidRoad().getRequestLogWriterConfiguration().copy().setNameSuffix(".csv"),
                 environment);
 

@@ -1,7 +1,6 @@
 package io.ifar.skidroad.prepping;
 
 import io.ifar.skidroad.LogFile;
-import io.ifar.skidroad.scheduling.SimpleQuartzScheduler;
 import io.ifar.skidroad.tracker.TransientLogFileTracker;
 import io.ifar.skidroad.tracking.LogFileState;
 import io.ifar.skidroad.tracking.LogFileTracker;
@@ -22,7 +21,6 @@ public class PrepWorkerManagerTest {
     LogFileTracker tracker;
     PrepWorkerManager manager;
     DummyPrepWorkerFactory factory;
-    SimpleQuartzScheduler scheduler;
     private static final int RETRY_INTERVAL_SECONDS = 3;
     public static final int MAX_TEST_DURATION = 12; //must be > 2 * RETRY_INTERVAL
 
@@ -33,12 +31,9 @@ public class PrepWorkerManagerTest {
     public void setup() throws Exception {
         tracker = new TransientLogFileTracker();
         factory = new DummyPrepWorkerFactory();
-        scheduler = new SimpleQuartzScheduler(getClass().getSimpleName() + "#" + name.getMethodName(), 1);
-        scheduler.start();
         manager = new PrepWorkerManager(
                 tracker,
                 factory,
-                scheduler,
                 RETRY_INTERVAL_SECONDS,
                 5,
                 10
@@ -49,7 +44,6 @@ public class PrepWorkerManagerTest {
     public void teardown() throws Exception {
         factory.stop();
         manager.stop();
-        scheduler.stop();
     }
 
     @Test

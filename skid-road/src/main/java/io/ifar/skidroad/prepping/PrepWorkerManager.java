@@ -4,21 +4,18 @@ import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.health.HealthCheck;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.AbstractScheduledService;
 import io.ifar.goodies.IterableIterator;
 import io.ifar.goodies.Iterators;
 import io.ifar.goodies.Pair;
 import io.ifar.skidroad.LogFile;
-import io.ifar.skidroad.scheduling.SimpleQuartzScheduler;
 import io.ifar.skidroad.tracking.LogFileStateListener;
 import io.ifar.skidroad.tracking.LogFileTracker;
-import org.quartz.*;
 import org.skife.jdbi.v2.ResultIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -36,7 +33,6 @@ public class PrepWorkerManager implements LogFileStateListener {
     private final static int PEEK_DEPTH = 50; //when randomly selecting an item to retry, how many of the available items to rifle through
     private final LogFileTracker tracker;
     private final PrepWorkerFactory workerFactory;
-    private final SimpleQuartzScheduler scheduler;
     private final int retryIntervalSeconds;
     private final int maxConcurrentPrepWork;
     private ExecutorService executor;
@@ -68,23 +64,22 @@ public class PrepWorkerManager implements LogFileStateListener {
 
     protected final Meter errorMeter = new Meter();
     protected final Meter successMeter = new Meter();
-    private Trigger trigger;
+    private RetryJob retryJob;
 
     /**
      * @param workerFactory Provides workers to perform the LogFile uploads.
      * @param tracker Provides access to LogFile metadata.
-     * @param scheduler Quartz
      * @param retryIntervalSeconds How often to look for files that can be retried.
      * @param maxConcurrentWork Size of thread pool executing the workers.
      * @param unhealthyQueueDepthThreshold HealthCheck returns unhealthy when work queue reaches this size.
      */
-    public PrepWorkerManager(LogFileTracker tracker, PrepWorkerFactory workerFactory, SimpleQuartzScheduler scheduler, int retryIntervalSeconds, int maxConcurrentWork, final int unhealthyQueueDepthThreshold) {
+    public PrepWorkerManager(LogFileTracker tracker, PrepWorkerFactory workerFactory, int retryIntervalSeconds,
+                             int maxConcurrentWork, final int unhealthyQueueDepthThreshold) {
         this.tracker = tracker;
         this.workerFactory = workerFactory;
-        this.scheduler = scheduler;
         this.retryIntervalSeconds = retryIntervalSeconds;
         this.maxConcurrentPrepWork = maxConcurrentWork;
-        this.activeFiles = new HashSet<String>();
+        this.activeFiles = new HashSet<>();
 
         this.healthcheck = new HealthCheck() {
             protected Result check() throws Exception {
@@ -167,18 +162,20 @@ public class PrepWorkerManager implements LogFileStateListener {
                 60L, TimeUnit.SECONDS,
                 new LinkedBlockingQueue<Runnable>());
         tracker.addListener(this);
-        Map<String,Object> retryConfiguration = new HashMap<>(1);
-        retryConfiguration.put(RetryJob.PREP_WORKER_MANAGER, this);
-        trigger = scheduler.schedule(this.getClass().getSimpleName() + "_retry", RetryJob.class, retryIntervalSeconds * 1000, retryConfiguration);
+        retryJob = new RetryJob();
+        retryJob.startAsync();
+        LOG.info("Started {}.", PrepWorkerManager.class.getSimpleName());
     }
 
     public void stop() {
         LOG.info("Stopping {}.",PrepWorkerManager.class.getSimpleName());
-        if (trigger != null) {
-            scheduler.unschedule(trigger);
+        if (retryJob != null) {
+            // TODO: Await completion.
+            retryJob.stopAsync();
         }
         tracker.removeListener(this);
         this.executor.shutdown();
+        LOG.info("Stopped {}.",PrepWorkerManager.class.getSimpleName());
     }
 
     /**
@@ -279,19 +276,22 @@ public class PrepWorkerManager implements LogFileStateListener {
     }
 
 
-    @DisallowConcurrentExecution
-    public static class RetryJob implements Job
-    {
-        public static final String PREP_WORKER_MANAGER = "prep_worker_manager";
+    private class RetryJob extends AbstractScheduledService {
 
-        public void execute(JobExecutionContext context) throws JobExecutionException {
-            JobDataMap m = context.getMergedJobDataMap();
-            PrepWorkerManager mgr = (PrepWorkerManager) m.get(PREP_WORKER_MANAGER);
+        @Override
+        protected void runOneIteration() throws Exception {
             try {
-                mgr.retryOneThenRetryAll();
+                retryOneThenRetryAll();
             } catch (Exception e) {
-                throw new JobExecutionException("Failure retrying prep jobs.", e);
+                LOG.error("Unexpected exception during retry run: ({}) {}",
+                        e.getClass().getSimpleName(), e.getMessage(), e);
             }
         }
+
+        @Override
+        protected Scheduler scheduler() {
+            return Scheduler.newFixedDelaySchedule(0L, retryIntervalSeconds, TimeUnit.SECONDS);
+        }
+
     }
 }
