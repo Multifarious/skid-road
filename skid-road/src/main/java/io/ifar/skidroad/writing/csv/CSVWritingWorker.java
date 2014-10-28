@@ -39,7 +39,7 @@ public class CSVWritingWorker<T extends Tuple> extends AbstractWritingWorker<Csv
 
     @Override
     protected CsvListWriter openForWriting(Path path) throws IOException {
-        return new CsvListWriter(Files.newBufferedWriter(path, UTF8, CREATE, WRITE, APPEND), CsvPreference.STANDARD_PREFERENCE);
+        return new CsvListWriter(Files.newBufferedWriter(path, UTF8, CREATE, WRITE, APPEND), new CsvPreference.Builder('"', ',', "\r\n").build());
     }
 
     @Override
