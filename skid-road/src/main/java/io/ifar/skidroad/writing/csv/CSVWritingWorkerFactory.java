@@ -7,7 +7,6 @@ import io.ifar.skidroad.writing.WritingWorkerFactory;
 
 import java.util.concurrent.BlockingQueue;
 
-
 public class CSVWritingWorkerFactory<T extends Tuple> implements WritingWorkerFactory<T> {
     private final int flushIntervalSeconds;
     private final String nullRepresentation;

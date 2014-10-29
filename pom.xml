@@ -44,6 +44,7 @@
         <guava.version>17.0</guava.version> <!-- Same as Dropwizard 0.7.1 -->
         <joda-time.version>2.3</joda-time.version> <!-- Same as Dropwizard 0.7.1 -->
         <jdbi.version>2.55</jdbi.version> <!-- Same as Dropwizard 0.7.1 -->
+        <jackson.version>2.4.3</jackson.version> <!-- Later than Dropwizard 0.7.1, but should be ok -->
     </properties>
 
     <modules>
@@ -139,11 +140,31 @@
                 <artifactId>commons-io</artifactId>
                 <version>2.4</version>
             </dependency>
+
+            <!-- we just need CSV; but since DW needs other parts, need to ensure
+                 compatible versions of components
+              -->
             <dependency>
-            	<groupId>net.sf.supercsv</groupId>
-            	<artifactId>super-csv</artifactId>
-            	<version>2.1.0</version>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson.version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-annotations</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.dataformat</groupId>
+                <artifactId>jackson-dataformat-csv</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>jcl-over-slf4j</artifactId>
