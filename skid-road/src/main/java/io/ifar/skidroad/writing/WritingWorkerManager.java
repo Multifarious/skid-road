@@ -2,12 +2,11 @@ package io.ifar.skidroad.writing;
 
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.health.HealthCheck;
+import com.google.common.util.concurrent.AbstractScheduledService;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.rolling.FileRollingScheme;
-import io.ifar.skidroad.scheduling.SimpleQuartzScheduler;
 import io.ifar.skidroad.tracking.LogFileTracker;
 import org.joda.time.DateTime;
-import org.quartz.*;
 import org.skife.jdbi.v2.ResultIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,10 +14,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.nio.file.Files;
 import java.util.*;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.ifar.skidroad.tracking.LogFileState.WRITING;
@@ -49,7 +45,6 @@ public class WritingWorkerManager<T> {
     private final WritingWorkerFactory<T> factory;
     private final int spawnNewWorkerAtQueueDepth;
     private final int unhealthyQueueDepthThreshold;
-    private final SimpleQuartzScheduler scheduler;
     private final int pruneIntervalSeconds;
     /*
     queues is synchronized using itself as a monitor. Only getQueueFor puts new data; accessed concurrently.
@@ -62,9 +57,10 @@ public class WritingWorkerManager<T> {
      */
     private final Map<DateTime, List<Thread>> workers;
     private final ExecutorService asyncWorkerCreator;
+    private PruneJob pruneJob;
 
     public WritingWorkerManager(FileRollingScheme rollingScheme, LogFileTracker tracker,
-                                WritingWorkerFactory<T> factory, SimpleQuartzScheduler scheduler, int pruneIntervalSeconds,
+                                WritingWorkerFactory<T> factory, int pruneIntervalSeconds,
                                 int spawnThreshold, int unhealthyThreshold) {
 
         File logDir = rollingScheme.getBaseDirectory();
@@ -82,7 +78,6 @@ public class WritingWorkerManager<T> {
         this.factory = factory;
         this.spawnNewWorkerAtQueueDepth = spawnThreshold;
         this.unhealthyQueueDepthThreshold = unhealthyThreshold;
-        this.scheduler = scheduler;
         this.pruneIntervalSeconds = pruneIntervalSeconds;
         this.queues = new HashMap<>();
         this.workers = new HashMap<>();
@@ -300,10 +295,10 @@ public class WritingWorkerManager<T> {
 
         //On startup, look for database records that were left hanging and tidy up.
         cleanStaleEntries();
-
-        Map<String,Object> pruneConfiguration = new HashMap<>(1);
-        pruneConfiguration.put(PruneJob.FILE_WRITING_WORKER_MANAGER, this);
-        scheduler.schedule(this.getClass().getSimpleName()+"_prune_"+instanceCounter.incrementAndGet(), PruneJob.class, pruneIntervalSeconds * 1000, pruneConfiguration);
+        pruneJob = new PruneJob();
+        pruneJob.startAsync();
+        pruneJob.awaitRunning();
+        LOG.info("Started {}.",WritingWorkerManager.class.getSimpleName());
     }
 
     /**
@@ -329,6 +324,9 @@ public class WritingWorkerManager<T> {
 
     public void stop() throws InterruptedException {
         LOG.info("Stopping {}.",WritingWorkerManager.class.getSimpleName());
+        pruneJob.stopAsync();
+        pruneJob.awaitTerminated();
+
         //I believe the DropWizard lifecycle is:
         //stop taking requests, then shutdown the Managed resources in reverse-startup
         //order. In this case, the way to do a graceful shutdown is to wait for the queues
@@ -371,16 +369,22 @@ public class WritingWorkerManager<T> {
         return result;
     }
 
-    @DisallowConcurrentExecution
-    public static class PruneJob implements Job
+    public class PruneJob extends AbstractScheduledService
     {
-        public static final String FILE_WRITING_WORKER_MANAGER = "file_writing_worker_manager";
 
-        public void execute(JobExecutionContext context) throws JobExecutionException {
-            JobDataMap m = context.getMergedJobDataMap();
-            WritingWorkerManager mgr = (WritingWorkerManager) m.get(FILE_WRITING_WORKER_MANAGER);
-            if (mgr != null)
-                mgr.prune();
+        @Override
+        protected void runOneIteration() throws Exception {
+            try {
+                prune();
+            } catch (Exception e) {
+                LOG.error("Unable to complete prune invocation due to unexpected exception: ({}) {}",
+                        e.getClass(), e.getMessage(), e);
+            }
+        }
+
+        @Override
+        protected Scheduler scheduler() {
+            return Scheduler.newFixedDelaySchedule(0L, pruneIntervalSeconds, TimeUnit.SECONDS);
         }
     }
 }

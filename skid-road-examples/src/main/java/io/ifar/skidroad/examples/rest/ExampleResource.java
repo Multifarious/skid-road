@@ -1,16 +1,9 @@
 package io.ifar.skidroad.examples.rest;
 
-import com.google.common.base.Function;
-import io.ifar.goodies.Triple;
-import io.ifar.skidroad.jersey.single.IDTagTripleTransformFactory;
-import io.ifar.skidroad.jersey.single.RecorderFactory;
-import io.ifar.skidroad.jersey.single.RequestTimestampFilter;
-import io.ifar.skidroad.recorder.Recorder;
+import io.ifar.goodies.Pair;
 import io.ifar.skidroad.writing.WritingWorkerManager;
 
 import javax.ws.rs.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * Post to this resource with:
@@ -22,14 +15,11 @@ import java.util.concurrent.Executors;
  */
 @Path("/")
 public class ExampleResource {
-    private final WritingWorkerManager<Triple<String,String,String>> writingWorkerManager;
-    private final Function<String,Triple<String,String,String>> favColorCapture = IDTagTripleTransformFactory.passThrough("FAV_COLOR");
+    private final WritingWorkerManager<Pair<RainbowRequest, RainbowRequestResponse>> writingWorkerManager;
 
-    public ExampleResource(WritingWorkerManager<Triple<String, String, String>> writingWorkerManager) {
+    public ExampleResource(WritingWorkerManager<Pair<RainbowRequest, RainbowRequestResponse>> writingWorkerManager) {
         this.writingWorkerManager = writingWorkerManager;
     }
-
-    private ExecutorService executorService = Executors.newCachedThreadPool();
 
     @POST
     @Path("orders")
@@ -42,29 +32,9 @@ public class ExampleResource {
         } else {
             rainbowColor = favoriteColor;
         }
-        writingWorkerManager.record(
-                RequestTimestampFilter.getRequestDateTime(),
-                favColorCapture.apply(favoriteColor)
-        );
+        RainbowRequestResponse resp = new RainbowRequestResponse(true,rainbowColor);
+        writingWorkerManager.record(new Pair<>(req,resp));
 
-        //demo use of Recorder to allow parts of code with no reference to request
-        // or writer to easily record entries.
-        final Recorder<String> recorder = RecorderFactory.<String>build(
-                "LATER",
-                writingWorkerManager
-        );
-        executorService.submit(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Thread.sleep(2000);
-                } catch (InterruptedException e) {
-
-                }
-                recorder.record(String.format("The future has arrived on thread \"%s\".", Thread.currentThread().getName()));
-            }
-        });
-
-        return new RainbowRequestResponse(true,rainbowColor);
+        return resp;
     }
 }

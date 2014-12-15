@@ -20,10 +20,6 @@
             <groupId>io.ifar.skid-road</groupId>
             <artifactId>skid-road-dropwizard</artifactId>
         </dependency>
-        <dependency>
-            <groupId>io.ifar.skid-road</groupId>
-            <artifactId>skid-road-jersey</artifactId>
-        </dependency>
 
         <dependency>
             <groupId>commons-lang</groupId>
@@ -54,10 +50,6 @@
             <artifactId>jcl-over-slf4j</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.quartz-scheduler</groupId>
-            <artifactId>quartz</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcprov-jdk15on</artifactId>
         </dependency>
@@ -65,7 +57,7 @@
         <dependency>
             <groupId>io.ifar.dw-goodies</groupId>
             <artifactId>dw-goodies</artifactId>
-        </dependency>
+        </dependency>git stat
 
         <dependency>
             <groupId>org.hsqldb</groupId>

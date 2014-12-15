@@ -37,21 +37,20 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <dropwizard.version>0.7.1</dropwizard.version>
-        <metrics.version>3.0.2</metrics.version> <!-- Same as Dropwizard 0.7.1 -->
-        <slf4j.version>1.7.6</slf4j.version> <!-- Same as Dropwizard 0.7.1 -->
-        <logback.version>1.1.2</logback.version> <!-- Same as Dropwizard 0.7.1 -->
-        <guava.version>17.0</guava.version> <!-- Same as Dropwizard 0.7.1 -->
-        <joda-time.version>2.3</joda-time.version> <!-- Same as Dropwizard 0.7.1 -->
-        <jdbi.version>2.55</jdbi.version> <!-- Same as Dropwizard 0.7.1 -->
-        <jackson.version>2.4.4</jackson.version> <!-- Later than Dropwizard 0.7.1, but should be ok -->
+        <dropwizard.version>0.8.0-rc1</dropwizard.version>
+        <metrics.version>3.1.0</metrics.version>
+        <slf4j.version>1.7.7</slf4j.version> <!-- Same as Dropwizard 0.8.0-rc1 -->
+        <logback.version>1.1.2</logback.version> <!-- Same as Dropwizard 0.8.0-rc1 -->
+        <guava.version>18.0</guava.version> <!-- Same as Dropwizard 0.8.0-rc1 -->
+        <joda-time.version>2.5</joda-time.version> <!-- Same as Dropwizard 0.8.0-rc1 -->
+        <jdbi.version>2.55</jdbi.version> <!-- Same as Dropwizard 0.8.0-rc1 -->
+        <jackson.version>2.4.4</jackson.version> <!-- Later than Dropwizard 0.8.0-rc1, but should be ok -->
     </properties>
 
     <modules>
         <module>skid-road</module>
         <module>skid-road-dropwizard</module>
         <module>skid-road-jdbi</module>
-        <module>skid-road-jersey</module>
         <module>skid-road-examples</module>
     </modules>
 
@@ -72,22 +71,17 @@
                 <artifactId>skid-road-jdbi</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <dependency>
-                <groupId>io.ifar.skid-road</groupId>
-                <artifactId>skid-road-jersey</artifactId>
-                <version>${project.version}</version>
-            </dependency>
 
             <dependency>
                 <groupId>com.amazonaws</groupId>
                 <artifactId>aws-java-sdk</artifactId>
-                <version>1.8.11</version>
+                <version>1.9.11</version>
             </dependency>
 
             <dependency>
-                <groupId>com.sun.jersey</groupId>
+                <groupId>org.glassfish.jersey.core</groupId>
                 <artifactId>jersey-server</artifactId>
-                <version>1.18.1</version> <!-- matches DW. -->
+                <version>2.13</version> <!-- matches DW. -->
             </dependency>
 
             <dependency>
@@ -113,7 +107,7 @@
             <dependency>
                 <groupId>org.joda</groupId>
                 <artifactId>joda-convert</artifactId>
-                <version>1.2</version>
+                <version>1.7</version>
             </dependency>
             <dependency>
                 <groupId>com.google.guava</groupId>
@@ -126,12 +120,12 @@
                 <version>${joda-time.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.codahale.metrics</groupId>
+                <groupId>io.dropwizard.metrics</groupId>
                 <artifactId>metrics-core</artifactId>
                 <version>${metrics.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.codahale.metrics</groupId>
+                <groupId>io.dropwizard.metrics</groupId>
                 <artifactId>metrics-healthchecks</artifactId>
                 <version>${metrics.version}</version>
             </dependency>
@@ -221,7 +215,7 @@
             <dependency>
                 <groupId>com.google.code.findbugs</groupId>
                 <artifactId>jsr305</artifactId>
-                <version>2.0.1</version>
+                <version>3.0.0</version>
             </dependency>
 
             <dependency>

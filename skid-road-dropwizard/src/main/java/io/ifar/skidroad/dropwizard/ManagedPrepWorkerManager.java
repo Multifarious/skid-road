@@ -9,12 +9,13 @@ import io.ifar.skidroad.prepping.CompressPrepWorkerFactory;
 import io.ifar.skidroad.prepping.EncryptAndCompressPrepWorkerFactory;
 import io.ifar.skidroad.prepping.PrepWorkerFactory;
 import io.ifar.skidroad.prepping.PrepWorkerManager;
-import io.ifar.skidroad.scheduling.SimpleQuartzScheduler;
 import io.ifar.skidroad.tracking.LogFileTracker;
 
 public class ManagedPrepWorkerManager extends PrepWorkerManager implements Managed {
-    public ManagedPrepWorkerManager(LogFileTracker tracker, PrepWorkerFactory workerFactory, SimpleQuartzScheduler scheduler, Environment environment, int retryIntervalSeconds, int maxConcurrentWork, int unhealthyQueueDepthThreshold) {
-        super(tracker, workerFactory, scheduler, retryIntervalSeconds, maxConcurrentWork, unhealthyQueueDepthThreshold);
+    public ManagedPrepWorkerManager(LogFileTracker tracker, PrepWorkerFactory workerFactory,  Environment environment,
+                                    int retryIntervalSeconds, int maxConcurrentWork, int unhealthyQueueDepthThreshold)
+    {
+        super(tracker, workerFactory, retryIntervalSeconds, maxConcurrentWork, unhealthyQueueDepthThreshold);
 
         environment.metrics().register(MetricRegistry.name(PrepWorkerManager.class, "prep_errors", "errors"), this.errorMeter);
         environment.metrics().register(MetricRegistry.name(PrepWorkerManager.class, "prep_successes", "successes"), this.successMeter);
@@ -23,10 +24,12 @@ public class ManagedPrepWorkerManager extends PrepWorkerManager implements Manag
         environment.metrics().register(MetricRegistry.name(PrepWorkerManager.class, "files_in_error"), this.errorGauge);
     }
 
-    public static ManagedPrepWorkerManager build(PrepWorkerFactory workerFactory, RequestLogPrepConfiguration prepConfiguration, Environment environment, LogFileTracker tracker, SimpleQuartzScheduler scheduler) {
+    public static ManagedPrepWorkerManager build(PrepWorkerFactory workerFactory,
+                                                 RequestLogPrepConfiguration prepConfiguration, Environment environment,
+                                                 LogFileTracker tracker)
+    {
         ManagedPrepWorkerManager prepManager = new ManagedPrepWorkerManager(tracker,
                 workerFactory,
-                scheduler,
                 environment,
                 prepConfiguration.getRetryIntervalSeconds(),
                 prepConfiguration.getMaxConcurrency(),
@@ -39,31 +42,32 @@ public class ManagedPrepWorkerManager extends PrepWorkerManager implements Manag
     }
 
     public static ManagedPrepWorkerManager buildWithEncryptAndCompress(RequestLogPrepConfiguration prepConfiguration,
-                                                                       Environment environment, LogFileTracker tracker, SimpleQuartzScheduler scheduler) {
+                                                                       Environment environment, LogFileTracker tracker)
+    {
 
         PrepWorkerFactory workerFactory = new EncryptAndCompressPrepWorkerFactory(
                 prepConfiguration.getMasterKey()
         );
 
-        return build(workerFactory, prepConfiguration, environment, tracker, scheduler);
+        return build(workerFactory, prepConfiguration, environment, tracker);
     }
 
     public static ManagedPrepWorkerManager buildWithCompress(RequestLogPrepConfiguration prepConfiguration,
-                                                             Environment environment, LogFileTracker tracker,
-                                                             SimpleQuartzScheduler scheduler)
+                                                             Environment environment, LogFileTracker tracker)
     {
         PrepWorkerFactory workerFactory = new CompressPrepWorkerFactory();
-        return build(workerFactory, prepConfiguration, environment, tracker, scheduler);
+        return build(workerFactory, prepConfiguration, environment, tracker);
     }
 
     public static ManagedPrepWorkerManager buildWithEncryptAndCompress(SkidRoadConfiguration skidRoadConfiguration,
-                                                                       Environment environment, LogFileTracker tracker,
-                                                                       SimpleQuartzScheduler scheduler)
+                                                                       Environment environment, LogFileTracker tracker)
     {
-        return buildWithEncryptAndCompress(skidRoadConfiguration.getRequestLogPrepConfiguration(), environment, tracker, scheduler);
+        return buildWithEncryptAndCompress(skidRoadConfiguration.getRequestLogPrepConfiguration(), environment, tracker);
     }
 
-    public static ManagedPrepWorkerManager buildWithCompress(SkidRoadConfiguration skidRoadConfiguration, Environment environment, LogFileTracker tracker, SimpleQuartzScheduler scheduler) {
-        return buildWithCompress(skidRoadConfiguration.getRequestLogPrepConfiguration(), environment, tracker, scheduler);
+    public static ManagedPrepWorkerManager buildWithCompress(SkidRoadConfiguration skidRoadConfiguration,
+                                                             Environment environment, LogFileTracker tracker)
+    {
+        return buildWithCompress(skidRoadConfiguration.getRequestLogPrepConfiguration(), environment, tracker);
     }
 }

@@ -1,7 +1,6 @@
 package io.ifar.skidroad.writing;
 
 import io.ifar.skidroad.LogFile;
-import io.ifar.skidroad.scheduling.SimpleQuartzScheduler;
 import io.ifar.skidroad.tracker.TransientLogFileTracker;
 import io.ifar.skidroad.tracking.LogFileState;
 import io.ifar.skidroad.tracking.LogFileTracker;
@@ -40,7 +39,6 @@ public class WritingWorkerManagerTest {
 
     LogFileTracker tracker;
     private ManualRollingScheme rollingScheme;
-    private SimpleQuartzScheduler scheduler;
     DummyWritingWorkerFactory<String> factory;
     WritingWorkerManager<String> manager;
 
@@ -48,14 +46,12 @@ public class WritingWorkerManagerTest {
     public void setup() throws Exception {
         tracker = new TransientLogFileTracker();
         rollingScheme = new ManualRollingScheme();
-        scheduler = new SimpleQuartzScheduler(getClass().getSimpleName() + "#" + name.getMethodName(), 1);
-        scheduler.start();
+
         factory = new DummyWritingWorkerFactory<>();
         manager = new WritingWorkerManager<>(
                 rollingScheme,
                 tracker,
                 factory,
-                scheduler,
                 PRUNE_INTERVAL_SECONDS,
                 LAUNCH_MORE_WORKERS_THRESHOLD,
                 UNHEALTHY_QUEUE_SIZE);
@@ -66,7 +62,6 @@ public class WritingWorkerManagerTest {
     public void teardown() throws Exception {
         factory.stop(); //stop factory first, that consumes all remaining work and lets manager exit.
         manager.stop();
-        scheduler.stop();
     }
 
     @Test
@@ -189,12 +184,10 @@ public class WritingWorkerManagerTest {
             }
         });
 
-        scheduler.clear();
         WritingWorkerManager<String> manager = new WritingWorkerManager<>(
                 rollingScheme,
                 tracker,
                 factory,
-                scheduler,
                 PRUNE_INTERVAL_SECONDS,
                 LAUNCH_MORE_WORKERS_THRESHOLD,
                 UNHEALTHY_QUEUE_SIZE);
@@ -207,7 +200,6 @@ public class WritingWorkerManagerTest {
             verify(tracker).writeError(dummyFiles.get(1));
         } finally {
             manager.stop();
-            scheduler.stop();
         }
 
     }

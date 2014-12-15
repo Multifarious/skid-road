@@ -1,12 +1,11 @@
 package io.ifar.skidroad.cleanup;
 
 import com.codahale.metrics.Counter;
+import com.google.common.util.concurrent.AbstractScheduledService;
 import io.ifar.skidroad.LogFile;
-import io.ifar.skidroad.scheduling.SimpleQuartzScheduler;
 import io.ifar.skidroad.tracking.LogFileState;
 import io.ifar.skidroad.tracking.LogFileTracker;
 import org.joda.time.DateTime;
-import org.quartz.*;
 import org.skife.jdbi.v2.ResultIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  *
@@ -27,31 +27,30 @@ public class CleanupManager {
     private final LogFileTracker tracker;
     private final int minAgeHours;
     private final int maxAgeHours;
-    private final SimpleQuartzScheduler scheduler;
 
     protected Counter deletedFilesCounter = new Counter();
-    private Trigger trigger;
+    private CleanupJob cleanupJob;
 
-    public CleanupManager(LogFileTracker tracker, SimpleQuartzScheduler scheduler, int minAgeHours, int maxAgeHours) {
+    public CleanupManager(LogFileTracker tracker,  int minAgeHours, int maxAgeHours) {
         this.tracker = tracker;
-        this.scheduler = scheduler;
         this.minAgeHours = minAgeHours;
         this.maxAgeHours = maxAgeHours;
     }
 
     public void start() {
-        Map<String,Object> config = new HashMap<>(1);
-        config.put(CleanupJob.CLEANUP_MANAGER, this);
-        trigger = scheduler.schedule(CleanupJob.CLEANUP_MANAGER, CleanupJob.class,
-                SimpleScheduleBuilder.repeatMinutelyForever(15), config);
+        cleanupJob = new CleanupJob();
+        cleanupJob.startAsync();
+        cleanupJob.awaitRunning();
         LOG.info("{} started.",CleanupManager.class.getSimpleName());
     }
 
     public void stop() {
         LOG.info("Stopping {}.", CleanupManager.class.getSimpleName());
-        if (trigger != null) {
-            scheduler.unschedule(trigger);
+        if (cleanupJob != null) {
+            cleanupJob.stopAsync();
+            cleanupJob.awaitTerminated();
         }
+        LOG.info("Stopped {}.", CleanupManager.class.getSimpleName());
     }
 
     public void sweep() {
@@ -79,19 +78,23 @@ public class CleanupManager {
         LOG.info("Done sweeping for old uploaded files; removed {} this pass.",removed);
     }
 
-    @DisallowConcurrentExecution
-    public static class CleanupJob implements Job
+    public class CleanupJob extends AbstractScheduledService
     {
-        public static final String CLEANUP_MANAGER = "cleanup_manager";
 
-        public void execute(JobExecutionContext context) throws JobExecutionException {
-            JobDataMap m = context.getMergedJobDataMap();
-            CleanupManager mgr = (CleanupManager) m.get(CLEANUP_MANAGER);
+        @Override
+        protected void runOneIteration() throws Exception {
             try {
-                mgr.sweep();
+                sweep();
             } catch (Exception e) {
-                throw new JobExecutionException("Failure running cleanup job.", e);
+                LOG.error("Unable to complete cleanup invocation due to unexpected exception: ({}) {}",
+                        e.getClass(), e.getMessage(), e);
             }
+        }
+
+        @Override
+        protected Scheduler scheduler() {
+            // TODO: Pull this out as a configuration property.
+            return Scheduler.newFixedDelaySchedule(0L, 15, TimeUnit.MINUTES);
         }
     }
 

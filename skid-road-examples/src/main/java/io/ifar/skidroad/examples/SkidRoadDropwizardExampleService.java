@@ -6,39 +6,29 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.joda.JodaModule;
 import io.dropwizard.Application;
 import io.dropwizard.db.DataSourceFactory;
-import io.dropwizard.jackson.Jackson;
 import io.dropwizard.jdbi.DBIFactory;
 import io.dropwizard.jdbi.bundles.DBIExceptionsBundle;
 import io.dropwizard.jdbi.logging.LogbackLog;
 import io.dropwizard.migrations.MigrationsBundle;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
-import io.ifar.goodies.Triple;
+import io.ifar.goodies.Pair;
 import io.ifar.skidroad.dropwizard.*;
 import io.ifar.skidroad.dropwizard.cli.GenerateRandomKey;
 import io.ifar.skidroad.examples.config.SkidRoadDropwizardExampleConfiguration;
 import io.ifar.skidroad.examples.rest.ExampleResource;
+import io.ifar.skidroad.examples.rest.RainbowRequest;
+import io.ifar.skidroad.examples.rest.RainbowRequestResponse;
 import io.ifar.skidroad.jdbi.JDBILogFileDAO;
 import io.ifar.skidroad.jdbi.JDBILogFileDAOHelper;
 import io.ifar.skidroad.jdbi.JodaArgumentFactory;
-import io.ifar.skidroad.jersey.ContainerRequestAndResponse;
-import io.ifar.skidroad.jersey.combined.capture.RecorderFilter;
-import io.ifar.skidroad.jersey.combined.capture.RequestEntityBytesCaptureFilter;
-import io.ifar.skidroad.jersey.combined.serialize.JSONContainerRequestAndResponseSerializer;
-import io.ifar.skidroad.jersey.headers.CommonHeaderExtractors;
-import io.ifar.skidroad.jersey.headers.RequestHeaderExtractor;
-import io.ifar.skidroad.jersey.headers.SimpleHeaderExtractor;
-import io.ifar.skidroad.jersey.predicate.response.StatusCodeContainerResponsePredicate;
-import io.ifar.skidroad.jersey.single.IDTagTripleTransformFactory;
-import io.ifar.skidroad.jersey.single.RecorderFilterFactory;
-import io.ifar.skidroad.jersey.single.RequestTimestampFilter;
-import io.ifar.skidroad.jersey.single.UUIDGeneratorFilter;
-import io.ifar.skidroad.scheduling.SimpleQuartzScheduler;
 import io.ifar.skidroad.writing.WritingWorkerManager;
+import io.ifar.skidroad.writing.file.Serializer;
 import org.skife.jdbi.v2.DBI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.net.URI;
 import java.sql.SQLException;
 
@@ -70,8 +60,7 @@ public class SkidRoadDropwizardExampleService extends Application<SkidRoadDropwi
     }
 
     @Override
-    public void run(final SkidRoadDropwizardExampleConfiguration configuration, Environment environment) throws Exception {
-        SimpleQuartzScheduler scheduler = ManagedSimpleQuartzScheduler.build(configuration.getSkidRoad(), environment);
+    public void run(final SkidRoadDropwizardExampleConfiguration configuration, final Environment environment) throws Exception {
 
         final DBIFactory factory = new DBIFactory();
         final DBI jdbi = factory.build(environment, configuration.getSkidRoad().getDatabaseConfiguration(), "skid-road-example");
@@ -93,53 +82,23 @@ public class SkidRoadDropwizardExampleService extends Application<SkidRoadDropwi
                 configuration.getSkidRoad(),
                 environment,
                 tracker,
-                ManagedAwsS3ClientStorage.buildWorkerFactory(configuration.getSkidRoad(), environment),
-                scheduler);
+                ManagedAwsS3ClientStorage.buildWorkerFactory(configuration.getSkidRoad(), environment));
 
-        ManagedPrepWorkerManager.buildWithEncryptAndCompress(configuration.getSkidRoad(), environment, tracker, scheduler);
+        ManagedPrepWorkerManager.buildWithEncryptAndCompress(configuration.getSkidRoad(), environment, tracker);
 
-        WritingWorkerManager<ContainerRequestAndResponse> writerManager = ManagedWritingWorkerManager.build(
+
+        WritingWorkerManager<Pair<RainbowRequest,RainbowRequestResponse>> writerManager = ManagedWritingWorkerManager.build(
                 tracker,
-                new JSONContainerRequestAndResponseSerializer(Jackson.newObjectMapper())
-                        .with((RequestHeaderExtractor) SimpleHeaderExtractor.only("User-Agent")) //only include the User-Agent request header
-                        .with(CommonHeaderExtractors.NO_RESPONSE_HEADERS) //don't headers response headers
-                ,
-                scheduler,
+                new Serializer<Pair<RainbowRequest, RainbowRequestResponse>>() {
+                    @Override
+                    public String serialize(Pair<RainbowRequest, RainbowRequestResponse> item) throws IOException {
+                        return environment.getObjectMapper().writeValueAsString(item);
+                    }
+                },
                 configuration.getSkidRoad(),
                 environment);
 
-        JerseyFilterHelper.addFilter(environment, new RequestEntityBytesCaptureFilter());
-        //Only request when result is successful.
-        JerseyFilterHelper.addFilter(environment, new RecorderFilter(StatusCodeContainerResponsePredicate.SUCCESS_PREDICATE, writerManager));
+        environment.jersey().register(new ExampleResource(writerManager));
 
-
-
-        //Slightly unconventional: add a second WriterWorkerManager to demonstrate alternate serialization
-        WritingWorkerManager<Triple<String,String,String>> csvWriterManager = ManagedWritingWorkerManager.buildCSV(
-                tracker,
-                "",
-                scheduler,
-                configuration.getSkidRoad().getRequestLogWriterConfiguration().copy().setNameSuffix(".csv"),
-                environment);
-
-        //generate a UUID for each request to use in all CSV rows
-        JerseyFilterHelper.addFilter(environment, new UUIDGeneratorFilter());
-        //generate a timestamp to determine which output file will contain recordings for this request
-        JerseyFilterHelper.addFilter(environment, new RequestTimestampFilter());
-
-        //write the timestamp to the CSV file
-        JerseyFilterHelper.addFilter(environment, RecorderFilterFactory.build(
-                RecorderFilterFactory.EXTRACT_REQUEST_TIMESTAMP,
-                IDTagTripleTransformFactory.<String>isoDateTime("TIMESTAMP"),
-                csvWriterManager
-        ));
-        //write the request body to the CSV file
-        JerseyFilterHelper.addFilter(environment, RecorderFilterFactory.build(
-                RecorderFilterFactory.EXTRACT_REQUEST_BODY,
-                IDTagTripleTransformFactory.<String>passThrough("REQUEST_BODY"),
-                csvWriterManager
-        ));
-
-        environment.jersey().register(new ExampleResource(csvWriterManager));
     }
 }
