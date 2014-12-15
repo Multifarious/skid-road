@@ -12,8 +12,8 @@ import io.ifar.skidroad.upload.UploadWorkerManager;
 import java.net.URISyntaxException;
 
 public class ManagedUploadWorkerManager extends UploadWorkerManager implements Managed {
-    public ManagedUploadWorkerManager(UploadWorkerFactory workerFactory, LogFileTracker tracker, Environment environment,
-                                      int retryIntervalSeconds, int maxConcurrentUploads,
+    public ManagedUploadWorkerManager(UploadWorkerFactory workerFactory, LogFileTracker tracker,
+                                      Environment environment, int retryIntervalSeconds, int maxConcurrentUploads,
                                       int unhealthyQueueDepthThreshold)
     {
         super(workerFactory, tracker, retryIntervalSeconds, maxConcurrentUploads, unhealthyQueueDepthThreshold);
@@ -42,7 +42,9 @@ public class ManagedUploadWorkerManager extends UploadWorkerManager implements M
     }
 
     public static ManagedUploadWorkerManager build(SkidRoadConfiguration skidRoadConfiguration, Environment environment,
-                                                   LogFileTracker tracker, UploadWorkerFactory workerFactory) throws URISyntaxException {
+                                                   LogFileTracker tracker,
+                                                   UploadWorkerFactory workerFactory) throws URISyntaxException
+    {
         return build(skidRoadConfiguration.getRequestLogUploadConfiguration(), environment, tracker, workerFactory);
     }
 }

@@ -1,60 +1,76 @@
 package io.ifar.skidroad.writing.csv;
 
-import com.google.common.collect.Lists;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.concurrent.BlockingQueue;
+
+import com.fasterxml.jackson.dataformat.csv.CsvFactory;
+import com.fasterxml.jackson.dataformat.csv.CsvGenerator;
+import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import io.ifar.goodies.Tuple;
 import io.ifar.skidroad.LogFile;
 import io.ifar.skidroad.tracking.LogFileTracker;
 import io.ifar.skidroad.writing.AbstractWritingWorker;
-import org.supercsv.cellprocessor.ConvertNullTo;
-import org.supercsv.cellprocessor.ift.CellProcessor;
-import org.supercsv.io.CsvListWriter;
-import org.supercsv.prefs.CsvPreference;
-
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
 
 import static java.nio.file.StandardOpenOption.*;
 
 /**
  * CSV-based {@link io.ifar.skidroad.writing.AbstractWritingWorker} implementation that consumes Tuples.
  */
-public class CSVWritingWorker<T extends Tuple> extends AbstractWritingWorker<CsvListWriter, T> {
-    public static final Charset UTF8 = Charset.forName("UTF-8");
-    private final CellProcessor cellProcessor;
-    private final ConcurrentHashMap<Integer,CellProcessor[]> cellProcessorCache = new ConcurrentHashMap<>();
+public class CSVWritingWorker<T extends Tuple> extends AbstractWritingWorker<CsvGenerator, T> {
+    /**
+     * We don't have 'real' schema to bind columns to named values; but we still need to
+     * specify details of underlying CSV format
+     */
+    private final static CsvSchema CSV_SCHEMA =
+            CsvSchema.emptySchema()
+            .withoutHeader()
+            .withoutEscapeChar()
+            .withQuoteChar('"')
+            .withColumnSeparator(',')
+            .withLineSeparator("\r\n")
+    ;
+
+    private final static CsvFactory csvFactory = new CsvFactory();
+
+    protected final String convertNullTo;
 
     public CSVWritingWorker(final BlockingQueue<T> queue, final LogFile logFileRecord, final int maxFlushIntervalSeconds, final String nullRepresentation, final LogFileTracker tracker) {
         super(queue, logFileRecord, maxFlushIntervalSeconds, tracker);
         if (nullRepresentation == null || "".equals(nullRepresentation)) {
-            cellProcessor = null;
+            convertNullTo = null;
         } else {
-            cellProcessor = new ConvertNullTo(nullRepresentation);
+            convertNullTo = nullRepresentation;
         }
     }
 
     @Override
-    protected CsvListWriter openForWriting(Path path) throws IOException {
-        return new CsvListWriter(Files.newBufferedWriter(path, UTF8, CREATE, WRITE, APPEND), CsvPreference.STANDARD_PREFERENCE);
+    protected CsvGenerator openForWriting(Path path) throws IOException {
+        OutputStream out = Files.newOutputStream(path, CREATE, WRITE, APPEND);
+        return csvFactory.createGenerator(out);
     }
 
     @Override
-    protected void writeItem(CsvListWriter writer, Tuple item) throws IOException {
-        if (cellProcessor == null) {
-            writer.write(item.getValues());
-        } else {
-            CellProcessor[] cellProcessors = cellProcessorCache.get(item.getArity());
-            if (cellProcessors == null) {
-                cellProcessors = new CellProcessor[item.getArity()];
-                Arrays.fill(cellProcessors, cellProcessor);
-                cellProcessorCache.put(item.getArity(),cellProcessors); //every thread will do the same thing, so ignore race conditions
+    protected void writeItem(CsvGenerator gen, Tuple item) throws IOException {
+        gen.writeStartArray();
+        Object[] values = item.getValues();
+
+        // if not for null checks, could simplify a bit; maybe in future will have this in CsvGenerator
+        for (Object value : item.getValues()) {
+            if (value == null) {
+                if (convertNullTo != null) {
+                    gen.writeString(convertNullTo);
+                } else {
+                    gen.writeNull();
+                }
+            } else if (value instanceof Boolean) {
+                gen.writeBoolean(((Boolean) value).booleanValue());
+            } else { // no point in distinguishing numbers etc; all end up as Strings anyway
+                gen.writeString(value.toString());
             }
-            //Don't use ImmutableList.copyOf because ImmutableList does not allow null elements !
-            writer.write(Lists.newArrayList(item.getValues()),cellProcessors);
         }
+        gen.writeEndArray();
     }
 }

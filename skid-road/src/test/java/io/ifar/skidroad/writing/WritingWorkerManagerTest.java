@@ -46,6 +46,7 @@ public class WritingWorkerManagerTest {
     public void setup() throws Exception {
         tracker = new TransientLogFileTracker();
         rollingScheme = new ManualRollingScheme();
+
         factory = new DummyWritingWorkerFactory<>();
         manager = new WritingWorkerManager<>(
                 rollingScheme,

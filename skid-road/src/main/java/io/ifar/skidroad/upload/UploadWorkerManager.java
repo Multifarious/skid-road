@@ -76,16 +76,12 @@ public class UploadWorkerManager implements LogFileStateListener {
      * @param maxConcurrentWork Size of thread pool executing the workers.
      * @param unhealthyQueueDepthThreshold HealthCheck returns unhealthy when work queue reaches this size.
      */
-    public UploadWorkerManager(UploadWorkerFactory workerFactory, LogFileTracker tracker, int retryIntervalSeconds,
-                               int maxConcurrentWork,  final int unhealthyQueueDepthThreshold)
-    {
+    public UploadWorkerManager(UploadWorkerFactory workerFactory, LogFileTracker tracker, int retryIntervalSeconds, int maxConcurrentWork,  final int unhealthyQueueDepthThreshold) {
         this.workerFactory = workerFactory;
         this.tracker = tracker;
         this.retryIntervalSeconds = retryIntervalSeconds;
         this.maxConcurrentUploads = maxConcurrentWork;
         this.activeFiles = new HashSet<String>();
-
-
 
         this.healthcheck = new HealthCheck() {
             protected Result check() throws Exception {
@@ -174,6 +170,7 @@ public class UploadWorkerManager implements LogFileStateListener {
 
         retryJob = new RetryJob();
         retryJob.startAsync();
+        retryJob.awaitRunning();
         LOG.info("Started {}.", UploadWorkerManager.class.getSimpleName());
     }
 
@@ -181,11 +178,11 @@ public class UploadWorkerManager implements LogFileStateListener {
         LOG.info("Stopping {}.",UploadWorkerManager.class.getSimpleName());
         tracker.removeListener(this);
         if (retryJob != null) {
-            // TODO: Await termination.
             retryJob.stopAsync();
+            retryJob.awaitTerminated();
         }
         this.executor.shutdown();
-        LOG.info("Stopped {}.",UploadWorkerManager.class.getSimpleName());
+        LOG.info("Stopped {}.", UploadWorkerManager.class.getSimpleName());
     }
 
     /**
@@ -281,14 +278,14 @@ public class UploadWorkerManager implements LogFileStateListener {
         }
     }
 
-    private class RetryJob extends AbstractScheduledService {
-
+    public class RetryJob extends AbstractScheduledService
+    {
         @Override
         protected void runOneIteration() throws Exception {
             try {
                 retryOneThenRetryAll();
             } catch (Exception e) {
-                LOG.error("Unexpected exception during retry processing: ({}) {}",
+                LOG.error("Unable to complete retry invocation due to unexpected exception: ({}) {}",
                         e.getClass().getSimpleName(), e.getMessage(), e);
             }
         }

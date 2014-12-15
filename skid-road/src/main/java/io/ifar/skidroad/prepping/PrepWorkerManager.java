@@ -73,13 +73,12 @@ public class PrepWorkerManager implements LogFileStateListener {
      * @param maxConcurrentWork Size of thread pool executing the workers.
      * @param unhealthyQueueDepthThreshold HealthCheck returns unhealthy when work queue reaches this size.
      */
-    public PrepWorkerManager(LogFileTracker tracker, PrepWorkerFactory workerFactory, int retryIntervalSeconds,
-                             int maxConcurrentWork, final int unhealthyQueueDepthThreshold) {
+    public PrepWorkerManager(LogFileTracker tracker, PrepWorkerFactory workerFactory, int retryIntervalSeconds, int maxConcurrentWork, final int unhealthyQueueDepthThreshold) {
         this.tracker = tracker;
         this.workerFactory = workerFactory;
         this.retryIntervalSeconds = retryIntervalSeconds;
         this.maxConcurrentPrepWork = maxConcurrentWork;
-        this.activeFiles = new HashSet<>();
+        this.activeFiles = new HashSet<String>();
 
         this.healthcheck = new HealthCheck() {
             protected Result check() throws Exception {
@@ -162,20 +161,24 @@ public class PrepWorkerManager implements LogFileStateListener {
                 60L, TimeUnit.SECONDS,
                 new LinkedBlockingQueue<Runnable>());
         tracker.addListener(this);
+
         retryJob = new RetryJob();
         retryJob.startAsync();
+        retryJob.awaitRunning();
         LOG.info("Started {}.", PrepWorkerManager.class.getSimpleName());
+
     }
 
     public void stop() {
         LOG.info("Stopping {}.",PrepWorkerManager.class.getSimpleName());
         if (retryJob != null) {
-            // TODO: Await completion.
             retryJob.stopAsync();
+            retryJob.awaitTerminated();
         }
         tracker.removeListener(this);
         this.executor.shutdown();
-        LOG.info("Stopped {}.",PrepWorkerManager.class.getSimpleName());
+        // TODO: Ensure that threads exit.
+        LOG.info("Stopping {}.",PrepWorkerManager.class.getSimpleName());
     }
 
     /**
@@ -276,15 +279,16 @@ public class PrepWorkerManager implements LogFileStateListener {
     }
 
 
-    private class RetryJob extends AbstractScheduledService {
+    public class RetryJob extends AbstractScheduledService
+    {
 
         @Override
         protected void runOneIteration() throws Exception {
             try {
                 retryOneThenRetryAll();
             } catch (Exception e) {
-                LOG.error("Unexpected exception during retry run: ({}) {}",
-                        e.getClass().getSimpleName(), e.getMessage(), e);
+                LOG.error("Unable to complete retry invocation due to unexpected exception: ({}) {}",
+                        e.getClass(), e.getMessage(), e);
             }
         }
 
@@ -292,6 +296,5 @@ public class PrepWorkerManager implements LogFileStateListener {
         protected Scheduler scheduler() {
             return Scheduler.newFixedDelaySchedule(0L, retryIntervalSeconds, TimeUnit.SECONDS);
         }
-
     }
 }

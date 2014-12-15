@@ -12,8 +12,9 @@ import io.ifar.skidroad.prepping.PrepWorkerManager;
 import io.ifar.skidroad.tracking.LogFileTracker;
 
 public class ManagedPrepWorkerManager extends PrepWorkerManager implements Managed {
-    public ManagedPrepWorkerManager(LogFileTracker tracker, PrepWorkerFactory workerFactory, Environment environment,
-                                    int retryIntervalSeconds, int maxConcurrentWork, int unhealthyQueueDepthThreshold) {
+    public ManagedPrepWorkerManager(LogFileTracker tracker, PrepWorkerFactory workerFactory,  Environment environment,
+                                    int retryIntervalSeconds, int maxConcurrentWork, int unhealthyQueueDepthThreshold)
+    {
         super(tracker, workerFactory, retryIntervalSeconds, maxConcurrentWork, unhealthyQueueDepthThreshold);
 
         environment.metrics().register(MetricRegistry.name(PrepWorkerManager.class, "prep_errors", "errors"), this.errorMeter);

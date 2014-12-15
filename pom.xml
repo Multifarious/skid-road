@@ -7,7 +7,7 @@
 
     <groupId>io.ifar.skid-road</groupId>
     <artifactId>skid-road-parent</artifactId>
-    <version>7-SNAPSHOT</version>
+    <version>9-SNAPSHOT</version>
     <packaging>pom</packaging>
     <developers>
         <developer>
@@ -37,17 +37,20 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <dropwizard.version>0.7.1</dropwizard.version>
-        <slf4j.version>1.7.7</slf4j.version> <!-- Same as DW 0.7.1 -->
-        <logback.version>1.1.2</logback.version> <!-- Same as Dropwizard 0.7.1 -->
+        <dropwizard.version>0.8.0-rc1</dropwizard.version>
+        <metrics.version>3.1.0</metrics.version>
+        <slf4j.version>1.7.7</slf4j.version> <!-- Same as Dropwizard 0.8.0-rc1 -->
+        <logback.version>1.1.2</logback.version> <!-- Same as Dropwizard 0.8.0-rc1 -->
+        <guava.version>18.0</guava.version> <!-- Same as Dropwizard 0.8.0-rc1 -->
+        <joda-time.version>2.5</joda-time.version> <!-- Same as Dropwizard 0.8.0-rc1 -->
+        <jdbi.version>2.55</jdbi.version> <!-- Same as Dropwizard 0.8.0-rc1 -->
+        <jackson.version>2.4.4</jackson.version> <!-- Later than Dropwizard 0.8.0-rc1, but should be ok -->
     </properties>
 
     <modules>
         <module>skid-road</module>
         <module>skid-road-dropwizard</module>
         <module>skid-road-jdbi</module>
-        <module>skid-road-dynamodb</module>
-        <module>skid-road-jersey</module>
         <module>skid-road-examples</module>
     </modules>
 
@@ -68,22 +71,17 @@
                 <artifactId>skid-road-jdbi</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <dependency>
-                <groupId>io.ifar.skid-road</groupId>
-                <artifactId>skid-road-jersey</artifactId>
-                <version>${project.version}</version>
-            </dependency>
 
             <dependency>
                 <groupId>com.amazonaws</groupId>
                 <artifactId>aws-java-sdk</artifactId>
-                <version>1.9.0</version>
+                <version>1.9.11</version>
             </dependency>
 
             <dependency>
-                <groupId>com.sun.jersey</groupId>
+                <groupId>org.glassfish.jersey.core</groupId>
                 <artifactId>jersey-server</artifactId>
-                <version>1.18.1</version> <!-- matches DW. -->
+                <version>2.13</version> <!-- matches DW. -->
             </dependency>
 
             <dependency>
@@ -109,38 +107,58 @@
             <dependency>
                 <groupId>org.joda</groupId>
                 <artifactId>joda-convert</artifactId>
-                <version>1.2</version>
+                <version>1.7</version>
             </dependency>
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>17.0</version> <!-- same as Dropwizard 0.7.1 -->
+                <version>${guava.version}</version>
             </dependency>
             <dependency>
                 <groupId>joda-time</groupId>
                 <artifactId>joda-time</artifactId>
-                <version>2.4</version> <!-- same as Dropwizard 0.7.1 -->
+                <version>${joda-time.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.codahale.metrics</groupId>
+                <groupId>io.dropwizard.metrics</groupId>
                 <artifactId>metrics-core</artifactId>
-                <version>3.0.2</version> <!-- same as Dropwizard 0.7.1 -->
+                <version>${metrics.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.codahale.metrics</groupId>
+                <groupId>io.dropwizard.metrics</groupId>
                 <artifactId>metrics-healthchecks</artifactId>
-                <version>3.0.2</version> <!-- same as Dropwizard 0.7.1 -->
+                <version>${metrics.version}</version>
             </dependency>
             <dependency>
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
                 <version>2.4</version>
             </dependency>
+
+            <!-- we just need CSV; but since DW needs other parts, need to ensure
+                 compatible versions of components
+              -->
             <dependency>
-            	<groupId>net.sf.supercsv</groupId>
-            	<artifactId>super-csv</artifactId>
-            	<version>2.1.0</version>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson.version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-annotations</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.dataformat</groupId>
+                <artifactId>jackson-dataformat-csv</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>jcl-over-slf4j</artifactId>
@@ -174,25 +192,30 @@
             <dependency>
                 <groupId>org.jdbi</groupId>
                 <artifactId>jdbi</artifactId>
-                <version>2.55</version> <!-- Same as Dropwizard 0.7.1  -->
+                <version>${jdbi.version}</version>
             </dependency>
 
             <dependency>
+                <groupId>org.quartz-scheduler</groupId>
+                <artifactId>quartz</artifactId>
+                <version>2.1.7</version>
+            </dependency>
+            <dependency>
                 <groupId>org.bouncycastle</groupId>
                 <artifactId>bcprov-jdk15on</artifactId>
-                <version>1.48</version>
+                <version>1.51</version>
             </dependency>
 
             <dependency>
                 <groupId>io.ifar.dw-goodies</groupId>
                 <artifactId>dw-goodies</artifactId>
-                <version>2</version>
+                <version>3</version>
             </dependency>
 
             <dependency>
                 <groupId>com.google.code.findbugs</groupId>
                 <artifactId>jsr305</artifactId>
-                <version>2.0.1</version>
+                <version>3.0.0</version>
             </dependency>
 
             <dependency>

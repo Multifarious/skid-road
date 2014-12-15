@@ -28,29 +28,27 @@ public class CleanupManager {
     private final int minAgeHours;
     private final int maxAgeHours;
 
-
     protected Counter deletedFilesCounter = new Counter();
     private CleanupJob cleanupJob;
 
-    public CleanupManager(LogFileTracker tracker, int minAgeHours, int maxAgeHours) {
+    public CleanupManager(LogFileTracker tracker,  int minAgeHours, int maxAgeHours) {
         this.tracker = tracker;
         this.minAgeHours = minAgeHours;
         this.maxAgeHours = maxAgeHours;
     }
 
     public void start() {
-        Map<String,Object> config = new HashMap<>(1);
-        LOG.info("Starting {}.",CleanupManager.class.getSimpleName());
         cleanupJob = new CleanupJob();
         cleanupJob.startAsync();
-        LOG.info("Started {}.",CleanupManager.class.getSimpleName());
+        cleanupJob.awaitRunning();
+        LOG.info("{} started.",CleanupManager.class.getSimpleName());
     }
 
     public void stop() {
         LOG.info("Stopping {}.", CleanupManager.class.getSimpleName());
         if (cleanupJob != null) {
             cleanupJob.stopAsync();
-
+            cleanupJob.awaitTerminated();
         }
         LOG.info("Stopped {}.", CleanupManager.class.getSimpleName());
     }
@@ -80,16 +78,23 @@ public class CleanupManager {
         LOG.info("Done sweeping for old uploaded files; removed {} this pass.",removed);
     }
 
+    public class CleanupJob extends AbstractScheduledService
+    {
 
-    private class CleanupJob extends AbstractScheduledService {
         @Override
         protected void runOneIteration() throws Exception {
-            sweep();
+            try {
+                sweep();
+            } catch (Exception e) {
+                LOG.error("Unable to complete cleanup invocation due to unexpected exception: ({}) {}",
+                        e.getClass(), e.getMessage(), e);
+            }
         }
 
         @Override
         protected Scheduler scheduler() {
-            return Scheduler.newFixedDelaySchedule(1L, 15L, TimeUnit.MINUTES);
+            // TODO: Pull this out as a configuration property.
+            return Scheduler.newFixedDelaySchedule(0L, 15, TimeUnit.MINUTES);
         }
     }
 

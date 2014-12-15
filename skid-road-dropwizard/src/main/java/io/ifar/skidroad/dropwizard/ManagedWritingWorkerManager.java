@@ -17,7 +17,7 @@ import io.ifar.skidroad.writing.file.Serializer;
 public class ManagedWritingWorkerManager<T> extends WritingWorkerManager<T> implements Managed {
 
     public ManagedWritingWorkerManager(FileRollingScheme rollingScheme, LogFileTracker tracker,
-                                       WritingWorkerFactory<T> factory,  Environment environment, int pruneIntervalSeconds,
+                                       WritingWorkerFactory<T> factory, Environment environment, int pruneIntervalSeconds,
                                        int spawnThreshold, int unhealthyThreshold) {
         super(rollingScheme,tracker,factory,pruneIntervalSeconds,spawnThreshold,unhealthyThreshold);
 
@@ -48,13 +48,17 @@ public class ManagedWritingWorkerManager<T> extends WritingWorkerManager<T> impl
     }
 
     public static <T> ManagedWritingWorkerManager<T> build(LogFileTracker tracker, Serializer<T> serializer,
-                                                           SkidRoadConfiguration skidRoadConfiguration, Environment environment) {
+                                                           SkidRoadConfiguration skidRoadConfiguration,
+                                                           Environment environment) {
         return build(tracker, serializer, skidRoadConfiguration.getRequestLogWriterConfiguration(), environment);
 
     }
 
     public static <T extends Tuple> ManagedWritingWorkerManager<T> buildCSV(LogFileTracker tracker,
-                                                                            String nullRepresentation, RequestLogWriterConfiguration logConf, Environment environment) {
+                                                                            String nullRepresentation,
+                                                                            RequestLogWriterConfiguration logConf,
+                                                                            Environment environment)
+    {
         FileRollingScheme rollingScheme = getFileRollingScheme(logConf);
         int pruneIntervalSeconds = 5;
         WritingWorkerFactory<T> workerFactory = new CSVWritingWorkerFactory<T>(nullRepresentation, logConf.getFileFlushIntervalSeconds());

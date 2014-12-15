@@ -295,9 +295,9 @@ public class WritingWorkerManager<T> {
 
         //On startup, look for database records that were left hanging and tidy up.
         cleanStaleEntries();
-
-        pruneJob = new PruneJob(this.getClass().getSimpleName()+"_prune_"+instanceCounter.incrementAndGet());
+        pruneJob = new PruneJob();
         pruneJob.startAsync();
+        pruneJob.awaitRunning();
         LOG.info("Started {}.",WritingWorkerManager.class.getSimpleName());
     }
 
@@ -324,12 +324,13 @@ public class WritingWorkerManager<T> {
 
     public void stop() throws InterruptedException {
         LOG.info("Stopping {}.",WritingWorkerManager.class.getSimpleName());
+        pruneJob.stopAsync();
+        pruneJob.awaitTerminated();
+
         //I believe the DropWizard lifecycle is:
         //stop taking requests, then shutdown the Managed resources in reverse-startup
         //order. In this case, the way to do a graceful shutdown is to wait for the queues
         //to drain before shutting down the workers.
-        pruneJob.stopAsync();
-        // TODO: await termination.
         int remainingItems = Integer.MAX_VALUE;
         while (remainingItems > 0) {
             remainingItems = 0;
@@ -368,27 +369,16 @@ public class WritingWorkerManager<T> {
         return result;
     }
 
-    private class PruneJob extends AbstractScheduledService {
-
-        private final String name;
-
-        public PruneJob(String name) {
-            super();
-            this.name = name;
-        }
-
-        @Override
-        protected String serviceName() {
-            return name;
-        }
+    public class PruneJob extends AbstractScheduledService
+    {
 
         @Override
         protected void runOneIteration() throws Exception {
             try {
                 prune();
             } catch (Exception e) {
-                LOG.error("Unexpected exception during pruning: ({}) {}",
-                        e.getClass().getSimpleName(), e.getMessage(), e);
+                LOG.error("Unable to complete prune invocation due to unexpected exception: ({}) {}",
+                        e.getClass(), e.getMessage(), e);
             }
         }
 
@@ -396,6 +386,5 @@ public class WritingWorkerManager<T> {
         protected Scheduler scheduler() {
             return Scheduler.newFixedDelaySchedule(0L, pruneIntervalSeconds, TimeUnit.SECONDS);
         }
-
     }
 }
