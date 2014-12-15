@@ -20,7 +20,6 @@
             <groupId>io.ifar.skid-road</groupId>
             <artifactId>skid-road-dropwizard</artifactId>
         </dependency>
-
         <dependency>
             <groupId>commons-lang</groupId>
             <artifactId>commons-lang</artifactId>
@@ -57,7 +56,7 @@
         <dependency>
             <groupId>io.ifar.dw-goodies</groupId>
             <artifactId>dw-goodies</artifactId>
-        </dependency>git stat
+        </dependency>
 
         <dependency>
             <groupId>org.hsqldb</groupId>
