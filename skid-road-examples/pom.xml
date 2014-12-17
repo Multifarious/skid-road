@@ -57,7 +57,7 @@
         <dependency>
             <groupId>io.ifar.dw-goodies</groupId>
             <artifactId>dw-goodies</artifactId>
-        </dependency>git stat
+        </dependency>
 
         <dependency>
             <groupId>org.hsqldb</groupId>
