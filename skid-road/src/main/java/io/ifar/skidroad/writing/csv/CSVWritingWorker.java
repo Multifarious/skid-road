@@ -26,45 +26,41 @@ public class CSVWritingWorker<T extends Tuple> extends AbstractWritingWorker<Csv
      */
     private final static CsvSchema CSV_SCHEMA =
             CsvSchema.emptySchema()
-            .withoutHeader()
-            .withoutEscapeChar()
-            .withQuoteChar('"')
-            .withColumnSeparator(',')
-            .withLineSeparator("\r\n")
-    ;
+                    .withNullValue("\\N")
+                    .withoutHeader()
+                    .withoutEscapeChar()
+                    .withQuoteChar('"')
+                    .withColumnSeparator(',')
+                    .withLineSeparator("\r\n");
 
     private final static CsvFactory csvFactory = new CsvFactory();
+    private final CsvSchema schema;
 
-    protected final String convertNullTo;
-
-    public CSVWritingWorker(final BlockingQueue<T> queue, final LogFile logFileRecord, final int maxFlushIntervalSeconds, final String nullRepresentation, final LogFileTracker tracker) {
+    public CSVWritingWorker(final BlockingQueue<T> queue, final LogFile logFileRecord, final int maxFlushIntervalSeconds,
+                            final String nullRepresentation, final LogFileTracker tracker)
+    {
         super(queue, logFileRecord, maxFlushIntervalSeconds, tracker);
-        if (nullRepresentation == null || "".equals(nullRepresentation)) {
-            convertNullTo = null;
+        if (nullRepresentation != null) {
+            schema = CSV_SCHEMA.rebuild().setNullValue(nullRepresentation).build();
         } else {
-            convertNullTo = nullRepresentation;
+            schema = CSV_SCHEMA;
         }
     }
 
     @Override
     protected CsvGenerator openForWriting(Path path) throws IOException {
         OutputStream out = Files.newOutputStream(path, CREATE, WRITE, APPEND);
-        return csvFactory.createGenerator(out);
+        CsvGenerator generator = csvFactory.createGenerator(out);
+        generator.setSchema(schema);
+        return generator;
     }
 
     @Override
     protected void writeItem(CsvGenerator gen, Tuple item) throws IOException {
         gen.writeStartArray();
-        Object[] values = item.getValues();
-
-        // if not for null checks, could simplify a bit; maybe in future will have this in CsvGenerator
         for (Object value : item.getValues()) {
             if (value == null) {
-                if (convertNullTo != null) {
-                    gen.writeString(convertNullTo);
-                } else {
-                    gen.writeNull();
-                }
+                gen.writeNull();
             } else if (value instanceof Boolean) {
                 gen.writeBoolean(((Boolean) value).booleanValue());
             } else { // no point in distinguishing numbers etc; all end up as Strings anyway
