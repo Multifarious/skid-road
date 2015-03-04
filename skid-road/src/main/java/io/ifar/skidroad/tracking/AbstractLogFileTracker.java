@@ -80,6 +80,7 @@ public abstract class AbstractLogFileTracker implements LogFileTracker {
 
     abstract protected int recordStateChange(LogFile logFile);
 
+    // TODO: Record contract that bytes are non-null at this point.
     abstract protected int updateSize(LogFile logFile);
 
     private void logIfBadRowCount(int rows, LogFile logFile, String actionDescription) {

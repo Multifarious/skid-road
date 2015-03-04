@@ -4,6 +4,7 @@ import com.google.common.base.Joiner;
 import io.ifar.skidroad.tracking.LogFileState;
 import org.joda.time.DateTime;
 
+import javax.annotation.Nullable;
 import java.net.URI;
 import java.nio.file.Path;
 
@@ -175,20 +176,47 @@ public class LogFile {
         if (archiveGroup != null ? !archiveGroup.equals(logFile.archiveGroup) : logFile.archiveGroup != null)
             return false;
         if (archiveKey != null ? !archiveKey.equals(logFile.archiveKey) : logFile.archiveKey != null) return false;
-        if (archiveURI != null ? !archiveURI.equals(logFile.archiveURI) : logFile.archiveURI != null) return false;
+
+        if (!nullTolerantUriEquals(archiveURI, logFile.archiveURI)) {
+            return false;
+        }
+
         if (byteSize != null ? !byteSize.equals(logFile.byteSize) : logFile.byteSize != null) return false;
-        if (createdAt != null ? !createdAt.equals(logFile.createdAt) : logFile.createdAt != null) return false;
+        if (!nullTolerantTimezoneIgnorantDateTimeEquals(createdAt, logFile.createdAt)) {
+            return false;
+        }
+
         if (originPath != null ? !originPath.equals(logFile.originPath) : logFile.originPath != null) return false;
-        if (ownerURI != null ? !ownerURI.equals(logFile.ownerURI) : logFile.ownerURI != null) return false;
+        if (!nullTolerantUriEquals(ownerURI, logFile.ownerURI)) {
+            return false;
+        }
+
         if (prepPath != null ? !prepPath.equals(logFile.prepPath) : logFile.prepPath != null) return false;
         if (rollingCohort != null ? !rollingCohort.equals(logFile.rollingCohort) : logFile.rollingCohort != null)
             return false;
         if (serial != null ? !serial.equals(logFile.serial) : logFile.serial != null) return false;
-        if (startTime != null ? !startTime.equals(logFile.startTime) : logFile.startTime != null) return false;
-        if (state != logFile.state) return false;
-        if (updatedAt != null ? !updatedAt.equals(logFile.updatedAt) : logFile.updatedAt != null) return false;
+        if (!nullTolerantTimezoneIgnorantDateTimeEquals(startTime, logFile.startTime)) {
+            return false;
+        }
 
-        return true;
+        if (state != logFile.state) return false;
+        return nullTolerantTimezoneIgnorantDateTimeEquals(updatedAt, logFile.updatedAt);
+    }
+
+    private static boolean nullTolerantUriEquals(@Nullable URI left, @Nullable URI right) {
+        if (left == null || right == null) {
+            return left == right;
+        } else {
+            return left.toASCIIString().equals(right.toASCIIString());
+        }
+    }
+
+    private static boolean nullTolerantTimezoneIgnorantDateTimeEquals(@Nullable DateTime left, @Nullable DateTime right) {
+        if (left == null || right == null) {
+            return left == right;
+        } else {
+            return left.getMillis() == right.getMillis();
+        }
     }
 
     @Override
