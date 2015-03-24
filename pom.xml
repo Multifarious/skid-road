@@ -7,7 +7,7 @@
 
     <groupId>io.ifar.skid-road</groupId>
     <artifactId>skid-road-parent</artifactId>
-    <version>9</version>
+    <version>10-SNAPSHOT</version>
     <packaging>pom</packaging>
     <developers>
         <developer>
@@ -19,7 +19,7 @@
     <scm>
         <url>https://github.com/Multifarious/skid-road</url>
         <developerConnection>scm:git:git@github.com:Multifarious/skid-road.git</developerConnection>
-        <tag>skid-road-parent-9</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <organization>
