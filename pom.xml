@@ -37,14 +37,14 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <dropwizard.version>0.8.0-rc2</dropwizard.version>
-        <metrics.version>3.1.0</metrics.version>
-        <slf4j.version>1.7.7</slf4j.version> <!-- Same as Dropwizard 0.8.0-rc1 -->
-        <logback.version>1.1.2</logback.version> <!-- Same as Dropwizard 0.8.0-rc1 -->
-        <guava.version>18.0</guava.version> <!-- Same as Dropwizard 0.8.0-rc1 -->
-        <joda-time.version>2.5</joda-time.version> <!-- Same as Dropwizard 0.8.0-rc1 -->
-        <jdbi.version>2.55</jdbi.version> <!-- Same as Dropwizard 0.8.0-rc1 -->
-        <jackson.version>2.5.0</jackson.version> <!-- Later than Dropwizard 0.8.0-rc1, but should be ok -->
+        <dropwizard.version>0.8.0</dropwizard.version>
+        <metrics.version>3.1.1</metrics.version> <!-- Same as Dropwizard 0.8.0 -->
+        <slf4j.version>1.7.10</slf4j.version> <!-- Same as Dropwizard 0.8.0 -->
+        <logback.version>1.1.2</logback.version> <!-- Same as Dropwizard 0.8.0 -->
+        <guava.version>18.0</guava.version> <!-- Same as Dropwizard 0.8.0 -->
+        <joda-time.version>2.7</joda-time.version> <!-- Same as Dropwizard 0.8.0 -->
+        <jdbi.version>2.59</jdbi.version> <!-- Same as Dropwizard 0.8.0 -->
+        <jackson.version>2.5.1</jackson.version> <!-- Later than Dropwizard 0.8.0, but should be ok -->
     </properties>
 
     <modules>
@@ -209,7 +209,7 @@
             <dependency>
                 <groupId>io.ifar.dw-goodies</groupId>
                 <artifactId>dw-goodies</artifactId>
-                <version>3</version>
+                <version>5</version>
             </dependency>
 
             <dependency>
