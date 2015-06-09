@@ -51,6 +51,7 @@
         <module>skid-road</module>
         <module>skid-road-dropwizard</module>
         <module>skid-road-jdbi</module>
+        <module>skid-road-jersey</module>
         <module>skid-road-examples</module>
     </modules>
 
